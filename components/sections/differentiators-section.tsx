@@ -36,7 +36,7 @@ export function DifferentiatorsSection() {
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-50"
         style={{
-          backgroundImage: "url('/white-sheep-worshipping-black-sheep-king.jpg')",
+          backgroundImage: "url('/dark-futuristic-warehouse-with-giant-kraken-tentac.png')",
         }}
       />
       <div className="absolute inset-0 bg-gradient-to-br from-background/70 via-background/65 to-primary/10">

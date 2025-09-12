@@ -86,7 +86,7 @@ export function HeroSection({ isVisible }: HeroSectionProps) {
       >
         <div
           className="w-170 h-170 mx-auto mb-4 bg-cover bg-center bg-no-repeat opacity-80"
-          style={{ backgroundImage: "url('/wms4.png')" }}
+          style={{ backgroundImage: "url('/kraken6.png')" }}
         />
 
         <Badge className="mb-6 bg-primary/20 text-primary border-primary/30 hover:bg-primary/30 transition-colors glass-effect micro-bounce quantum-button">

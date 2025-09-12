@@ -461,26 +461,7 @@ function HighlightsSection() {
       </div>
 
       <div className="container mx-auto px-4 relative z-10">
-        <div className="mb-20 scroll-reveal">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 backdrop-blur-sm mb-6">
-              <Move3D className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium text-primary">Navegación Interactiva</span>
-            </div>
-            <h2 className="text-4xl md:text-6xl font-bold mb-6 text-balance">
-              Explora tu{" "}
-              <span className="bg-gradient-to-r from-primary via-purple-400 to-violet-400 bg-clip-text text-transparent animate-gradient-x">
-                almacén digital
-              </span>
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-4xl mx-auto text-pretty leading-relaxed mb-12">
-              Navega por un almacén 3D interactivo y descubre cómo KRKN transforma cada zona de tu operación
-            </p>
-          </div>
-
-          <Interactive3DWarehouse />
-        </div>
-
+    
         <div className="text-center mb-16 scroll-reveal">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 backdrop-blur-sm mb-6">
             <Sparkles className="w-4 h-4 text-primary animate-pulse" />
