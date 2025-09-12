@@ -23,6 +23,12 @@ export function HeroSection({ isVisible }: HeroSectionProps) {
 
   return (
     <section className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 plasma-background">
+      <div className="absolute top-6 right-6 z-20">
+        <span className="text-muted-foreground/60 text-sm hover:text-muted-foreground/80 transition-colors cursor-pointer">
+          Inicia Sesión
+        </span>
+      </div>
+
       <div className="absolute inset-0">
         <img
           src="/dark-futuristic-warehouse-with-giant-kraken-tentac.png"
@@ -78,6 +84,11 @@ export function HeroSection({ isVisible }: HeroSectionProps) {
       <div
         className={`relative z-10 text-center max-w-4xl mx-auto transition-all duration-1000 cinematic-entrance ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
       >
+        <div
+          className="w-170 h-170 mx-auto mb-4 bg-cover bg-center bg-no-repeat opacity-80"
+          style={{ backgroundImage: "url('/wms4.png')" }}
+        />
+
         <Badge className="mb-6 bg-primary/20 text-primary border-primary/30 hover:bg-primary/30 transition-colors glass-effect micro-bounce quantum-button">
           black_sheep®
         </Badge>
