@@ -1,3 +1,4 @@
+// app/components/company-access-modal.tsx
 "use client"
 
 import type React from "react"
@@ -18,9 +19,10 @@ export function CompanyAccessModal({ isOpen, onClose }: CompanyAccessModalProps)
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (companyCode.toLowerCase() === "gouman") {
-      // Redirect to login page
-window.location.href = "/login"    } else {
+    if (companyCode.toLowerCase() /*=== "gouman"*/) {
+      const code = companyCode.toLowerCase().trim()
+      window.location.href = `http://${code}.krkn.mx/login`
+    } else {
       setError("Código de empresa incorrecto. Intenta nuevamente.")
     }
   }
