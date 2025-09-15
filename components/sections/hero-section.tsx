@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ArrowRight } from "lucide-react"
 import { useEffect, useState } from "react"
+import { CompanyAccessModal } from "../company-access-modal"
 
 interface HeroSectionProps {
   isVisible: boolean
@@ -11,6 +12,7 @@ interface HeroSectionProps {
 
 export function HeroSection({ isVisible }: HeroSectionProps) {
   const [dataStreams, setDataStreams] = useState<Array<{ left: string; delay: string }>>([])
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   useEffect(() => {
     // Generate random positions and delays only on client-side
@@ -24,7 +26,10 @@ export function HeroSection({ isVisible }: HeroSectionProps) {
   return (
     <section className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 plasma-background">
       <div className="absolute top-6 right-6 z-20">
-        <span className="text-muted-foreground/60 text-sm hover:text-muted-foreground/80 transition-colors cursor-pointer">
+        <span
+          className="text-muted-foreground/60 text-md hover:text-muted-foreground/80 transition-colors cursor-pointer"
+          onClick={() => setIsModalOpen(true)}
+        >
           Inicia Sesión
         </span>
       </div>
@@ -135,6 +140,8 @@ export function HeroSection({ isVisible }: HeroSectionProps) {
           </Button>
         </div>
       </div>
+
+      <CompanyAccessModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </section>
   )
 }

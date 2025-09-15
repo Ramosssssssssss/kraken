@@ -9,7 +9,6 @@ import { HighlightsSection } from "@/components/sections/highlights-section"
 import { DifferentiatorsSection } from "@/components/sections/differentiators-section"
 import { ContactSection } from "@/components/sections/contact-section"
 import { FooterSection } from "@/components/sections/footer-section"
-
 export default function KRKNLanding() {
   const [isVisible, setIsVisible] = useState(false)
   const [scrollY, setScrollY] = useState(0)
@@ -53,6 +52,7 @@ export default function KRKNLanding() {
       <BenefitsSection />
       <HowItWorksSection />
       <PricingSection />
+
       <HighlightsSection />
       <DifferentiatorsSection />
       <ContactSection />

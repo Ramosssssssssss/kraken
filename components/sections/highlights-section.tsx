@@ -357,8 +357,8 @@ function HighlightsSection() {
 
   const apps = [
     {
-      id: "picking",
-      name: "KRKN Picking",
+      id: "recibo",
+      name: "Recibo",
       icon: Package,
       color: "from-primary/30 to-primary/10",
       description:
@@ -377,8 +377,8 @@ function HighlightsSection() {
       stats: { efficiency: "+45%", errors: "-78%", time: "-32%" },
     },
     {
-      id: "packing",
-      name: "KRKN Packing",
+      id: "acomodo",
+      name: "Acomodo",
       icon: Truck,
       color: "from-purple-600/30 to-purple-600/10",
       description: "Automatización completa del proceso de empaque y envío con algoritmos de optimización espacial",
@@ -396,8 +396,8 @@ function HighlightsSection() {
       stats: { speed: "+60%", accuracy: "+95%", cost: "-25%" },
     },
     {
-      id: "analytics",
-      name: "KRKN Analytics",
+      id: "picking",
+      name: "Picking",
       icon: BarChart3,
       color: "from-violet-600/30 to-violet-600/10",
       description: "Dashboard ejecutivo con insights predictivos y KPIs avanzados para toma de decisiones estratégicas",
@@ -410,8 +410,22 @@ function HighlightsSection() {
       stats: { insights: "+200%", decisions: "+85%", roi: "+150%" },
     },
     {
-      id: "security",
-      name: "KRKN Security",
+      id: "packing",
+      name: "Packing",
+      icon: Shield,
+      color: "from-indigo-600/30 to-indigo-600/10",
+      description: "Monitoreo y seguridad avanzada para proteger tu operación con tecnología de vanguardia",
+      images: [
+        "https://images.unsplash.com/photo-1563013544-8bd374c3f58b?w=600&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=600&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&h=400&fit=crop",
+      ],
+      features: ["Monitoreo 24/7", "Detección de anomalías", "Control de accesos biométrico", "Auditorías automáticas"],
+      stats: { security: "+99.9%", incidents: "-90%", compliance: "100%" },
+    },
+    {
+      id: "despacho",
+      name: "Despacho",
       icon: Shield,
       color: "from-indigo-600/30 to-indigo-600/10",
       description: "Monitoreo y seguridad avanzada para proteger tu operación con tecnología de vanguardia",
@@ -509,9 +523,9 @@ function HighlightsSection() {
                 />
               ))}
             </div>
-
+{/* Diseño de modulos */}
             <div className="relative h-full flex items-center justify-center">
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 p-8">
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-6 p-8">
                 {apps.map((app, index) => {
                   const IconComponent = app.icon
                   const isActive = activeApp === index

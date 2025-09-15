@@ -50,12 +50,14 @@ export function FooterSection() {
           {/* Brand section */}
           <div className="lg:col-span-2 space-y-6">
             <div className="flex items-center space-x-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center pulse-glow shadow-lg">
-                <span className="text-2xl font-black text-primary-foreground">K</span>
-              </div>
+              <div className="w-20 h-20 from-primary to-primary/80 rounded-xl flex items-center justify-center pulse-glow shadow-lg">
+<div
+          className="w-14 h-14 mx-auto mb-1 bg-cover bg-center bg-no-repeat opacity-80"
+          style={{ backgroundImage: "url('/kraken6.png')" }}
+        />              </div>
               <div>
                 <h3 className="text-3xl font-black text-foreground tracking-tight">KRKN</h3>
-                <p className="text-sm text-primary font-semibold tracking-wide">by Black_Sheep Consultancy</p>
+                <p className="text-sm text-primary font-semibold tracking-wide">Powered by black_sheep® </p>
               </div>
             </div>
             <p className="text-muted-foreground text-lg leading-relaxed max-w-lg">
@@ -75,7 +77,7 @@ export function FooterSection() {
                 size="sm"
                 className="border-primary/40 text-primary hover:bg-primary/10 hover:border-primary/60 glass-effect quantum-button bg-transparent transition-all duration-300"
               >
-                Twitter
+                Instagram
               </Button>
             </div>
           </div>
@@ -138,25 +140,23 @@ export function FooterSection() {
         <div className="flex flex-col lg:flex-row justify-between items-center space-y-6 lg:space-y-0">
           <div className="flex flex-col md:flex-row items-center space-y-3 md:space-y-0 md:space-x-8">
             <p className="text-muted-foreground text-sm font-medium">
-              © 2024 Black_Sheep Consultancy. Todos los derechos reservados.
+              © 2025 Black Sheep Labs. Todos los derechos reservados.
             </p>
             <div className="flex space-x-6 text-sm">
               <a href="#" className="text-muted-foreground hover:text-primary transition-colors duration-300">
-                Política de Privacidad
+                Aviso de Privacidad
               </a>
               <a href="#" className="text-muted-foreground hover:text-primary transition-colors duration-300">
-                Términos de Servicio
+                Términos y Condiciones del Servicio
               </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors duration-300">
-                Cookies
-              </a>
+              
             </div>
           </div>
 
           <div className="flex items-center space-x-3 text-sm text-muted-foreground">
-            <span>Desarrollado con</span>
+            <span>Powered by black_sheep®</span>
             <div className="w-4 h-4 bg-gradient-to-r from-primary to-primary/80 rounded-full animate-pulse shadow-sm" />
-            <span className="font-medium">en México</span>
+            <span className="font-medium">México</span>
           </div>
         </div>
       </div>

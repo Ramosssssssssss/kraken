@@ -27,17 +27,17 @@ export function PricingSection() {
     {
       name: "Profesional",
       description: "Ideal para empresas en crecimiento que buscan optimización",
-      monthlyPrice: 1000,
-      annualPrice: 11000,
+      monthlyPrice: 1050,
+      annualPrice: 11550,
       features: [
-        "Todo en Básico +",
-        "Productos ilimitados",
-        "Hasta 10 usuarios",
-        "Optimización de rutas IA",
-        "Múltiples integraciones",
-        "Análisis predictivo",
-        "Soporte prioritario 24/7",
-        "Automatización avanzada",
+        "SIN LÍMITES DE USUARIOS",
+        "Actualizaciones Incluidas",
+        "Recepción (Control de Entradas)",
+        "Picking (Preparación de Pedidos)",
+        "Packing (Empaque y Envío)",
+        "Acomodo (Organización de Inventario)",
+        "Despacho (Gestión de Salidas)",
+        "Integración con ERP (MICROSIP)",
       ],
       cta: "Empezar Prueba",
       popular: true,
@@ -130,7 +130,7 @@ export function PricingSection() {
                   <h3 className="text-2xl font-bold mb-4">{plan.name}</h3>
                   <Lock className="w-16 h-16 text-primary/60 mb-4" />
                   <p className="text-xl font-semibold text-primary mb-2">Próximamente...</p>
-                  <p className="text-muted-foreground text-sm">Estamos trabajando en esta increíble opción para ti</p>
+                  <p className="text-muted-foreground text-sm">Aprovecha el plan PROFESIONAL antes de que cambien las condiciones</p>
                 </div>
               ) : (
                 <>
@@ -149,7 +149,7 @@ export function PricingSection() {
                       </div>
                       {isAnnual && (
                         <p className="text-sm text-primary mt-1">
-                          Ahorra un 1 gratis al año
+                          Ahorra un 1 mes gratis al año
                         </p>
                       )}
                     </div>

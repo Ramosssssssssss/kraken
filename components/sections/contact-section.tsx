@@ -15,7 +15,7 @@ export function ContactSection() {
         <div className="text-center scroll-reveal">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-balance">¿Listo para transformar tu almacén?</h2>
           <p className="text-lg text-muted-foreground mb-12 max-w-2xl mx-auto text-pretty">
-            Déjanos tus datos y un especialista te contactará para una demo personalizada
+            Déjanos tus datos y un consultor te contactará para una demo personalizada
           </p>
 
           <Card className="max-w-2xl mx-auto bg-card/80 border-primary/20 glass-effect backdrop-blur-sm">
@@ -72,8 +72,8 @@ export function ContactSection() {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
 
-              <p className="text-xs text-muted-foreground text-center">
-                Al enviar este formulario, aceptas que un especialista de Black_Sheep se ponga en contacto contigo
+              <p className="text-md text-muted-foreground text-center">
+                Al enviar este formulario, aceptas que un especialista de black_sheep® se ponga en contacto contigo
               </p>
             </CardContent>
           </Card>
