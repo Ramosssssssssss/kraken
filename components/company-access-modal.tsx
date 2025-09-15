@@ -17,15 +17,26 @@ export function CompanyAccessModal({ isOpen, onClose }: CompanyAccessModalProps)
   const [error, setError] = useState("")
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
+    setError("");
 
-    if (companyCode.toLowerCase() /*=== "gouman"*/) {
-      const code = companyCode.toLowerCase().trim()
-      window.location.href = `http://${code}.krkn.mx/login`
-    } else {
-      setError("Código de empresa incorrecto. Intenta nuevamente.")
+    const code = companyCode.trim().toLowerCase();
+
+    // Acepta ambos (incluyo "goumam" por si ese era el correcto en tu caso)
+    const allowed = new Set(["demo", "goumam", "fyttsa"]);
+
+    if (!code) {
+      setError("Ingresa un código de empresa.");
+      return;
     }
-  }
+
+    if (allowed.has(code)) {
+      window.location.href = `http://${code}.krkn.mx/login`;
+    } else {
+      setError("Código de empresa incorrecto. Intenta nuevamente.");
+    }
+  };
+
 
   if (!isOpen) return null
 
