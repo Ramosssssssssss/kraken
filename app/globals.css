@@ -1110,3 +1110,10 @@
   z-index: -1;
 }
 /* End of glitch effect animations */
+
+
+@keyframes sheen {
+  0%   { transform: translateX(-120%) rotate(12deg); }
+  50%  { transform: translateX(180%)  rotate(12deg); }
+  100% { transform: translateX(180%)  rotate(12deg); }
+}
