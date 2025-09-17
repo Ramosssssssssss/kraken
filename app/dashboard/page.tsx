@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation" // Added useRouter for navigation
 import {
   User,
   Settings,
@@ -26,6 +27,7 @@ import Image from "next/image"
 export default function Dashboard() {
   const [activeSection, setActiveSection] = useState("Cuenta")
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const router = useRouter() // Added router instance
 
   const menuItems = [
     { name: "Cuenta", icon: User },
@@ -45,6 +47,10 @@ export default function Dashboard() {
     } else {
       setActiveSection(itemName)
     }
+  }
+
+  const handleEtiquetadorClick = () => {
+    router.push("/etiquetador")
   }
 
   const renderContent = () => {
@@ -278,7 +284,10 @@ export default function Dashboard() {
             <div className="bg-black border border-white/20 rounded-lg p-6">
               <h3 className="text-xl font-semibold text-white mb-4">Módulos Activos</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors">
+                <div
+                  onClick={handleEtiquetadorClick}
+                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
+                >
                   <div className="flex items-center justify-between mb-3">
                     <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
                       <Database className="w-5 h-5 text-blue-400" />
@@ -286,15 +295,12 @@ export default function Dashboard() {
                     <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">Activo</span>
                   </div>
                   <h4 className="text-lg font-semibold text-white mb-2">Etiquetador</h4>
-                  <p className="text-sm text-gray-400 mb-3">
-Genera tus propias etiquetas con nuestro etiquetador                  </p>
+                  <p className="text-sm text-gray-400 mb-3">Genera tus propias etiquetas con nuestro etiquetador</p>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-600">v2.1.0</span>
-                    <button className="text-blue-400 hover:text-blue-300 text-sm">Configurar</button>
+                    <span className="text-blue-400 text-sm">Abrir →</span>
                   </div>
                 </div>
-
-               
               </div>
             </div>
 

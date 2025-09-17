@@ -52,10 +52,10 @@ export default function LoginPage() {
             ))}
           </div>
 
-          {/* Fondo */}
+          {/* Fondo fondo7  opcion */}
           <div className="absolute inset-0 flex items-center justify-center">
             <Image
-              src="/111.png"
+              src="octo.png"
               alt="3D Octopus"
               fill
               className="object-cover"
@@ -80,7 +80,7 @@ export default function LoginPage() {
               <div className="text-center space-y-4">
                 <div className="flex justify-center">
                   <Image
-                    src="/gouwhite.png"
+                    src="/logogm.png"
                     alt="Kraken Logo"
                     width={180}
                     height={180}
