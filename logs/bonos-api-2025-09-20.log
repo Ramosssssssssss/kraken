@@ -1,0 +1,65 @@
+[2025-09-19 18:13:10] [INFO] [djxpbia5] GET /api/tamano_etiqueta
+[2025-09-19 18:13:10] [DEBUG] [djxpbia5] Listando todas las etiquetas
+[2025-09-19 18:13:10] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-19 18:13:11] [ERROR] Error conectando a Firebird: I/O error for file "C:\USERS\CELESTE ZENTENO\DOWNLOADS\DISTRIBUIDORAGOUMAM.FDB", Error while trying to open file
+[2025-09-19 18:13:11] [ERROR] Error GET /api/tamano_etiqueta: I/O error for file "C:\USERS\CELESTE ZENTENO\DOWNLOADS\DISTRIBUIDORAGOUMAM.FDB", Error while trying to open file
+[2025-09-19 18:13:11] [DEBUG] Stack: Error: I/O error for file "C:\USERS\CELESTE ZENTENO\DOWNLOADS\DISTRIBUIDORAGOUMAM.FDB", Error while trying to open file
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:232:29)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-19 18:13:11] [INFO] [tv4mtv1k] GET /api/tamano_etiqueta
+[2025-09-19 18:13:11] [DEBUG] [tv4mtv1k] Listando todas las etiquetas
+[2025-09-19 18:13:11] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-19 18:13:11] [ERROR] Error conectando a Firebird: I/O error for file "C:\USERS\CELESTE ZENTENO\DOWNLOADS\DISTRIBUIDORAGOUMAM.FDB", Error while trying to open file
+[2025-09-19 18:13:11] [ERROR] Error GET /api/tamano_etiqueta: I/O error for file "C:\USERS\CELESTE ZENTENO\DOWNLOADS\DISTRIBUIDORAGOUMAM.FDB", Error while trying to open file
+[2025-09-19 18:13:11] [DEBUG] Stack: Error: I/O error for file "C:\USERS\CELESTE ZENTENO\DOWNLOADS\DISTRIBUIDORAGOUMAM.FDB", Error while trying to open file
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:232:29)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-19 18:15:22] [INFO] [0cwx56fg] GET /api/tamano_etiqueta
+[2025-09-19 18:15:22] [DEBUG] [0cwx56fg] Listando todas las etiquetas
+[2025-09-19 18:15:22] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-19 18:15:23] [DEBUG] Consulta OK. Filas: 0
+[2025-09-19 18:15:40] [INFO] [dxhpovkt] Iniciando GET /api/articulos
+[2025-09-19 18:15:40] [DEBUG] [dxhpovkt] q recibido: "1012-010259 22"
+[2025-09-19 18:15:40] [INFO] [dxhpovkt] Solicitud sin token (endpoint público)
+[2025-09-19 18:15:40] [DEBUG] Ejecutando consulta: SELECT FIRST 10 ca.CLAVE_ARTICULO, a.NOMBRE FROM CLAVES_ARTICULOS ca INNER JOIN ARTICULOS a ON a.ARTICULO_ID = ca.ARTICULO_ID WHERE UPPER(ca.CLAVE_ARTICULO) LIKE UPPER(?) OR UPPER(a.NOMBRE) LIKE UPPER(?) ORDER BY a.NOMBRE con parámetros: ["%1012-010259 22%","%1012-010259 22%"]
+[2025-09-19 18:15:41] [ERROR] Error conectando a Firebird: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+[2025-09-19 18:15:41] [ERROR] [dxhpovkt] Error en GET /api/articulos: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+[2025-09-19 18:15:41] [DEBUG] [dxhpovkt] Stack: Error: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:232:29)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)

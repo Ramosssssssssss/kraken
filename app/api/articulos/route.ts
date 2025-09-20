@@ -8,9 +8,9 @@ import * as path from "path"
 // ======== Config ========
 // Recomendado: mover credenciales a variables de entorno
 const fbConfig = {
-  host: process.env.FIREBIRD_HOST || "localhost",
+  host: process.env.FIREBIRD_HOST || "85.215.109.213",
   port: Number(process.env.FIREBIRD_PORT || 3050),
-  database: process.env.FIREBIRD_DATABASE || "C:\\Users\\CELESTE ZENTENO\\Downloads\\DISTRIBUIDORAGOUMAM.FDB",
+  database: process.env.FIREBIRD_DATABASE || "D:\\Microsip datos\\DISTRIBUIDORAGOUMAM.FDB",
   user: process.env.FIREBIRD_USER || "SYSDBA",
   password: process.env.FIREBIRD_PASSWORD || "BlueMamut$23",
 }
