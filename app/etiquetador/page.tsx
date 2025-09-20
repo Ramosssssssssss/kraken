@@ -1,14 +1,14 @@
 // app/page.tsx
 "use client"
 
-import { useState, useEffect, useMemo, useRef } from "react"
+import React, { useState, useEffect, useMemo, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Eye, Settings, Download, Printer, Plus, Trash2, Save, BookOpen, Loader2, AlertCircle } from "lucide-react"
+import { Eye, Settings, Printer, Plus, Trash2, Save, BookOpen, Loader2, AlertCircle, Minus } from "lucide-react"
 
 interface ArticleItem {
   id: string
@@ -48,6 +48,19 @@ type TamanoEtiqueta = {
 // ~96dpi aprox para preview
 const mmToPx = (mm: number) => Math.max(1, Math.round(mm * 3.78))
 
+// Límites físicos
+const MAX_W_MM = 135 // ancho/largo máximo
+const MAX_H_MM = 300 // alto máximo
+
+const clampMm = (mm: number, max: number) =>
+  Number.isFinite(mm) ? Math.max(1, Math.min(max, mm)) : 1
+
+// Evita que el alto de barras exceda el área útil
+const clampBarHeight = (barMm: number, labelH: number, marginMm: number) => {
+  const maxBar = Math.max(4, labelH - marginMm * 2 - 4)
+  return clampMm(barMm, maxBar)
+}
+
 // === Componente de código de barras (preview) ===
 function BarcodeSVG({
   value,
@@ -66,28 +79,145 @@ function BarcodeSVG({
 
   useEffect(() => {
     let mounted = true
-    ;(async () => {
-      const mod: any = await import("jsbarcode")
-      if (!mounted || !ref.current) return
-      const JsBarcode = mod.default || mod
-      try {
-        JsBarcode(ref.current, value, {
-          format,
-          displayValue: false, // sin texto dentro del código en preview
-          font: fontFamily,
-          fontSize: Math.max(8, Math.round(fontSizePx * 0.8)),
-          textMargin: 2,
-          margin: 0,
-        })
-        ref.current.setAttribute("preserveAspectRatio", "none")
-        ref.current.style.width = "100%"
-        ref.current.style.height = `${heightPx}px`
-      } catch {}
-    })()
-    return () => { mounted = false }
+      ; (async () => {
+        const mod: any = await import("jsbarcode")
+        if (!mounted || !ref.current) return
+        const JsBarcode = mod.default || mod
+        try {
+          JsBarcode(ref.current, value, {
+            format,
+            displayValue: false, // sin texto dentro del código en preview
+            font: fontFamily,
+            fontSize: Math.max(8, Math.round(fontSizePx * 0.8)),
+            textMargin: 2,
+            margin: 0,
+          })
+          ref.current.setAttribute("preserveAspectRatio", "none")
+          ref.current.style.width = "100%"
+          ref.current.style.height = `${heightPx}px`
+        } catch { }
+      })()
+    return () => {
+      mounted = false
+    }
   }, [value, format, heightPx, fontFamily, fontSizePx])
 
   return <svg ref={ref} className="barcode-svg" />
+}
+
+// === NumberField con botones + y - (arreglo de doble click/hold) ===
+function NumberField({
+  value,
+  onChange,
+  min = 0,
+  max = Number.MAX_SAFE_INTEGER,
+  step = 1,
+  id,
+  className = "",
+  inputClassName = "",
+  ariaLabel,
+}: {
+  value: string | number
+  onChange: (val: string) => void
+  min?: number
+  max?: number
+  step?: number
+  id?: string
+  className?: string
+  inputClassName?: string
+  ariaLabel?: string
+}) {
+  const holdIntervalRef = useRef<number | null>(null)
+  const holdTimeoutRef = useRef<number | null>(null)
+
+  const clamp = (n: number) => Math.min(max, Math.max(min, n))
+  const parseVal = (v: string | number) => {
+    const n = typeof v === 'number' ? v : parseFloat(v || '0')
+    return Number.isFinite(n) ? n : 0
+  }
+  const roundToStep = (n: number) => {
+    const decimals = Math.max(0, (String(step).split('.')[1] || '').length)
+    const p = Math.pow(10, decimals)
+    return Math.round(n * p) / p
+  }
+  const commit = (n: number) => onChange(String(clamp(roundToStep(n))))
+
+  const bump = (d: 1 | -1) => {
+    const n = parseVal(value)
+    commit(n + d * step)
+  }
+
+  const clearHolds = () => {
+    if (holdIntervalRef.current != null) {
+      window.clearInterval(holdIntervalRef.current)
+      holdIntervalRef.current = null
+    }
+    if (holdTimeoutRef.current != null) {
+      window.clearTimeout(holdTimeoutRef.current)
+      holdTimeoutRef.current = null
+    }
+  }
+
+  const handlePointerDown = (d: 1 | -1) => (e: React.PointerEvent) => {
+    e.preventDefault()
+      ; (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
+    bump(d) // primer incremento inmediato
+    // si se mantiene presionado, comienza auto-repeat después de una pausa
+    holdTimeoutRef.current = window.setTimeout(() => {
+      holdIntervalRef.current = window.setInterval(() => bump(d), 100)
+    }, 350)
+  }
+
+  const handlePointerUp = () => clearHolds()
+  const handlePointerCancel = () => clearHolds()
+  const handlePointerLeave = () => clearHolds()
+
+  useEffect(() => {
+    return () => clearHolds()
+  }, [])
+
+  return (
+    <div className={`flex items-stretch overflow-hidden rounded-md border border-gray-500 bg-gray-700 ${className}`}>
+      <Button
+        type="button"
+        variant="ghost"
+        className="px-3 border-r border-gray-600 rounded-none text-white hover:bg-gray-600"
+        aria-label="disminuir"
+        onPointerDown={handlePointerDown(-1)}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
+        onPointerLeave={handlePointerLeave}
+      >
+        <Minus className="w-4 h-4" />
+      </Button>
+
+      <Input
+        id={id}
+        type="number"
+        inputMode="decimal"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={`no-spin bg-gray-700 border-0 text-white text-center focus-visible:ring-0 ${inputClassName}`}
+        min={min}
+        max={max}
+        step={step}
+        aria-label={ariaLabel}
+      />
+
+      <Button
+        type="button"
+        variant="ghost"
+        className="px-3 border-l border-gray-600 rounded-none text-white hover:bg-gray-600"
+        aria-label="aumentar"
+        onPointerDown={handlePointerDown(1)}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
+        onPointerLeave={handlePointerLeave}
+      >
+        <Plus className="w-4 h-4" />
+      </Button>
+    </div>
+  )
 }
 
 export default function LabelGenerator() {
@@ -123,6 +253,132 @@ export default function LabelGenerator() {
   const [tamanosError, setTamanosError] = useState<string | null>(null)
   const [selectedTamanoId, setSelectedTamanoId] = useState<string>("")
 
+  // ======= IMPORTACIÓN DESDE EXCEL =======
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  type ImportRow = { code: string; copies: number }
+
+  function normalizeRow(obj: any, idx: number): ImportRow | null {
+    const codeKeys = ['codigo', 'código', 'code', 'clave', 'clavearticulo', 'clave_articulo']
+    const copiesKeys = ['copias', 'copies', 'cantidad', 'qty', 'cantidadcopias']
+
+    let code = ''
+    let copiesRaw: any = undefined
+    for (const k of Object.keys(obj)) {
+      const key = String(k).toLowerCase().replace(/\s|_/g, '')
+      if (!code && codeKeys.includes(key)) code = String(obj[k] ?? '').trim()
+      if (copiesRaw == null && copiesKeys.includes(key)) copiesRaw = obj[k]
+    }
+
+    if (!code && (obj.A != null || obj.B != null)) {
+      code = String(obj.A ?? '').trim()
+      copiesRaw = obj.B
+    }
+
+    if (!code) return null
+
+    let copies = Number.parseInt(String(copiesRaw ?? '1'), 10)
+    if (!Number.isFinite(copies) || copies < 1) copies = 1
+    return { code, copies }
+  }
+
+  async function handleExcelFile(file: File) {
+    try {
+      const XLSX = (await import('xlsx')).default ?? (await import('xlsx'))
+      const data = await file.arrayBuffer()
+      const wb = XLSX.read(data, { type: 'array' })
+      const ws = wb.Sheets[wb.SheetNames[0]]
+      if (!ws) throw new Error('La hoja 1 está vacía o no existe.')
+
+      const rowsRaw: any[] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
+      if (rowsRaw.length === 0) throw new Error('No hay datos en el archivo.')
+
+      const asObjects = XLSX.utils.sheet_to_json(ws, { defval: '' }) as any[]
+      const normalizedA = asObjects
+        .map(normalizeRow)
+        .filter((r): r is ImportRow => !!r?.code)
+
+      let normalized = normalizedA
+      if (normalized.length === 0) {
+        const AisHeader = String(rowsRaw[0]?.[0] ?? '').toLowerCase().includes('codigo') ||
+          String(rowsRaw[0]?.[0] ?? '').toLowerCase().includes('código')
+        const startIdx = AisHeader ? 1 : 0
+        const fromAB = rowsRaw.slice(startIdx).map((arr) => {
+          const code = String(arr?.[0] ?? '').trim()
+          const copiesRaw = arr?.[1]
+          if (!code) return null
+          let copies = Number.parseInt(String(copiesRaw ?? '1'), 10)
+          if (!Number.isFinite(copies) || copies < 1) copies = 1
+          return { code, copies } as ImportRow
+        }).filter(Boolean) as ImportRow[]
+        normalized = fromAB
+      }
+
+      if (normalized.length === 0) {
+        throw new Error('No se pudieron interpretar filas válidas (se esperan columnas: código y copias).')
+      }
+
+      mergeImportedArticles(normalized)
+    } catch (err: any) {
+      alert(err?.message || 'Error al leer el archivo.')
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  function mergeImportedArticles(rows: ImportRow[]) {
+    setArticles((prev) => {
+      const byCode = new Map<string, ArticleItem>()
+      for (const a of prev) byCode.set(a.barcode, a)
+
+      const updates: ArticleItem[] = [...prev]
+      for (const r of rows) {
+        const code = r.code.trim()
+        if (!code) continue
+        const copies = Math.max(1, Math.floor(r.copies))
+
+        if (byCode.has(code)) {
+          const existing = byCode.get(code)!
+          const updated: ArticleItem = { ...existing, quantity: existing.quantity + copies }
+          const idx = updates.findIndex(x => x.id === existing.id)
+          if (idx >= 0) updates[idx] = updated
+          byCode.set(code, updated)
+        } else {
+          const item: ArticleItem = {
+            id: `${Date.now()}_${code}_${Math.random().toString(36).slice(2, 7)}`,
+            text: code,
+            barcode: code,
+            quantity: copies,
+          }
+          updates.push(item)
+          byCode.set(code, item)
+        }
+      }
+      return updates
+    })
+  }
+
+  function onPickExcelClick() {
+    fileInputRef.current?.click()
+  }
+
+  function onExcelInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (file) handleExcelFile(file)
+  }
+
+  function downloadTemplate() {
+    const csv = 'codigo,copias\nABC123,1\nXYZ001,3\n'
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'plantilla_importacion.csv'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  }
+
   // plantillas locales
   useEffect(() => {
     const savedTemplates = localStorage.getItem("labelTemplates")
@@ -152,18 +408,52 @@ export default function LabelGenerator() {
     load()
   }, [])
 
+  // Cambios con límites
   const handleConfigChange = (key: string, value: string | boolean) => {
-    setLabelConfig((prev) => ({ ...prev, [key]: value }))
+    setLabelConfig((prev) => {
+      if (key === "width") {
+        const w = clampMm(parseFloat(String(value)), MAX_W_MM)
+        return { ...prev, width: String(w) }
+      }
+      if (key === "height") {
+        const h = clampMm(parseFloat(String(value)), MAX_H_MM)
+        const bar = clampBarHeight(parseFloat(prev.barHeightMm || "20"), h, parseFloat(prev.margin || "0"))
+        return { ...prev, height: String(h), barHeightMm: String(bar) }
+      }
+      if (key === "barHeightMm") {
+        const h = clampBarHeight(
+          parseFloat(String(value)),
+          parseFloat(prev.height || "25"),
+          parseFloat(prev.margin || "0")
+        )
+        return { ...prev, barHeightMm: String(h) }
+      }
+      if (key === "margin") {
+        const margin = Math.max(0, parseFloat(String(value)))
+        const bar = clampBarHeight(
+          parseFloat(prev.barHeightMm || "20"),
+          parseFloat(prev.height || "25"),
+          margin
+        )
+        return { ...prev, margin: String(margin), barHeightMm: String(bar) }
+      }
+      return { ...prev, [key]: value }
+    })
   }
 
   const aplicarTamanoBD = (t: TamanoEtiqueta) => {
+    const w = clampMm(t.width, MAX_W_MM)
+    const h = clampMm(t.height, MAX_H_MM)
+    const m = Math.max(0, t.margen || 0)
+    const bar = clampBarHeight(t.altoBarra ?? 20, h, m)
+
     setLabelConfig(prev => ({
       ...prev,
-      width: String(t.width),
-      height: String(t.height),
-      margin: String(t.margen),
+      width: String(w),
+      height: String(h),
+      margin: String(m),
       fontSize: String(t.fontSizeClaveArticulo),
-      barHeightMm: String(t.altoBarra),
+      barHeightMm: String(bar),
     }))
   }
 
@@ -219,43 +509,40 @@ export default function LabelGenerator() {
   }
 
   // 👉 Imprime en la MISMA pestaña (iframe oculto). Papel = etiqueta exacta.
- const handlePrint = () => {
-  if (articles.length === 0) return
+  const handlePrint = () => {
+    if (articles.length === 0) return
 
-  const labelW = parseFloat(labelConfig.width)      // mm
-  const labelH = parseFloat(labelConfig.height)     // mm
-  const padding = parseFloat(labelConfig.margin)    // mm
-  const barH = parseFloat(labelConfig.barHeightMm || "20") // mm
-  const fontPx = parseFloat(labelConfig.fontSize)
-  const fontFamily = labelConfig.font
-  const fmt = barcodeFormat
+    const labelW = clampMm(parseFloat(labelConfig.width), MAX_W_MM)      // mm
+    const labelH = clampMm(parseFloat(labelConfig.height), MAX_H_MM)     // mm
+    const padding = Math.max(0, parseFloat(labelConfig.margin))          // mm
+    const barH = clampBarHeight(parseFloat(labelConfig.barHeightMm || "20"), labelH, padding) // mm
+    const fontPx = parseFloat(labelConfig.fontSize)
+    const fontFamily = labelConfig.font
+    const fmt = barcodeFormat
 
-  const printHtml = `
+    const printHtml = `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8" />
   <title>Etiquetas</title>
   <style>
-    /* Tamaño físico exacto de la página */
     @page { 
-    size: ${labelW}mm ${labelH}mm; 
-    margin: 0; 
-    padding: 0px;
+      size: ${labelW}mm ${labelH}mm; 
+      margin: 0; 
+      padding: 0;
     }
-
     html, body { margin: 0; padding: 0; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: ${fontFamily}, Arial, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
-    /* Una página = una etiqueta centrada */
     .page {
       width: ${labelW}mm;
       height: ${labelH}mm;
       display: grid;
-      place-items: center;       /* centra en ambos ejes */
+      place-items: center;
       page-break-after: always;
-      overflow: hidden;          /* evita cualquier desborde visual */
+      overflow: hidden;
       background: #fff;
     }
     .page:last-child { page-break-after: auto; }
@@ -266,28 +553,22 @@ export default function LabelGenerator() {
       padding: ${padding}mm;
       display: flex;
       flex-direction: column;
-      align-items: center;       /* centra horizontal */
-      justify-content: center;   /* centra vertical */
+      align-items: center;
+      justify-content: center;
       overflow: hidden;
     }
-
-    .barcode-svg {
-      width: 100%;
-      height: ${barH}mm;
-    }
-
+    .barcode-svg { width: 100%; height: ${barH}mm; }
     .label-text {
       width: 100%;
       font-size: ${fontPx}px;
       text-align: center;
       font-weight: bold;
-      margin-top: 4px;           /* texto debajo de las barras */
+      margin-top: 4px;
     }
   </style>
 </head>
 <body>
-  ${
-    articles.map(a =>
+  ${articles.map(a =>
       Array.from({ length: a.quantity }, () => `
         <div class="page">
           <div class="label">
@@ -297,7 +578,7 @@ export default function LabelGenerator() {
         </div>
       `).join("")
     ).join("")
-  }
+      }
 
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
   <script>
@@ -311,10 +592,10 @@ export default function LabelGenerator() {
           try {
             JsBarcode(svg, val, {
               format: format,
-              displayValue: false,   // solo barras, sin texto
+              displayValue: false,
               margin: 0
             });
-            svg.setAttribute('preserveAspectRatio', 'none'); // que se estire a 100% del ancho
+            svg.setAttribute('preserveAspectRatio', 'none');
           } catch(e) {}
         }
       }
@@ -330,30 +611,28 @@ export default function LabelGenerator() {
 </body>
 </html>`
 
-  // Imprimir en la MISMA pestaña con iframe oculto
-  const iframe = document.createElement('iframe')
-  iframe.style.position = 'fixed'
-  iframe.style.right = '0'
-  iframe.style.bottom = '0'
-  iframe.style.width = '0'
-  iframe.style.height = '0'
-  iframe.style.border = '0'
-  iframe.style.opacity = '0'
-  document.body.appendChild(iframe)
+    const iframe = document.createElement('iframe')
+    iframe.style.position = 'fixed'
+    iframe.style.right = '0'
+    iframe.style.bottom = '0'
+    iframe.style.width = '0'
+    iframe.style.height = '0'
+    iframe.style.border = '0'
+    iframe.style.opacity = '0'
+    document.body.appendChild(iframe)
 
-  const cleanup = () => {
-    window.removeEventListener('message', onMessage)
-    try { document.body.removeChild(iframe) } catch {}
+    const cleanup = () => {
+      window.removeEventListener('message', onMessage)
+      try { document.body.removeChild(iframe) } catch { }
+    }
+    const onMessage = (ev: MessageEvent) => {
+      if (ev?.data?.type === '__PRINT_DONE__') cleanup()
+    }
+    window.addEventListener('message', onMessage)
+
+    const doc = (iframe.contentDocument || (iframe as any).ownerDocument) as Document
+    doc.open(); doc.write(printHtml); doc.close()
   }
-  const onMessage = (ev: MessageEvent) => {
-    if (ev?.data?.type === '__PRINT_DONE__') cleanup()
-  }
-  window.addEventListener('message', onMessage)
-
-  const doc = iframe.contentDocument || iframe.ownerDocument
-  doc.open(); doc.write(printHtml); doc.close()
-}
-
 
   const totalLabels = useMemo(() => articles.reduce((s, a) => s + a.quantity, 0), [articles])
 
@@ -407,25 +686,32 @@ export default function LabelGenerator() {
   }
 
   // ===== PREVIEW que nunca se desborda =====
-  // Tamaño "natural" de la etiqueta en px (doble para legibilidad, como tenías)
-  const naturalW = mmToPx(parseFloat(labelConfig.width) * 2)
-  const naturalH = mmToPx(parseFloat(labelConfig.height) * 2)
+  const naturalW = mmToPx(parseFloat(labelConfig.width))
+  const naturalH = mmToPx(parseFloat(labelConfig.height))
   const previewPad = Math.max(0, parseInt(labelConfig.margin))
   const previewBarHeightPx = mmToPx(parseFloat(labelConfig.barHeightMm || "20"))
 
-  // Límite máximo visible de cada celda (ajustable)
-  const PREVIEW_MAX_W = 280 // px
-  const PREVIEW_MAX_H = 180 // px
+  /* const PREVIEW_MAX_W = 280
+   const PREVIEW_MAX_H = 180 
+ 
+   const previewScale = Math.min(PREVIEW_MAX_W / naturalW, PREVIEW_MAX_H / naturalH, 1)
+ 
+   const cellW = Math.min(naturalW, PREVIEW_MAX_W)
+   const cellH = Math.min(naturalH, PREVIEW_MAX_H)*/
 
-  // Escala para que quepa siempre; nunca agranda (<=1)
-  const previewScale = Math.min(PREVIEW_MAX_W / naturalW, PREVIEW_MAX_H / naturalH, 1)
-
-  // Dimensiones de la "cajita" contenedora
-  const cellW = Math.min(naturalW, PREVIEW_MAX_W)
-  const cellH = Math.min(naturalH, PREVIEW_MAX_H)
+  const previewScale = 1
+  const cellW = naturalW
+  const cellH = naturalH
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-purple-900">
+      {/* Oculta spinners nativos en inputs numéricos */}
+      <style jsx global>{`
+        input.no-spin::-webkit-outer-spin-button,
+        input.no-spin::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input.no-spin { -moz-appearance: textfield; }
+      `}</style>
+
       <div className="min-h-screen p-6">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
@@ -436,9 +722,10 @@ export default function LabelGenerator() {
             <p className="text-gray-200 text-lg">Crea e imprime etiquetas personalizadas con códigos de barras</p>
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-8">
-            {/* Panel de Configuración */}
-            <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm">
+          {/* Grid principal: columnas de igual altura */}
+          <div className="grid lg:grid-cols-2 gap-8 items-stretch min-h-0">
+            {/* Panel de Configuración (izquierda) */}
+            <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm h-full flex flex-col">
               <CardHeader className="border-b border-gray-600">
                 <CardTitle className="flex items-center gap-2 text-white">
                   <Settings className="w-5 h-5 text-purple-300" />
@@ -548,24 +835,50 @@ export default function LabelGenerator() {
                 {/* Etiqueta */}
                 <div className="space-y-2">
                   <Label className="text-gray-100 font-medium">Margen interno (mm)</Label>
-                  <Input type="number" value={labelConfig.margin} onChange={(e) => handleConfigChange("margin", e.target.value)} className="bg-gray-700 border-gray-500 text-white placeholder-gray-300" />
+                  <NumberField
+                    value={labelConfig.margin}
+                    onChange={(v) => handleConfigChange("margin", v)}
+                    min={0}
+                    step={0.5}
+                    ariaLabel="Margen interno en milímetros"
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-gray-100 font-medium">Ancho (mm)</Label>
-                    <Input type="number" value={labelConfig.width} onChange={(e) => handleConfigChange("width", e.target.value)} className="bg-gray-700 border-gray-500 text-white" />
+                    <NumberField
+                      value={labelConfig.width}
+                      onChange={(v) => handleConfigChange("width", v)}
+                      min={1}
+                      max={135}
+                      step={1}
+                      ariaLabel="Ancho en milímetros"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-gray-100 font-medium">Alto (mm)</Label>
-                    <Input type="number" value={labelConfig.height} onChange={(e) => handleConfigChange("height", e.target.value)} className="bg-gray-700 border-gray-500 text-white" />
+                    <NumberField
+                      value={labelConfig.height}
+                      onChange={(v) => handleConfigChange("height", v)}
+                      min={1}
+                      max={300}
+                      step={1}
+                      ariaLabel="Alto en milímetros"
+                    />
                   </div>
                 </div>
 
                 {/* Alto de barras */}
                 <div className="space-y-2">
                   <Label className="text-gray-100 font-medium">Alto barras (mm)</Label>
-                  <Input type="number" value={labelConfig.barHeightMm} onChange={(e) => handleConfigChange("barHeightMm", e.target.value)} className="bg-gray-700 border-gray-500 text-white" />
+                  <NumberField
+                    value={labelConfig.barHeightMm}
+                    onChange={(v) => handleConfigChange("barHeightMm", v)}
+                    min={4}
+                    step={1}
+                    ariaLabel="Alto de las barras en milímetros"
+                  />
                 </div>
 
                 {/* Campo de artículo con búsqueda */}
@@ -631,15 +944,25 @@ export default function LabelGenerator() {
 
                 <div className="space-y-2">
                   <Label className="text-gray-100 font-medium">Número de impresiones</Label>
-                  <div className="flex gap-2">
-                    <Input type="number" value={labelConfig.quantity} onChange={(e) => handleConfigChange("quantity", e.target.value)} className="bg-gray-700 border-gray-500 text-white flex-1" min="1" />
-                  </div>
+                  <NumberField
+                    value={labelConfig.quantity}
+                    onChange={(v) => handleConfigChange("quantity", v)}
+                    min={1}
+                    step={1}
+                    ariaLabel="Número de impresiones"
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-gray-100 font-medium">Tamaño fuente (px)</Label>
-                    <Input type="number" value={labelConfig.fontSize} onChange={(e) => handleConfigChange("fontSize", e.target.value)} className="bg-gray-700 border-gray-500 text-white" />
+                    <NumberField
+                      value={labelConfig.fontSize}
+                      onChange={(v) => handleConfigChange("fontSize", v)}
+                      min={6}
+                      step={1}
+                      ariaLabel="Tamaño de fuente en píxeles"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-gray-100 font-medium">Fuente</Label>
@@ -657,10 +980,6 @@ export default function LabelGenerator() {
                 </div>
 
                 <div className="flex gap-3 pt-4">
-                  <Button className="flex-1 bg-purple-600 hover:bg-purple-700 text-white border-0" disabled={articles.length === 0}>
-                    <Download className="w-4 h-4 mr-2" />
-                    Descargar
-                  </Button>
                   <Button onClick={handlePrint} className="flex-1 bg-gray-600 hover:bg-gray-700 text-white border-0" disabled={articles.length === 0}>
                     <Printer className="w-4 h-4 mr-2" />
                     Imprimir
@@ -669,23 +988,56 @@ export default function LabelGenerator() {
               </CardContent>
             </Card>
 
-            {/* Tabla + Preview */}
-            <div className="space-y-6">
-              <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm">
-                <CardHeader className="border-b border-gray-600">
-                  <CardTitle className="flex items-center justify-between text-white">
-                    <span>Artículos ({articles.length})</span>
-                    <span className="text-sm text-purple-300">Total: {totalLabels} etiquetas</span>
-                  </CardTitle>
+            {/* Derecha: Tabla + Preview, misma altura que izquierda */}
+            <div className="flex flex-col gap-6 h-full min-h-0">
+              {/* Tabla de artículos */}
+              <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm flex-1 flex min-h-0">
+                <CardHeader className="border-b border-gray-600 shrink-0">
+                  <div className="flex items-center justify-between gap-3">
+                    <CardTitle className="text-white">
+                      Artículos ({articles.length})
+                    </CardTitle>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".xlsx,.xls,.csv"
+                        onChange={onExcelInputChange}
+                        className="hidden"
+                      />
+                      <Button
+                        size="sm"
+                        className="bg-purple-600 hover:bg-purple-700 text-white border-0"
+                        onClick={onPickExcelClick}
+                        title="Importar desde Excel/CSV"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Importar Excel
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-gray-300 hover:text-white"
+                        onClick={downloadTemplate}
+                        title="Descargar plantilla CSV"
+                      >
+                        Descargar plantilla
+                      </Button>
+                      <span className="text-sm text-purple-300">
+                        Total: {totalLabels} etiquetas
+                      </span>
+                    </div>
+                  </div>
                 </CardHeader>
-                <CardContent className="p-6">
+                <CardContent className="p-6 flex-1 flex flex-col min-h-0">
                   {articles.length === 0 ? (
                     <div className="text-center py-8 text-gray-400">
                       <p>No hay artículos agregados</p>
-                      <p className="text-sm">Busca y agrega un artículo para comenzar</p>
+                      <p className="text-sm">Busca, importa o agrega un artículo para comenzar</p>
                     </div>
                   ) : (
-                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                    <div className="space-y-2 flex-1 overflow-y-auto ">
                       {articles.map((a) => (
                         <div key={a.id} className="flex items-center justify-between bg-gray-700/50 p-3 rounded-lg">
                           <div className="flex-1">
@@ -706,8 +1058,8 @@ export default function LabelGenerator() {
               </Card>
 
               {/* Vista previa (con escalado para no desbordar) */}
-              <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm">
-                <CardHeader className="border-b border-gray-600">
+              <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm flex-1 flex min-h-0">
+                <CardHeader className="border-b border-gray-600 shrink-0">
                   <CardTitle className="flex items-center gap-2 text-white">
                     <Eye className="w-5 h-5 text-purple-300" />
                     Vista Previa
@@ -716,8 +1068,8 @@ export default function LabelGenerator() {
                     Dimensiones: {labelConfig.width}mm × {labelConfig.height}mm — Alto barras: {labelConfig.barHeightMm}mm — Formato: {barcodeFormat}
                   </p>
                 </CardHeader>
-                <CardContent className="p-6">
-                  <div className="bg-gray-900/60 rounded-lg p-8 min-h-[300px] flex items-center justify-center relative overflow-auto">
+                <CardContent className="p-6 flex-1 flex flex-col min-h-0">
+                  <div className="bg-gray-900/60 rounded-lg p-8 min-h-[300px] flex-1 flex items-center justify-center relative overflow-auto min-h-0">
                     {articles.length === 0 ? (
                       <div className="text-center text-gray-400">
                         <p>Agrega artículos para ver la vista previa</p>
@@ -727,7 +1079,7 @@ export default function LabelGenerator() {
                         className="grid gap-4 justify-center"
                         style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${cellW}px, 1fr))` }}
                       >
-                        {articles.slice(0, 6).map((a) => (
+                        {articles.slice(0, 1).map((a) => (
                           <div
                             key={a.id}
                             className="flex items-center justify-center"
@@ -772,11 +1124,7 @@ export default function LabelGenerator() {
                         ))}
                       </div>
                     )}
-                    {articles.length > 6 && (
-                      <div className="absolute bottom-4 right-4 bg-purple-600 text-white px-3 py-1 rounded-full text-sm">
-                        +{articles.length - 6} más
-                      </div>
-                    )}
+                   
                   </div>
                 </CardContent>
               </Card>
@@ -787,3 +1135,5 @@ export default function LabelGenerator() {
     </div>
   )
 }
+
+/****************************VERSION ESTABLE********************************/

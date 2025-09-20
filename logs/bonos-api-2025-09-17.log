@@ -46,3 +46,86 @@
 [2025-09-17 17:26:29] [DEBUG] [v4g94fxt] Listando todas las etiquetas
 [2025-09-17 17:26:29] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
 [2025-09-17 17:26:31] [DEBUG] Consulta OK. Filas: 0
+[2025-09-17 17:28:56] [INFO] [bp2lxs7n] GET /api/tamano_etiqueta
+[2025-09-17 17:28:56] [DEBUG] [bp2lxs7n] Listando todas las etiquetas
+[2025-09-17 17:28:56] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-17 17:28:58] [DEBUG] Consulta OK. Filas: 0
+[2025-09-17 17:28:58] [INFO] [9u09nls2] GET /api/tamano_etiqueta
+[2025-09-17 17:28:58] [DEBUG] [9u09nls2] Listando todas las etiquetas
+[2025-09-17 17:28:58] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-17 17:28:59] [DEBUG] Consulta OK. Filas: 0
+[2025-09-17 17:29:42] [INFO] [7vt525ik] Iniciando GET /api/articulos
+[2025-09-17 17:29:42] [DEBUG] [7vt525ik] q recibido: "0010-010051 25"
+[2025-09-17 17:29:42] [INFO] [7vt525ik] Solicitud sin token (endpoint público)
+[2025-09-17 17:29:42] [DEBUG] Ejecutando consulta: SELECT FIRST 10 ca.CLAVE_ARTICULO, a.NOMBRE FROM CLAVES_ARTICULOS ca INNER JOIN ARTICULOS a ON a.ARTICULO_ID = ca.ARTICULO_ID WHERE UPPER(ca.CLAVE_ARTICULO) LIKE UPPER(?) OR UPPER(a.NOMBRE) LIKE UPPER(?) ORDER BY a.NOMBRE con parámetros: ["%0010-010051 25%","%0010-010051 25%"]
+[2025-09-17 17:29:43] [DEBUG] Consulta OK. Filas: 1
+[2025-09-17 17:29:43] [INFO] [7vt525ik] Búsqueda completada. Coincidencias: 1
+[2025-09-17 17:30:12] [INFO] [j58ceu2u] GET /api/tamano_etiqueta
+[2025-09-17 17:30:12] [DEBUG] [j58ceu2u] Listando todas las etiquetas
+[2025-09-17 17:30:12] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-17 17:30:12] [ERROR] Error conectando a Firebird: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+[2025-09-17 17:30:12] [ERROR] Error GET /api/tamano_etiqueta: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+[2025-09-17 17:30:12] [DEBUG] Stack: Error: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:232:29)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-17 17:30:18] [INFO] [vkjz1vzi] Iniciando GET /api/articulos
+[2025-09-17 17:30:18] [DEBUG] [vkjz1vzi] q recibido: "tenis"
+[2025-09-17 17:30:18] [INFO] [vkjz1vzi] Solicitud sin token (endpoint público)
+[2025-09-17 17:30:18] [DEBUG] Ejecutando consulta: SELECT FIRST 10 ca.CLAVE_ARTICULO, a.NOMBRE FROM CLAVES_ARTICULOS ca INNER JOIN ARTICULOS a ON a.ARTICULO_ID = ca.ARTICULO_ID WHERE UPPER(ca.CLAVE_ARTICULO) LIKE UPPER(?) OR UPPER(a.NOMBRE) LIKE UPPER(?) ORDER BY a.NOMBRE con parámetros: ["%tenis%","%tenis%"]
+[2025-09-17 17:30:19] [INFO] [m62ek70h] GET /api/tamano_etiqueta
+[2025-09-17 17:30:19] [DEBUG] [m62ek70h] Listando todas las etiquetas
+[2025-09-17 17:30:19] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-17 17:30:20] [INFO] [ra5a39bo] GET /api/tamano_etiqueta
+[2025-09-17 17:30:20] [DEBUG] [ra5a39bo] Listando todas las etiquetas
+[2025-09-17 17:30:20] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-17 17:30:20] [DEBUG] Consulta OK. Filas: 10
+[2025-09-17 17:30:20] [INFO] [vkjz1vzi] Búsqueda completada. Coincidencias: 10
+[2025-09-17 17:30:21] [DEBUG] Consulta OK. Filas: 0
+[2025-09-17 17:30:21] [DEBUG] Consulta OK. Filas: 0
+[2025-09-17 17:30:22] [INFO] [foyd1pvb] Iniciando GET /api/articulos
+[2025-09-17 17:30:22] [DEBUG] [foyd1pvb] q recibido: "tenios"
+[2025-09-17 17:30:22] [INFO] [foyd1pvb] Solicitud sin token (endpoint público)
+[2025-09-17 17:30:22] [DEBUG] Ejecutando consulta: SELECT FIRST 10 ca.CLAVE_ARTICULO, a.NOMBRE FROM CLAVES_ARTICULOS ca INNER JOIN ARTICULOS a ON a.ARTICULO_ID = ca.ARTICULO_ID WHERE UPPER(ca.CLAVE_ARTICULO) LIKE UPPER(?) OR UPPER(a.NOMBRE) LIKE UPPER(?) ORDER BY a.NOMBRE con parámetros: ["%tenios%","%tenios%"]
+[2025-09-17 17:30:22] [ERROR] Error conectando a Firebird: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+[2025-09-17 17:30:22] [ERROR] [foyd1pvb] Error en GET /api/articulos: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+[2025-09-17 17:30:22] [DEBUG] [foyd1pvb] Stack: Error: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:232:29)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-17 17:30:23] [INFO] [ek3r97ye] Iniciando GET /api/articulos
+[2025-09-17 17:30:23] [DEBUG] [ek3r97ye] q recibido: "teni"
+[2025-09-17 17:30:23] [INFO] [ek3r97ye] Solicitud sin token (endpoint público)
+[2025-09-17 17:30:23] [DEBUG] Ejecutando consulta: SELECT FIRST 10 ca.CLAVE_ARTICULO, a.NOMBRE FROM CLAVES_ARTICULOS ca INNER JOIN ARTICULOS a ON a.ARTICULO_ID = ca.ARTICULO_ID WHERE UPPER(ca.CLAVE_ARTICULO) LIKE UPPER(?) OR UPPER(a.NOMBRE) LIKE UPPER(?) ORDER BY a.NOMBRE con parámetros: ["%teni%","%teni%"]
+[2025-09-17 17:30:24] [DEBUG] Consulta OK. Filas: 10
+[2025-09-17 17:30:24] [INFO] [ek3r97ye] Búsqueda completada. Coincidencias: 10

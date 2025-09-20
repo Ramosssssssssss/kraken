@@ -12,9 +12,9 @@ export const revalidate = 0
 
 // ======== Config ========
 const fbConfig = {
-  host: process.env.FIREBIRD_HOST || "85.215.109.213",
+  host: process.env.FIREBIRD_HOST || "localhost",
   port: Number(process.env.FIREBIRD_PORT || 3050),
-  database: process.env.FIREBIRD_DATABASE || "D:\\Microsip datos\\DISTRIBUIDORAGOUMAM.FDB",
+  database: process.env.FIREBIRD_DATABASE || "C:\\Users\\CELESTE ZENTENO\\Downloads\\DISTRIBUIDORAGOUMAM.FDB",
   user: process.env.FIREBIRD_USER || "SYSDBA",
   password: process.env.FIREBIRD_PASSWORD || "BlueMamut$23",
 }
