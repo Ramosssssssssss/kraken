@@ -223,11 +223,11 @@ function NumberField({
 export default function LabelGenerator() {
   const [labelConfig, setLabelConfig] = useState({
     size: "custom",
-    margin: "0",
+    margin: "3",
     width: "50",
     height: "25",
     text: "",
-    fontSize: "12",
+    fontSize: "20",
     font: "Arial",
     quantity: "1",
     barHeightMm: "20",
@@ -299,8 +299,7 @@ export default function LabelGenerator() {
 
       let normalized = normalizedA
       if (normalized.length === 0) {
-        const AisHeader = String(rowsRaw[0]?.[0] ?? '').toLowerCase().includes('codigo') ||
-          String(rowsRaw[0]?.[0] ?? '').toLowerCase().includes('código')
+        const AisHeader = String(rowsRaw[0]?.[0] ?? '').toLowerCase().includes('odigo') // soporta "codigo"/"código"
         const startIdx = AisHeader ? 1 : 0
         const fromAB = rowsRaw.slice(startIdx).map((arr) => {
           const code = String(arr?.[0] ?? '').trim()
@@ -325,36 +324,37 @@ export default function LabelGenerator() {
     }
   }
 
-  function mergeImportedArticles(rows: ImportRow[]) {
-    setArticles((prev) => {
-      const byCode = new Map<string, ArticleItem>()
-      for (const a of prev) byCode.set(a.barcode, a)
+  // === NUEVO: helper para insertar o acumular por código ===
+  function upsertArticleByCode(code: string, qty: number) {
+    const clean = String(code || '').trim()
+    const safeQty = Math.max(1, Math.floor(qty || 1))
+    if (!clean) return
 
-      const updates: ArticleItem[] = [...prev]
-      for (const r of rows) {
-        const code = r.code.trim()
-        if (!code) continue
-        const copies = Math.max(1, Math.floor(r.copies))
-
-        if (byCode.has(code)) {
-          const existing = byCode.get(code)!
-          const updated: ArticleItem = { ...existing, quantity: existing.quantity + copies }
-          const idx = updates.findIndex(x => x.id === existing.id)
-          if (idx >= 0) updates[idx] = updated
-          byCode.set(code, updated)
-        } else {
-          const item: ArticleItem = {
-            id: `${Date.now()}_${code}_${Math.random().toString(36).slice(2, 7)}`,
-            text: code,
-            barcode: code,
-            quantity: copies,
-          }
-          updates.push(item)
-          byCode.set(code, item)
-        }
+    setArticles(prev => {
+      const idx = prev.findIndex(a => a.barcode === clean)
+      if (idx !== -1) {
+        const next = [...prev]
+        next[idx] = { ...next[idx], quantity: next[idx].quantity + safeQty }
+        return next
       }
-      return updates
+      return [
+        ...prev,
+        {
+          id: `${Date.now()}_${clean}_${Math.random().toString(36).slice(2, 7)}`,
+          text: clean,
+          barcode: clean,
+          quantity: safeQty,
+        },
+      ]
     })
+  }
+
+  function mergeImportedArticles(rows: ImportRow[]) {
+    // Reutilizamos el helper para evitar duplicar lógica.
+    for (const r of rows) {
+      if (!r?.code) continue
+      upsertArticleByCode(r.code, r.copies)
+    }
   }
 
   function onPickExcelClick() {
@@ -488,17 +488,14 @@ export default function LabelGenerator() {
     if (selectedTemplate === templateId) setSelectedTemplate("")
   }
 
-  // Agregar artículo (clave = texto y barcode)
+  // === MODIFICADO: Agregar artículo (acumula si ya existe el código)
   const addArticle = (claveOverride?: string) => {
     const clave = (claveOverride ?? labelConfig.text).trim()
     if (!clave) return
-    const newArticle: ArticleItem = {
-      id: Date.now().toString(),
-      text: clave,
-      quantity: Number.parseInt(labelConfig.quantity) || 1,
-      barcode: clave,
-    }
-    setArticles((prev) => [...prev, newArticle])
+    const qty = Number.parseInt(labelConfig.quantity, 10) || 1
+
+    upsertArticleByCode(clave, qty)
+
     setLabelConfig((prev) => ({ ...prev, text: "", quantity: "1" }))
     setSearchResults([])
     setSearchError(null)
@@ -691,14 +688,6 @@ export default function LabelGenerator() {
   const previewPad = Math.max(0, parseInt(labelConfig.margin))
   const previewBarHeightPx = mmToPx(parseFloat(labelConfig.barHeightMm || "20"))
 
-  /* const PREVIEW_MAX_W = 280
-   const PREVIEW_MAX_H = 180 
- 
-   const previewScale = Math.min(PREVIEW_MAX_W / naturalW, PREVIEW_MAX_H / naturalH, 1)
- 
-   const cellW = Math.min(naturalW, PREVIEW_MAX_W)
-   const cellH = Math.min(naturalH, PREVIEW_MAX_H)*/
-
   const previewScale = 1
   const cellW = naturalW
   const cellH = naturalH
@@ -725,161 +714,17 @@ export default function LabelGenerator() {
           {/* Grid principal: columnas de igual altura */}
           <div className="grid lg:grid-cols-2 gap-8 items-stretch min-h-0">
             {/* Panel de Configuración (izquierda) */}
-            <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm h-full flex flex-col">
-              <CardHeader className="border-b border-gray-600">
+            <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm h-full flex flex-col w-full">
+              <CardHeader className="border-b border-gray-600 flex aling-center w-full justify-between">
                 <CardTitle className="flex items-center gap-2 text-white">
                   <Settings className="w-5 h-5 text-purple-300" />
                   Configuración
                 </CardTitle>
+                <CardTitle className="flex items-center gap-2 text-white font-light  text-xs">
+                  Version 1.1.3
+                </CardTitle>
               </CardHeader>
               <CardContent className="p-6 space-y-6">
-                {/* Tamaño guardado (BD) */}
-                <div className="space-y-2">
-                  <Label className="text-gray-100 font-medium">Tamaño guardado (BD)</Label>
-                  <Select
-                    value={selectedTamanoId}
-                    onValueChange={(value) => {
-                      setSelectedTamanoId(value)
-                      const t = tamanos.find(x => String(x.id) === value)
-                      if (t) aplicarTamanoBD(t)
-                    }}
-                  >
-                    <SelectTrigger className="bg-gray-700 border-gray-500 text-white">
-                      <SelectValue placeholder={isLoadingTamanos ? "Cargando..." : "Selecciona un tamaño"} />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-700 border-gray-500">
-                      {isLoadingTamanos && (
-                        <div className="px-3 py-2 text-sm text-gray-300 flex items-center gap-2">
-                          <Loader2 className="w-4 h-4 animate-spin" /> Cargando…
-                        </div>
-                      )}
-                      {tamanosError && (
-                        <div className="px-3 py-2 text-sm text-red-300 flex items-center gap-2">
-                          <AlertCircle className="w-4 h-4" /> {tamanosError}
-                        </div>
-                      )}
-                      {!isLoadingTamanos && !tamanosError && tamanos.length === 0 && (
-                        <div className="px-3 py-2 text-sm text-gray-300">No hay tamaños guardados</div>
-                      )}
-                      {tamanos.map(t => (
-                        <SelectItem key={t.id} value={String(t.id)} className="text-white">
-                          {t.nombre} — {t.width}×{t.height}mm (margen {t.margen}mm)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Formato de código de barras */}
-                <div className="space-y-2">
-                  <Label className="text-gray-100 font-medium">Formato de código de barras</Label>
-                  <Select value={barcodeFormat} onValueChange={(v: "CODE128" | "CODE128B") => setBarcodeFormat(v)}>
-                    <SelectTrigger className="bg-gray-700 border-gray-500 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-700 border-gray-500">
-                      <SelectItem value="CODE128" className="text-white">CODE128</SelectItem>
-                      <SelectItem value="CODE128B" className="text-white">CODE128B</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Plantillas locales */}
-                <div className="flex justify-between items-center">
-                  <Label className="text-gray-100 font-medium">Plantillas locales</Label>
-                  <Dialog open={isTemplateModalOpen} onOpenChange={setIsTemplateModalOpen}>
-                    <DialogTrigger asChild>
-                      <Button className="bg-purple-600 hover:bg-purple-700 text-white border-0">
-                        <BookOpen className="w-4 h-4 mr-2" />
-                        Crear Plantilla
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="bg-gray-800 border-gray-600 text-white">
-                      <DialogHeader>
-                        <DialogTitle className="text-white">Crear Nueva Plantilla</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label className="text-gray-200">Nombre de la plantilla</Label>
-                          <Input
-                            type="text"
-                            placeholder="Ej: Etiquetas pequeñas, Productos grandes..."
-                            value={templateName}
-                            onChange={(e) => setTemplateName(e.target.value)}
-                            className="bg-gray-700 border-gray-500 text-white placeholder-gray-300"
-                          />
-                        </div>
-                        <div className="bg-gray-700/50 p-4 rounded-lg">
-                          <Label className="text-gray-200 text-sm">Configuración actual:</Label>
-                          <div className="mt-2 space-y-1 text-sm text-gray-300">
-                            <p>Tamaño: {labelConfig.width}mm × {labelConfig.height}mm</p>
-                            <p>Margen: {labelConfig.margin}mm</p>
-                            <p>Fuente: {labelConfig.font}, {labelConfig.fontSize}px</p>
-                            <p>Alto barras: {labelConfig.barHeightMm}mm</p>
-                          </div>
-                        </div>
-                        <div className="flex gap-2 justify-end">
-                          <Button variant="ghost" onClick={() => setIsTemplateModalOpen(false)} className="text-gray-300 hover:text-white">
-                            Cancelar
-                          </Button>
-                          <Button onClick={saveTemplate} disabled={!templateName.trim()} className="bg-purple-600 hover:bg-purple-700 text-white">
-                            <Save className="w-4 h-4 mr-2" />
-                            Guardar
-                          </Button>
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-
-                {/* Etiqueta */}
-                <div className="space-y-2">
-                  <Label className="text-gray-100 font-medium">Margen interno (mm)</Label>
-                  <NumberField
-                    value={labelConfig.margin}
-                    onChange={(v) => handleConfigChange("margin", v)}
-                    min={0}
-                    step={0.5}
-                    ariaLabel="Margen interno en milímetros"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-gray-100 font-medium">Ancho (mm)</Label>
-                    <NumberField
-                      value={labelConfig.width}
-                      onChange={(v) => handleConfigChange("width", v)}
-                      min={1}
-                      max={135}
-                      step={1}
-                      ariaLabel="Ancho en milímetros"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-gray-100 font-medium">Alto (mm)</Label>
-                    <NumberField
-                      value={labelConfig.height}
-                      onChange={(v) => handleConfigChange("height", v)}
-                      min={1}
-                      max={300}
-                      step={1}
-                      ariaLabel="Alto en milímetros"
-                    />
-                  </div>
-                </div>
-
-                {/* Alto de barras */}
-                <div className="space-y-2">
-                  <Label className="text-gray-100 font-medium">Alto barras (mm)</Label>
-                  <NumberField
-                    value={labelConfig.barHeightMm}
-                    onChange={(v) => handleConfigChange("barHeightMm", v)}
-                    min={4}
-                    step={1}
-                    ariaLabel="Alto de las barras en milímetros"
-                  />
-                </div>
 
                 {/* Campo de artículo con búsqueda */}
                 <div className="space-y-2 relative">
@@ -942,6 +787,156 @@ export default function LabelGenerator() {
                   )}
                 </div>
 
+
+                {/* Tamaño guardado (BD) */}
+                <div className="space-y-2">
+                  <Label className="text-gray-100 font-medium">Tamaño de etiqueta</Label>
+                  <Select
+                    value={selectedTamanoId}
+                    onValueChange={(value) => {
+                      setSelectedTamanoId(value)
+                      const t = tamanos.find(x => String(x.id) === value)
+                      if (t) aplicarTamanoBD(t)
+                    }}
+                  >
+                    <SelectTrigger className="bg-gray-700 border-gray-500 text-white w-full">
+                      <SelectValue placeholder={isLoadingTamanos ? "Cargando..." : "Selecciona un tamaño"} />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-700 border-gray-500">
+                      {isLoadingTamanos && (
+                        <div className="px-3 py-2 text-sm text-gray-300 flex items-center gap-2">
+                          <Loader2 className="w-4 h-4 animate-spin" /> Cargando…
+                        </div>
+                      )}
+                      {tamanosError && (
+                        <div className="px-3 py-2 text-sm text-red-300 flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4" /> {tamanosError}
+                        </div>
+                      )}
+                      {!isLoadingTamanos && !tamanosError && tamanos.length === 0 && (
+                        <div className="px-3 py-2 text-sm text-gray-300">No hay tamaños guardados</div>
+                      )}
+                      {tamanos.map(t => (
+                        <SelectItem key={t.id} value={String(t.id)} className="text-white">
+                          {t.nombre} — {t.width}×{t.height}mm (margen {t.margen}mm)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Formato de código de barras */}
+                <div className="space-y-2">
+                  <Label className="text-gray-100 font-medium">Formato de código de barras</Label>
+                  <Select value={barcodeFormat} onValueChange={(v: "CODE128" | "CODE128B") => setBarcodeFormat(v)}>
+                    <SelectTrigger className="bg-gray-700 border-gray-500 text-white w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-700 border-gray-500">
+                      <SelectItem value="CODE128" className="text-white">CODE128</SelectItem>
+                      <SelectItem value="CODE128B" className="text-white">CODE128B</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Plantillas locales */}
+                <div className="flex justify-between items-center">
+                  <Label className="text-gray-100 font-medium text-base">Configurar etiqueta manual</Label>
+                  <Dialog open={isTemplateModalOpen} onOpenChange={setIsTemplateModalOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="bg-purple-600 hover:bg-purple-700 text-white border-0">
+                        <BookOpen className="w-4 h-4 mr-2" />
+                        Guardar Plantilla
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="bg-gray-800 border-gray-600 text-white">
+                      <DialogHeader>
+                        <DialogTitle className="text-white">Crear Nueva Plantilla</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label className="text-gray-200">Nombre de la plantilla</Label>
+                          <Input
+                            type="text"
+                            placeholder="Ej: Etiquetas pequeñas, Productos grandes..."
+                            value={templateName}
+                            onChange={(e) => setTemplateName(e.target.value)}
+                            className="bg-gray-700 border-gray-500 text-white placeholder-gray-300"
+                          />
+                        </div>
+                        <div className="bg-gray-700/50 p-4 rounded-lg">
+                          <Label className="text-gray-200 text-sm">Configuración actual:</Label>
+                          <div className="mt-2 space-y-1 text-sm text-gray-300">
+                            <p>Tamaño: {labelConfig.width}mm × {labelConfig.height}mm</p>
+                            <p>Margen: {labelConfig.margin}mm</p>
+                            <p>Fuente: {labelConfig.font}, {labelConfig.fontSize}px</p>
+                            <p>Alto barras: {labelConfig.barHeightMm}mm</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 justify-end">
+                          <Button variant="ghost" onClick={() => setIsTemplateModalOpen(false)} className="text-gray-300 hover:text-white">
+                            Cancelar
+                          </Button>
+                          <Button onClick={saveTemplate} disabled={!templateName.trim()} className="bg-purple-600 hover:bg-purple-700 text-white">
+                            <Save className="w-4 h-4 mr-2" />
+                            Guardar
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
+                {/* Etiqueta */}
+                <div className="space-y-2">
+                  <Label className="text-gray-100 font-medium">Margen interno (mm)</Label>
+                  <NumberField
+                    value={labelConfig.margin}
+                    onChange={(v) => handleConfigChange("margin", v)}
+                    min={3}
+                    step={0.5}
+                    ariaLabel="Margen interno en milímetros"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-gray-100 font-medium">Ancho (mm)</Label>
+                    <NumberField
+                      value={labelConfig.width}
+                      onChange={(v) => handleConfigChange("width", v)}
+                      min={1}
+                      max={135}
+                      step={1}
+                      ariaLabel="Ancho en milímetros"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-gray-100 font-medium">Alto (mm)</Label>
+                    <NumberField
+                      value={labelConfig.height}
+                      onChange={(v) => handleConfigChange("height", v)}
+                      min={1}
+                      max={300}
+                      step={1}
+                      ariaLabel="Alto en milímetros"
+                    />
+                  </div>
+                </div>
+
+                {/* Alto de barras */}
+                <div className="space-y-2">
+                  <Label className="text-gray-100 font-medium">Alto barras (mm)</Label>
+                  <NumberField
+                    value={labelConfig.barHeightMm}
+                    onChange={(v) => handleConfigChange("barHeightMm", v)}
+                    min={4}
+                    step={1}
+                    ariaLabel="Alto de las barras en milímetros"
+                  />
+                </div>
+
+
                 <div className="space-y-2">
                   <Label className="text-gray-100 font-medium">Número de impresiones</Label>
                   <NumberField
@@ -967,7 +962,7 @@ export default function LabelGenerator() {
                   <div className="space-y-2">
                     <Label className="text-gray-100 font-medium">Fuente</Label>
                     <Select value={labelConfig.font} onValueChange={(value) => handleConfigChange("font", value)}>
-                      <SelectTrigger className="bg-gray-700 border-gray-500 text-white">
+                      <SelectTrigger className="bg-gray-700 border-gray-500 text-white w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-gray-700 border-gray-500">
@@ -1124,7 +1119,7 @@ export default function LabelGenerator() {
                         ))}
                       </div>
                     )}
-                   
+
                   </div>
                 </CardContent>
               </Card>
