@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation" // Added useRouter for navigation
+import { useState } from "react";
+import { useRouter } from "next/navigation"; // Added useRouter for navigation
 import {
   User,
   Settings,
@@ -21,44 +21,74 @@ import {
   Bot,
   Mail,
   Calendar,
-} from "lucide-react"
-import Image from "next/image"
+  Users2Icon,
+  Receipt,
+  Settings2Icon,
+  InboxIcon,
+  CheckCircle2Icon,
+  Inbox,
+  Shell,
+  WarehouseIcon,
+  LucideWarehouse,
+  BoxIcon,
+  ScanBarcode,
+  PackagePlusIcon,
+  FireExtinguisherIcon,
+  ListStartIcon,
+  Paperclip,
+  FolderArchive,
+  FolderArchiveIcon,
+} from "lucide-react";
+import Image from "next/image";
+import { userAgent } from "next/server";
+import { kill } from "process";
 
 export default function Dashboard() {
-  const [activeSection, setActiveSection] = useState("Cuenta")
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-  const router = useRouter() // Added router instance
+  const [activeSection, setActiveSection] = useState("Cuenta");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const router = useRouter(); // Added router instance
 
   const menuItems = [
-    { name: "Cuenta", icon: User },
-    { name: "Personalizar", icon: Settings },
-    { name: "Aplicaciones", icon: Grid3X3 },
-    { name: "Integraciones", icon: Puzzle },
-    { name: "Cerrar sesión", icon: LogOut },
-  ]
+    { name: "CUENTA", icon: User },
+    { name: "PERSONALIZAR", icon: Settings },
+    { name: "USUARIOS", icon: Users2Icon },
+    { name: "CATÁLOGOS", icon: FolderArchiveIcon },
+
+    { name: "PROCESOS", icon: ListStartIcon },
+
+    { name: "INVENTARIO", icon: PackagePlusIcon },
+        { name: "EMBARQUES", icon: PackagePlusIcon },
+
+    { name: "APLICACIONES", icon: Grid3X3 },
+
+    { name: "INTEGRACIONES", icon: Puzzle },
+    { name: "CERRAR SESIÓN", icon: LogOut },
+  ];
 
   const handleLogout = () => {
-    window.location.href = "/login"
-  }
+    window.location.href = "/login";
+  };
 
   const handleMenuClick = (itemName: string) => {
-    if (itemName === "Cerrar sesión") {
-      handleLogout()
+    if (itemName === "CERRAR SESIÓN") {
+      handleLogout();
     } else {
-      setActiveSection(itemName)
+      setActiveSection(itemName);
     }
-  }
+  };
 
   const handleEtiquetadorClick = () => {
-    router.push("/etiquetador")
-  }
+    router.push("/etiquetador");
+  };
 
   const renderContent = () => {
     switch (activeSection) {
-      case "Cuenta":
+      case "CUENTA":
         return (
           <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-white">Configuración de Cuenta</h2>
+            <h2 className="text-3xl font-bold text-white">
+CONFIGURACIÓN DE TU CUENTA 
+           </h2>
 
             {/* Información del Usuario */}
             <div className="bg-black border border-white/20 rounded-lg p-6 space-y-4">
@@ -67,7 +97,9 @@ export default function Dashboard() {
                   <User className="w-8 h-8 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold text-white">Usuario KRKN</h3>
+                  <h3 className="text-xl font-semibold text-white">
+                    Usuario KRKN
+                  </h3>
                   <p className="text-gray-400">Administrador del abismo</p>
                   <p className="text-sm text-gray-500">usuario@krkn.com</p>
                 </div>
@@ -98,7 +130,9 @@ export default function Dashboard() {
                     <span className="text-gray-400">Tiempo Restante</span>
                   </div>
                   <p className="text-2xl font-bold text-green-400">23 días</p>
-                  <p className="text-sm text-gray-500">Próxima facturación: 15 Ene 2025</p>
+                  <p className="text-sm text-gray-500">
+                    Próxima facturación: 15 Ene 2025
+                  </p>
                 </div>
 
                 <div className="bg-black border border-white/10 rounded-lg p-4">
@@ -123,7 +157,9 @@ export default function Dashboard() {
 
             {/* Estadísticas de Uso */}
             <div className="bg-black border border-white/20 rounded-lg p-6">
-              <h3 className="text-xl font-semibold text-white mb-4">Estadísticas de Uso</h3>
+              <h3 className="text-xl font-semibold text-white mb-4">
+                Estadísticas de Uso
+              </h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-blue-400">156</div>
@@ -139,14 +175,14 @@ export default function Dashboard() {
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-yellow-400">12</div>
-                  <div className="text-sm text-gray-500">Integraciones</div>
+                  <div className="text-sm text-gray-500">INTEGRACIONES</div>
                 </div>
               </div>
             </div>
           </div>
-        )
+        );
 
-      case "Personalizar":
+      case "PERSONALIZAR":
         return (
           <div className="space-y-6">
             <h2 className="text-3xl font-bold text-white">Personalización</h2>
@@ -159,7 +195,9 @@ export default function Dashboard() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Nombre de Usuario</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Nombre de Usuario
+                  </label>
                   <input
                     type="text"
                     defaultValue="Usuario KRKN"
@@ -167,7 +205,9 @@ export default function Dashboard() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Email
+                  </label>
                   <input
                     type="email"
                     defaultValue="usuario@krkn.com"
@@ -175,7 +215,9 @@ export default function Dashboard() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Nombre de Organización</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Nombre de Organización
+                  </label>
                   <input
                     type="text"
                     defaultValue="KRKN Corp"
@@ -183,7 +225,9 @@ export default function Dashboard() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Zona Horaria</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Zona Horaria
+                  </label>
                   <select className="w-full bg-black border border-white/30 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-400">
                     <option>UTC-5 (América/Bogotá)</option>
                     <option>UTC-6 (América/México)</option>
@@ -193,11 +237,11 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Gestión de Usuarios */}
+            {/* Gestión de USUARIOS */}
             <div className="bg-black border border-white/20 rounded-lg p-6">
               <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
                 <Users className="w-5 h-5 mr-2 text-green-400" />
-                Gestión de Usuarios
+                Gestión de USUARIOS
               </h3>
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-4 bg-black border border-white/10 rounded-lg">
@@ -207,11 +251,15 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <p className="text-white font-medium">Usuario KRKN</p>
-                      <p className="text-sm text-gray-500">Administrador • usuario@krkn.com</p>
+                      <p className="text-sm text-gray-500">
+                        Administrador • usuario@krkn.com
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">Activo</span>
+                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
+                      Activo
+                    </span>
                     <button className="text-gray-400 hover:text-white">
                       <Edit3 className="w-4 h-4" />
                     </button>
@@ -225,11 +273,15 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <p className="text-white font-medium">Colaborador 1</p>
-                      <p className="text-sm text-gray-500">Editor • colaborador@krkn.com</p>
+                      <p className="text-sm text-gray-500">
+                        Editor • colaborador@krkn.com
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className="bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded text-xs">Pendiente</span>
+                    <span className="bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded text-xs">
+                      Pendiente
+                    </span>
                     <button className="text-gray-400 hover:text-white">
                       <Edit3 className="w-4 h-4" />
                     </button>
@@ -251,38 +303,119 @@ export default function Dashboard() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-white font-medium">Autenticación de Dos Factores</p>
-                    <p className="text-sm text-gray-500">Protege tu cuenta con 2FA</p>
+                    <p className="text-white font-medium">
+                      Autenticación de Dos Factores
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Protege tu cuenta con 2FA
+                    </p>
                   </div>
-                  <button className="bg-green-600 text-white px-3 py-1 rounded text-sm">Activado</button>
+                  <button className="bg-green-600 text-white px-3 py-1 rounded text-sm">
+                    Activado
+                  </button>
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-white font-medium">Sesiones Activas</p>
-                    <p className="text-sm text-gray-500">Gestiona tus sesiones activas</p>
+                    <p className="text-sm text-gray-500">
+                      Gestiona tus sesiones activas
+                    </p>
                   </div>
-                  <button className="text-blue-400 hover:text-blue-300 text-sm">Ver Sesiones</button>
+                  <button className="text-blue-400 hover:text-blue-300 text-sm">
+                    Ver Sesiones
+                  </button>
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-white font-medium">Cambiar Contraseña</p>
-                    <p className="text-sm text-gray-500">Actualiza tu contraseña</p>
+                    <p className="text-sm text-gray-500">
+                      Actualiza tu contraseña
+                    </p>
                   </div>
-                  <button className="text-blue-400 hover:text-blue-300 text-sm">Cambiar</button>
+                  <button className="text-blue-400 hover:text-blue-300 text-sm">
+                    Cambiar
+                  </button>
                 </div>
               </div>
             </div>
           </div>
-        )
-
-      case "Aplicaciones":
+        );
+      case "USUARIOS":
         return (
           <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-white">Aplicaciones y Módulos</h2>
+            <h2 className="text-3xl font-bold text-white">Personalización</h2>
+
+            {/* Gestión de Usuarios */}
+            <div className="bg-black border border-white/20 rounded-lg p-6">
+              <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
+                <Users className="w-5 h-5 mr-2 text-green-400" />
+                Gestión de Usuarios
+              </h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-black border border-white/10 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                      <User className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-white font-medium">Usuario KRKN</p>
+                      <p className="text-sm text-gray-500">
+                        Administrador • usuario@krkn.com
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
+                      Activo
+                    </span>
+                    <button className="text-gray-400 hover:text-white">
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-black border border-white/10 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-gray-600 to-black rounded-full flex items-center justify-center border border-white/20">
+                      <User className="w-5 h-5 text-gray-400" />
+                    </div>
+                    <div>
+                      <p className="text-white font-medium">Colaborador 1</p>
+                      <p className="text-sm text-gray-500">
+                        Editor • colaborador@krkn.com
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded text-xs">
+                      Pendiente
+                    </span>
+                    <button className="text-gray-400 hover:text-white">
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <button className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                + Invitar Usuario
+              </button>
+            </div>
+          </div>
+        );
+
+      case "APLICACIONES":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-3xl font-bold text-white">
+              APLICACIONES & MÓDULOS
+            </h2>
 
             {/* Módulos Activos */}
             <div className="bg-black border border-white/20 rounded-lg p-6">
-              <h3 className="text-xl font-semibold text-white mb-4">Módulos Activos</h3>
+              <h3 className="text-xl font-semibold text-white mb-4">
+                Módulos Activos
+              </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div
                   onClick={handleEtiquetadorClick}
@@ -292,10 +425,16 @@ export default function Dashboard() {
                     <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
                       <Database className="w-5 h-5 text-blue-400" />
                     </div>
-                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">Activo</span>
+                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
+                      Activo
+                    </span>
                   </div>
-                  <h4 className="text-lg font-semibold text-white mb-2">Etiquetador</h4>
-                  <p className="text-sm text-gray-400 mb-3">Genera tus propias etiquetas con nuestro etiquetador</p>
+                  <h4 className="text-lg font-semibold text-white mb-2">
+                    Etiquetador
+                  </h4>
+                  <p className="text-sm text-gray-400 mb-3">
+                    Genera tus propias etiquetas con nuestro etiquetador
+                  </p>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-600">v2.1.0</span>
                     <span className="text-blue-400 text-sm">Abrir →</span>
@@ -304,7 +443,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Módulos Disponibles */}
+            {/* Módulos Disponibles 
             <div className="bg-black border border-white/20 rounded-lg p-6">
               <h3 className="text-xl font-semibold text-white mb-4">Módulos Disponibles</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -343,160 +482,539 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
+            */}
           </div>
-        )
-
-      case "Integraciones":
+        );
+      case "CATÁLOGOS":
         return (
           <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-white">Integraciones</h2>
+            <h2 className="text-3xl font-bold text-white">CATÁLOGOS</h2>
 
-            {/* Integraciones Activas */}
+            {/* Módulos Activos */}
             <div className="bg-black border border-white/20 rounded-lg p-6">
-              <h3 className="text-xl font-semibold text-white mb-4">Integraciones Activas</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-black border border-white/10 rounded-lg">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                      <Database className="w-6 h-6 text-white" />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Recibo */}
+                <div
+                  onClick={handleEtiquetadorClick}
+                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
+                      <Inbox className="w-5 h-5 text-blue-400" />
                     </div>
-                    <div>
-                      <h4 className="text-lg font-semibold text-white">PostgreSQL</h4>
-                      <p className="text-sm text-gray-400">Base de datos principal • Conectado hace 2 días</p>
-                    </div>
+                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
+                      Activo
+                    </span>
                   </div>
-                  <div className="flex items-center space-x-3">
-                    <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-sm">Conectado</span>
-                    <button className="text-gray-400 hover:text-white">
-                      <Settings className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-black border border-white/10 rounded-lg">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                      <Webhook className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h4 className="text-lg font-semibold text-white">Webhooks API</h4>
-                      <p className="text-sm text-gray-400">Notificaciones en tiempo real • 1,234 eventos procesados</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-sm">Activo</span>
-                    <button className="text-gray-400 hover:text-white">
-                      <Settings className="w-5 h-5" />
-                    </button>
+                  <h4 className="text-lg font-semibold text-white mb-2">
+                    Pedidos
+                  </h4>
+                  <p className="text-sm text-gray-400 mb-3 text-center">
+                    Registra la entrada de mercancía, validar contra órdenes de
+                    compra y asegurar cantidades correctas.
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">v2.1.0</span>
+                    <span className="text-blue-400 text-sm">Abrir →</span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-black border border-white/10 rounded-lg">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                      <Mail className="w-6 h-6 text-white" />
+                {/* Acomodo */}
+                <div
+                  onClick={handleEtiquetadorClick}
+                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
+                      <LucideWarehouse className="w-5 h-5 text-blue-400" />
                     </div>
-                    <div>
-                      <h4 className="text-lg font-semibold text-white">SendGrid</h4>
-                      <p className="text-sm text-gray-400">Servicio de email • 89% tasa de entrega</p>
-                    </div>
+                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
+                      Activo
+                    </span>
                   </div>
-                  <div className="flex items-center space-x-3">
-                    <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-sm">Conectado</span>
-                    <button className="text-gray-400 hover:text-white">
-                      <Settings className="w-5 h-5" />
-                    </button>
+                  <h4 className="text-lg font-semibold text-white mb-2">
+                    Órdenes de compra
+                  </h4>
+                  <p className="text-sm text-gray-400 mb-3 text-center">
+                    Ubica y organiza la mercancia recíbida en su posición
+                    correcta dentro del almacén.
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">v2.1.0</span>
+                    <span className="text-blue-400 text-sm p-4">Abrir →</span>
+                  </div>
+                </div>
+
+                {/* Picking */}
+                <div
+                  onClick={handleEtiquetadorClick}
+                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
+                      <ScanBarcode className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
+                      Activo
+                    </span>
+                  </div>
+                  <h4 className="text-lg font-semibold text-white mb-2">
+                    Proveedores
+                  </h4>
+                  <p className="text-sm text-gray-400 mb-3 text-center">
+                    Prepara los productos solicitados tomando la mercancía de su
+                    ubicación en almacén.
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">v2.1.0</span>
+                    <span className="text-blue-400 text-sm p-4">Abrir →</span>
+                  </div>
+                </div>
+
+                {/* Packing */}
+                <div
+                  onClick={handleEtiquetadorClick}
+                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
+                      <BoxIcon className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
+                      Activo
+                    </span>
+                  </div>
+                  <h4 className="text-lg font-semibold text-white mb-2">
+                    Clientes
+                  </h4>
+                  <p className="text-sm text-gray-400 mb-3 text-center">
+                    Empaca y consolida los productos seleccionados para el envío
+                    o entrega.
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">v2.1.0</span>
+                    <span className="text-blue-400 text-sm p-4">Abrir →</span>
                   </div>
                 </div>
               </div>
             </div>
-
-            {/* Integraciones Disponibles */}
             <div className="bg-black border border-white/20 rounded-lg p-6">
-              <h3 className="text-xl font-semibold text-white mb-4">Integraciones Disponibles</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="bg-black border border-white/10 rounded-lg p-4 hover:border-blue-400 transition-colors">
-                  <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center mb-3">
-                    <Database className="w-6 h-6 text-white" />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Recibo */}
+                <div
+                  onClick={handleEtiquetadorClick}
+                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
+                      <Inbox className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
+                      Activo
+                    </span>
                   </div>
-                  <h4 className="text-lg font-semibold text-white mb-2">Redis</h4>
-                  <p className="text-sm text-gray-400 mb-4">Cache en memoria para mejor rendimiento</p>
-                  <button className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                    Conectar
-                  </button>
-                </div>
-
-                <div className="bg-black border border-white/10 rounded-lg p-4 hover:border-purple-400 transition-colors">
-                  <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center mb-3">
-                    <Bot className="w-6 h-6 text-white" />
+                  <h4 className="text-lg font-semibold text-white mb-2">
+                    Articulos
+                  </h4>
+                  <p className="text-sm text-gray-400 mb-3 text-center">
+                    Registra la entrada de mercancía, validar contra órdenes de
+                    compra y asegurar cantidades correctas.
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">v2.1.0</span>
+                    <span className="text-blue-400 text-sm">Abrir →</span>
                   </div>
-                  <h4 className="text-lg font-semibold text-white mb-2">OpenAI</h4>
-                  <p className="text-sm text-gray-400 mb-4">Integración con modelos de IA avanzados</p>
-                  <button className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                    Conectar
-                  </button>
-                </div>
-
-                <div className="bg-black border border-white/10 rounded-lg p-4 hover:border-green-400 transition-colors">
-                  <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center mb-3">
-                    <Zap className="w-6 h-6 text-white" />
-                  </div>
-                  <h4 className="text-lg font-semibold text-white mb-2">Stripe</h4>
-                  <p className="text-sm text-gray-400 mb-4">Procesamiento de pagos seguro</p>
-                  <button className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                    Conectar
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Configuración de API */}
-            <div className="bg-black border border-white/20 rounded-lg p-6">
-              <h3 className="text-xl font-semibold text-white mb-4">Configuración de API</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-white font-medium">API Key</p>
-                    <p className="text-sm text-gray-400">Clave para acceso a la API</p>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <code className="bg-black border border-white/20 px-3 py-1 rounded text-sm text-gray-300">
-                      krkn_••••••••••••••••
-                    </code>
-                    <button className="text-blue-400 hover:text-blue-300 text-sm">Regenerar</button>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-white font-medium">Rate Limit</p>
-                    <p className="text-sm text-gray-400">Límite de requests por minuto</p>
-                  </div>
-                  <span className="text-gray-300">1000/min</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-white font-medium">Webhook URL</p>
-                    <p className="text-sm text-gray-400">Endpoint para notificaciones</p>
-                  </div>
-                  <code className="bg-black border border-white/20 px-3 py-1 rounded text-sm text-gray-300">
-                    https://api.krkn.com/webhook
-                  </code>
                 </div>
               </div>
             </div>
           </div>
-        )
+        );
+      case "PROCESOS":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-3xl font-bold text-white">
+              APLICACIONES Y MÓDULOS
+            </h2>
+
+            {/* Módulos Activos */}
+            <div className="bg-black border border-white/20 rounded-lg p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Recibo */}
+                <div
+                  onClick={handleEtiquetadorClick}
+                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
+                      <Inbox className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
+                      Activo
+                    </span>
+                  </div>
+                  <h4 className="text-lg font-semibold text-white mb-2">
+                    Recibo
+                  </h4>
+                  <p className="text-sm text-gray-400 mb-3 text-center">
+                    Registra la entrada de mercancía, validar contra órdenes de
+                    compra y asegurar cantidades correctas.
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">v2.1.0</span>
+                    <span className="text-blue-400 text-sm">Abrir →</span>
+                  </div>
+                </div>
+
+                {/* Acomodo */}
+                <div
+                  onClick={handleEtiquetadorClick}
+                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
+                      <LucideWarehouse className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
+                      Activo
+                    </span>
+                  </div>
+                  <h4 className="text-lg font-semibold text-white mb-2">
+                    Acomodo
+                  </h4>
+                  <p className="text-sm text-gray-400 mb-3 text-center">
+                    Ubica y organiza la mercancia recíbida en su posición
+                    correcta dentro del almacén.
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">v2.1.0</span>
+                    <span className="text-blue-400 text-sm p-4">Abrir →</span>
+                  </div>
+                </div>
+
+                {/* Picking */}
+                <div
+                  onClick={handleEtiquetadorClick}
+                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
+                      <ScanBarcode className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
+                      Activo
+                    </span>
+                  </div>
+                  <h4 className="text-lg font-semibold text-white mb-2">
+                    Picking
+                  </h4>
+                  <p className="text-sm text-gray-400 mb-3 text-center">
+                    Prepara los productos solicitados tomando la mercancía de su
+                    ubicación en almacén.
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">v2.1.0</span>
+                    <span className="text-blue-400 text-sm p-4">Abrir →</span>
+                  </div>
+                </div>
+
+                {/* Packing */}
+                <div
+                  onClick={handleEtiquetadorClick}
+                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
+                      <BoxIcon className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
+                      Activo
+                    </span>
+                  </div>
+                  <h4 className="text-lg font-semibold text-white mb-2">
+                    Packing
+                  </h4>
+                  <p className="text-sm text-gray-400 mb-3 text-center">
+                    Empaca y consolida los productos seleccionados para el envío
+                    o entrega.
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">v2.1.0</span>
+                    <span className="text-blue-400 text-sm p-4">Abrir →</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Módulos Disponibles 
+            <div className="bg-black border border-white/20 rounded-lg p-6">
+              <h3 className="text-xl font-semibold text-white mb-4">Módulos Disponibles</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="bg-black border border-white/10 rounded-lg p-4 opacity-75">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-orange-500/20 rounded-lg flex items-center justify-center border border-orange-400/30">
+                      <Calendar className="w-5 h-5 text-orange-400" />
+                    </div>
+                    <span className="bg-gray-600/20 text-gray-400 px-2 py-1 rounded text-xs">Disponible</span>
+                  </div>
+                  <h4 className="text-lg font-semibold text-white mb-2">PICKING</h4>
+                  <p className="text-sm text-gray-400 mb-3">Gestión de eventos y programación de tareas</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">v1.0.0</span>
+                    <button className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors">
+                      Instalar
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-black border border-white/10 rounded-lg p-4 opacity-75">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center border border-red-400/30">
+                      <Shield className="w-5 h-5 text-red-400" />
+                    </div>
+                    <span className="bg-gray-600/20 text-gray-400 px-2 py-1 rounded text-xs">Disponible</span>
+                  </div>
+                  <h4 className="text-lg font-semibold text-white mb-2">Seguridad Avanzada</h4>
+                  <p className="text-sm text-gray-400 mb-3">Monitoreo y protección en tiempo real</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">v2.5.0</span>
+                    <button className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors">
+                      Instalar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            */}
+          </div>
+        );
+
+      case "INVENTARIO":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-3xl font-bold text-white">INVENTARIO</h2>
+
+            {/* Módulos Activos */}
+            <div className="bg-black border border-white/20 rounded-lg p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Recibo */}
+                <div
+                  onClick={handleEtiquetadorClick}
+                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
+                      <Inbox className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
+                      Activo
+                    </span>
+                  </div>
+                  <h4 className="text-lg font-semibold text-white mb-2">
+                    Conteo
+                  </h4>
+                  <p className="text-sm text-gray-400 mb-3 text-center">
+                    Registra la entrada de mercancía, validar contra órdenes de
+                    compra y asegurar cantidades correctas.
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">v2.1.0</span>
+                    <span className="text-blue-400 text-sm">Abrir →</span>
+                  </div>
+                </div>
+
+                {/* Acomodo */}
+                <div
+                  onClick={handleEtiquetadorClick}
+                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
+                      <LucideWarehouse className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
+                      Activo
+                    </span>
+                  </div>
+                  <h4 className="text-lg font-semibold text-white mb-2">
+                    Movimientos
+                  </h4>
+                  <p className="text-sm text-gray-400 mb-3 text-center">
+                    Ubica y organiza la mercancia recíbida en su posición
+                    correcta dentro del almacén.
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">v2.1.0</span>
+                    <span className="text-blue-400 text-sm p-4">Abrir →</span>
+                  </div>
+                </div>
+
+                {/* Picking */}
+                <div
+                  onClick={handleEtiquetadorClick}
+                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
+                      <ScanBarcode className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
+                      Activo
+                    </span>
+                  </div>
+                  <h4 className="text-lg font-semibold text-white mb-2">
+                    Lotes
+                  </h4>
+                  <p className="text-sm text-gray-400 mb-3 text-center">
+                    Prepara los productos solicitados tomando la mercancía de su
+                    ubicación en almacén.
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">v2.1.0</span>
+                    <span className="text-blue-400 text-sm p-4">Abrir →</span>
+                  </div>
+                </div>
+
+                {/* Packing */}
+                <div
+                  onClick={handleEtiquetadorClick}
+                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
+                      <BoxIcon className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
+                      Activo
+                    </span>
+                  </div>
+                  <h4 className="text-lg font-semibold text-white mb-2">
+                    Calidades & Garantias
+                  </h4>
+                  <p className="text-sm text-gray-400 mb-3 text-center">
+                    Empaca y consolida los productos seleccionados para el envío
+                    o entrega.
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">v2.1.0</span>
+                    <span className="text-blue-400 text-sm p-4">Abrir →</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-black border border-white/20 rounded-lg p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Recibo */}
+                <div
+                  onClick={handleEtiquetadorClick}
+                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
+                      <Inbox className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
+                      Activo
+                    </span>
+                  </div>
+                  <h4 className="text-lg font-semibold text-white mb-2">
+                    Merma
+                  </h4>
+                  <p className="text-sm text-gray-400 mb-3 text-center">
+                    Registra la entrada de mercancía, validar contra órdenes de
+                    compra y asegurar cantidades correctas.
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">v2.1.0</span>
+                    <span className="text-blue-400 text-sm">Abrir →</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case "INTEGRACIONES":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-3xl font-bold text-white">INTEGRACIONES</h2>
+
+            {/* Módulos Activos */}
+            <div className="bg-black border border-white/20 rounded-lg p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Recibo */}
+                <div
+                  onClick={handleEtiquetadorClick}
+                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
+                      <Inbox className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
+                      Activo
+                    </span>
+                  </div>
+                  <h4 className="text-lg font-semibold text-white mb-2">
+                    Importador
+                  </h4>
+                  <p className="text-sm text-gray-400 mb-3 text-center">
+                    Registra la entrada de mercancía, validar contra órdenes de
+                    compra y asegurar cantidades correctas.
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">v2.1.0</span>
+                    <span className="text-blue-400 text-sm">Abrir →</span>
+                  </div>
+                </div>
+
+                {/* Acomodo */}
+                <div
+                  onClick={handleEtiquetadorClick}
+                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
+                      <LucideWarehouse className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
+                      Activo
+                    </span>
+                  </div>
+                  <h4 className="text-lg font-semibold text-white mb-2">
+                    API
+                  </h4>
+                  <p className="text-sm text-gray-400 mb-3 text-center">
+                    Ubica y organiza la mercancia recíbida en su posición
+                    correcta dentro del almacén.
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">v2.1.0</span>
+                    <span className="text-blue-400 text-sm p-4">Abrir →</span>
+                  </div>
+                </div>
+
+             
+              </div>
+            </div>
+           
+          </div>
+        );
+
+   
+   
 
       default:
-        return null
+        return null;
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-black flex">
       {/* Sidebar */}
       <div
-        className={`${sidebarOpen ? "w-64" : "w-16"} bg-black border-r border-white/20 transition-all duration-300 flex flex-col`}
+        className={`${
+          sidebarOpen ? "w-64" : "w-16"
+        } bg-black border-r border-white/20 transition-all duration-300 flex flex-col`}
       >
         {/* Header */}
         <div className="p-4 border-b border-white/20">
@@ -504,7 +1022,13 @@ export default function Dashboard() {
             {sidebarOpen && (
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-800 via-gray-900 to-black flex items-center justify-center border border-white/30">
-                  <Image src="/kraken6.png" alt="Kraken Logo" width={24} height={24} className="w-6 h-6" />
+                  <Image
+                    src="/kraken6.png"
+                    alt="Kraken Logo"
+                    width={24}
+                    height={24}
+                    className="w-6 h-6"
+                  />
                 </div>
                 <div>
                   <h1 className="text-xl font-bold text-white">KRKN</h1>
@@ -516,7 +1040,11 @@ export default function Dashboard() {
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
             >
-              {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {sidebarOpen ? (
+                <X className="w-5 h-5" />
+              ) : (
+                <Menu className="w-5 h-5" />
+              )}
             </button>
           </div>
         </div>
@@ -524,9 +1052,9 @@ export default function Dashboard() {
         {/* Menu Items */}
         <nav className="flex-1 p-4 space-y-2">
           {menuItems.map((item) => {
-            const Icon = item.icon
-            const isActive = activeSection === item.name
-            const isLogout = item.name === "Cerrar sesión"
+            const Icon = item.icon;
+            const isActive = activeSection === item.name;
+            const isLogout = item.name === "CERRAR SESIÓN";
 
             return (
               <button
@@ -536,21 +1064,29 @@ export default function Dashboard() {
                   isActive && !isLogout
                     ? "bg-gray-800 text-white border border-gray-600"
                     : isLogout
-                      ? "text-red-400 hover:bg-red-900/30 hover:text-red-300"
-                      : "text-gray-300 hover:bg-gray-900 hover:text-white"
+                    ? "text-red-400 hover:bg-red-900/30 hover:text-red-300"
+                    : "text-gray-300 hover:bg-gray-900 hover:text-white"
                 }`}
               >
-                <Icon className={`w-5 h-5 ${isLogout ? "text-red-400 group-hover:text-red-300" : ""}`} />
-                {sidebarOpen && <span className="font-medium">{item.name}</span>}
+                <Icon
+                  className={`w-5 h-5 ${
+                    isLogout ? "text-red-400 group-hover:text-red-300" : ""
+                  }`}
+                />
+                {sidebarOpen && (
+                  <span className="font-medium">{item.name}</span>
+                )}
               </button>
-            )
+            );
           })}
         </nav>
 
         {/* Footer */}
         {sidebarOpen && (
           <div className="p-4 border-t border-white/20">
-            <div className="text-xs text-gray-500 text-center">KRKN Dashboard v1.0</div>
+            <div className="text-xs text-gray-500 text-center">
+              KRKN Dashboard v1.0
+            </div>
           </div>
         )}
       </div>
@@ -571,5 +1107,5 @@ export default function Dashboard() {
         <main className="flex-1 p-6 overflow-auto">{renderContent()}</main>
       </div>
     </div>
-  )
+  );
 }

@@ -55,7 +55,7 @@ export default function LoginPage() {
           {/* Fondo fondo7  opcion */}
           <div className="absolute inset-0 flex items-center justify-center">
             <Image
-              src="octo.png"
+              src="OFICIAL.jpg"
               alt="3D Octopus"
               fill
               className="object-cover"
@@ -82,8 +82,8 @@ export default function LoginPage() {
                   <Image
                     src="/logogm.png"
                     alt="Kraken Logo"
-                    width={180}
-                    height={180}
+                    width={100}
+                    height={100}
                   />
                 </div>
                 <p className="text-gray-500 text-3xl mt-2 font-bold">
@@ -169,10 +169,10 @@ export default function LoginPage() {
           {/* Logo BS fijo abajo */}
           <div className="flex justify-center mt-auto">
             <Image
-              src="/BS.png"
+              src="/testbs.png"
               alt="BS Logo"
-              width={160}
-              height={50}
+              width={40}
+              height={20}
               className="object-contain"
             />
           </div>
