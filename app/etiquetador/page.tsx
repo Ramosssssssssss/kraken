@@ -1,6 +1,7 @@
 // app/page.tsx
 "use client"
-
+import Link from "next/link"
+import { Info } from "lucide-react"
 import React, { useState, useEffect, useMemo, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -9,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Eye, Settings, Printer, Plus, Trash2, Save, BookOpen, Loader2, AlertCircle, Minus } from "lucide-react"
+
 
 interface ArticleItem {
   id: string
@@ -104,6 +106,28 @@ function BarcodeSVG({
 
   return <svg ref={ref} className="barcode-svg" />
 }
+function QRCodeSVG({ value, sizePx }: { value: string; sizePx: number }) {
+  const ref = useRef<HTMLCanvasElement | null>(null)
+
+  useEffect(() => {
+    let mounted = true
+      ; (async () => {
+        const QRCode = (await import("qrcode")).default
+        if (!mounted || !ref.current) return
+        try {
+          await QRCode.toCanvas(ref.current, value, {
+            errorCorrectionLevel: "M",
+            margin: 0,
+            width: sizePx,
+          })
+        } catch { }
+      })()
+    return () => { mounted = false }
+  }, [value, sizePx])
+
+  return <canvas ref={ref} width={sizePx} height={sizePx} />
+}
+
 
 // === NumberField con botones + y - (arreglo de doble click/hold) ===
 function NumberField({
@@ -231,9 +255,9 @@ export default function LabelGenerator() {
     font: "Arial",
     quantity: "1",
     barHeightMm: "20",
+    qrSizeMm: "16",   // 👉 tamaño del QR en milímetros
   })
-
-  const [barcodeFormat, setBarcodeFormat] = useState<"CODE128" | "CODE128B">("CODE128")
+  const [barcodeFormat, setBarcodeFormat] = useState<"CODE128" | "CODE128B" | "QR">("CODE128")
 
   const [articles, setArticles] = useState<ArticleItem[]>([])
   const [templates, setTemplates] = useState<LabelTemplate[]>([])
@@ -506,13 +530,14 @@ export default function LabelGenerator() {
   }
 
   // 👉 Imprime en la MISMA pestaña (iframe oculto). Papel = etiqueta exacta.
+  // 👉 Imprimir etiquetas
   const handlePrint = () => {
     if (articles.length === 0) return
 
-    const labelW = clampMm(parseFloat(labelConfig.width), MAX_W_MM)      // mm
-    const labelH = clampMm(parseFloat(labelConfig.height), MAX_H_MM)     // mm
-    const padding = Math.max(0, parseFloat(labelConfig.margin))          // mm
-    const barH = clampBarHeight(parseFloat(labelConfig.barHeightMm || "20"), labelH, padding) // mm
+    const labelW = clampMm(parseFloat(labelConfig.width), MAX_W_MM)
+    const labelH = clampMm(parseFloat(labelConfig.height), MAX_H_MM)
+    const padding = Math.max(0, parseFloat(labelConfig.margin))
+    const barH = clampBarHeight(parseFloat(labelConfig.barHeightMm || "20"), labelH, padding)
     const fontPx = parseFloat(labelConfig.fontSize)
     const fontFamily = labelConfig.font
     const fmt = barcodeFormat
@@ -524,113 +549,95 @@ export default function LabelGenerator() {
   <meta charset="utf-8" />
   <title>Etiquetas</title>
   <style>
-    @page { 
-      size: ${labelW}mm ${labelH}mm; 
-      margin: 0; 
-      padding: 0;
-    }
-    html, body { margin: 0; padding: 0; }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: ${fontFamily}, Arial, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-
+    @page { size: ${labelW}mm ${labelH}mm; margin: 0; padding: 0; }
+    body { margin:0; padding:0; font-family:${fontFamily}; }
     .page {
-      width: ${labelW}mm;
-      height: ${labelH}mm;
-      display: grid;
-      place-items: center;
-      page-break-after: always;
-      overflow: hidden;
-      background: #fff;
+      width:${labelW}mm;
+      height:${labelH}mm;
+      display:grid;
+      place-items:center;
+      page-break-after:always;
     }
-    .page:last-child { page-break-after: auto; }
-
     .label {
-      width: ${labelW}mm;
-      height: ${labelH}mm;
-      padding: ${padding}mm;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
+      width:${labelW}mm;
+      height:${labelH}mm;
+      padding:${padding}mm;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:4px;
     }
-    .barcode-svg { width: 100%; height: ${barH}mm; }
+    .label.column { flex-direction:column; } /* para barras */
+    .label.row { 
+    flex-direction:column;
+    }       /* para QR */
+    .barcode-svg { width:100%; height:${barH}mm; }
+    .qr-canvas {
+      width:${labelConfig.qrSizeMm || 20}mm;
+      height:${labelConfig.qrSizeMm || 20}mm;
+        justify-self:center; /* fija el QR a la izquierda */
+    }
     .label-text {
-      width: 100%;
-      font-size: ${fontPx}px;
-      text-align: center;
-      font-weight: bold;
-      margin-top: 4px;
+      font-size:${fontPx}px;
+      font-weight:bold;
+      text-align:center;
+      word-break:break-word;
     }
   </style>
 </head>
 <body>
   ${articles.map(a =>
       Array.from({ length: a.quantity }, () => `
-        <div class="page">
-          <div class="label">
-            <svg class="barcode-svg" data-value="${a.barcode}" data-format="${fmt}"></svg>
-            <div class="label-text">${a.text}</div>
-          </div>
+      <div class="page">
+        <div class="label ${fmt === "QR" ? "row" : "column"}">
+          ${fmt === "QR"
+          ? `<canvas class="qr-canvas" data-value="${a.barcode}"></canvas>`
+          : `<svg class="barcode-svg" data-value="${a.barcode}" data-format="${fmt}"></svg>`
+        }
+          <div class="label-text">SKU ${a.text}</div>
         </div>
-      `).join("")
-    ).join("")
-      }
+      </div>
+    `).join("")
+    ).join("")}
 
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
   <script>
     (function () {
       function render() {
-        var svgs = document.querySelectorAll('svg.barcode-svg');
-        for (var i = 0; i < svgs.length; i++) {
-          var svg = svgs[i];
-          var val = svg.getAttribute('data-value') || '';
-          var format = svg.getAttribute('data-format') || 'CODE128';
-          try {
-            JsBarcode(svg, val, {
-              format: format,
-              displayValue: false,
-              margin: 0
-            });
-            svg.setAttribute('preserveAspectRatio', 'none');
-          } catch(e) {}
-        }
+        document.querySelectorAll('svg.barcode-svg').forEach(svg => {
+          try { JsBarcode(svg, svg.dataset.value, { format: svg.dataset.format, displayValue:false, margin:0 }) } catch(e){}
+        })
+        document.querySelectorAll('canvas.qr-canvas').forEach(c => {
+          try { QRCode.toCanvas(c, c.dataset.value, { errorCorrectionLevel:"M", margin:0, width:c.offsetWidth }) } catch(e){}
+        })
       }
-      window.addEventListener('load', function () {
-        render();
-        setTimeout(function () { window.focus(); window.print(); }, 0);
-      });
-      window.onafterprint = function () {
-        try { parent.postMessage({ type: '__PRINT_DONE__' }, '*'); } catch(e) {}
-      };
-    })();
+      window.onload = () => { render(); setTimeout(()=>{window.print()},100) }
+      window.onafterprint = () => { try { parent.postMessage({ type: '__PRINT_DONE__' }, '*') } catch(e){} }
+    })()
   </script>
 </body>
 </html>`
 
-    const iframe = document.createElement('iframe')
-    iframe.style.position = 'fixed'
-    iframe.style.right = '0'
-    iframe.style.bottom = '0'
-    iframe.style.width = '0'
-    iframe.style.height = '0'
-    iframe.style.border = '0'
-    iframe.style.opacity = '0'
+    const iframe = document.createElement("iframe")
+    iframe.style.position = "fixed"
+    iframe.style.width = "0"
+    iframe.style.height = "0"
+    iframe.style.border = "0"
     document.body.appendChild(iframe)
+    const doc = iframe.contentDocument!
+    doc.open(); doc.write(printHtml); doc.close()
 
     const cleanup = () => {
-      window.removeEventListener('message', onMessage)
       try { document.body.removeChild(iframe) } catch { }
     }
-    const onMessage = (ev: MessageEvent) => {
-      if (ev?.data?.type === '__PRINT_DONE__') cleanup()
-    }
-    window.addEventListener('message', onMessage)
-
-    const doc = (iframe.contentDocument || (iframe as any).ownerDocument) as Document
-    doc.open(); doc.write(printHtml); doc.close()
+    window.addEventListener("message", (ev: MessageEvent) => {
+      if (ev?.data?.type === "__PRINT_DONE__") cleanup()
+    })
   }
 
+
+  /******************************************************/
   const totalLabels = useMemo(() => articles.reduce((s, a) => s + a.quantity, 0), [articles])
 
   // búsqueda con debounce
@@ -715,15 +722,27 @@ export default function LabelGenerator() {
           <div className="grid lg:grid-cols-2 gap-8 items-stretch min-h-0">
             {/* Panel de Configuración (izquierda) */}
             <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm h-full flex flex-col w-full">
-              <CardHeader className="border-b border-gray-600 flex aling-center w-full justify-between">
+
+              <CardHeader className="border-b border-gray-600 flex items-center w-full justify-between">
                 <CardTitle className="flex items-center gap-2 text-white">
                   <Settings className="w-5 h-5 text-purple-300" />
                   Configuración
                 </CardTitle>
-                <CardTitle className="flex items-center gap-2 text-white font-light  text-xs">
-                  Version 1.1.3
-                </CardTitle>
+
+                <div className="flex items-center gap-2 text-white font-light text-xs">
+                  Version 1.2.0
+
+                  {/* Enlace a historial de actualizaciones */}
+                  <Link
+                    href="/actualizaciones"
+                    className="text-purple-300 hover:text-purple-200"
+                    title="Ver historial de actualizaciones"
+                  >
+                    <Info className="w-4 h-4" />
+                  </Link>
+                </div>
               </CardHeader>
+
               <CardContent className="p-6 space-y-6">
 
                 {/* Campo de artículo con búsqueda */}
@@ -828,13 +847,14 @@ export default function LabelGenerator() {
                 {/* Formato de código de barras */}
                 <div className="space-y-2">
                   <Label className="text-gray-100 font-medium">Formato de código de barras</Label>
-                  <Select value={barcodeFormat} onValueChange={(v: "CODE128" | "CODE128B") => setBarcodeFormat(v)}>
+                  <Select value={barcodeFormat} onValueChange={(v: "CODE128" | "CODE128B" | "QR") => setBarcodeFormat(v)}>
                     <SelectTrigger className="bg-gray-700 border-gray-500 text-white w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-gray-700 border-gray-500">
                       <SelectItem value="CODE128" className="text-white">CODE128</SelectItem>
                       <SelectItem value="CODE128B" className="text-white">CODE128B</SelectItem>
+                      <SelectItem value="QR" className="text-white">Código QR</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -994,34 +1014,15 @@ export default function LabelGenerator() {
                     </CardTitle>
 
                     <div className="flex items-center gap-2">
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".xlsx,.xls,.csv"
-                        onChange={onExcelInputChange}
-                        className="hidden"
-                      />
-                      <Button
-                        size="sm"
-                        className="bg-purple-600 hover:bg-purple-700 text-white border-0"
-                        onClick={onPickExcelClick}
-                        title="Importar desde Excel/CSV"
-                      >
+                      <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={onExcelInputChange} className="hidden" />
+                      <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white border-0" onClick={onPickExcelClick} title="Importar desde Excel/CSV">
                         <Plus className="w-4 h-4 mr-2" />
                         Importar Excel
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-gray-300 hover:text-white"
-                        onClick={downloadTemplate}
-                        title="Descargar plantilla CSV"
-                      >
+                      <Button size="sm" variant="ghost" className="text-gray-300 hover:text-white" onClick={downloadTemplate} title="Descargar plantilla CSV">
                         Descargar plantilla
                       </Button>
-                      <span className="text-sm text-purple-300">
-                        Total: {totalLabels} etiquetas
-                      </span>
+                      <span className="text-sm text-purple-300"> Total: {totalLabels} etiquetas </span>
                     </div>
                   </div>
                 </CardHeader>
@@ -1092,22 +1093,25 @@ export default function LabelGenerator() {
                               }}
                             >
                               {/* 1) Código de barras */}
-                              <BarcodeSVG
-                                value={a.barcode}
-                                format={barcodeFormat}
-                                heightPx={previewBarHeightPx}
-                                fontFamily={labelConfig.font}
-                                fontSizePx={parseFloat(labelConfig.fontSize)}
-                              />
+                              {barcodeFormat === "QR" ? (
+                                <QRCodeSVG
+                                  value={a.barcode}
+                                  sizePx={mmToPx(parseFloat(labelConfig.qrSizeMm))}
+                                />
+                              ) : (
+                                <BarcodeSVG
+                                  value={a.barcode}
+                                  format={barcodeFormat as "CODE128" | "CODE128B"}
+                                  heightPx={previewBarHeightPx}
+                                  fontFamily={labelConfig.font}
+                                  fontSizePx={parseFloat(labelConfig.fontSize)}
+                                />
+                              )}
+
                               {/* 2) Texto debajo */}
                               <div
-                                className="text-black text-center font-medium"
-                                style={{
-                                  fontSize: `${Math.max(10, Number.parseInt(labelConfig.fontSize) * 0.8)}px`,
-                                  marginTop: "6px",
-                                  maxWidth: "100%",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
+                                className="text-black text-center font-medium" style={{
+                                  fontSize: `${Math.max(10, Number.parseInt(labelConfig.fontSize) * 0.8)}px`, marginTop: "6px", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis",
                                   whiteSpace: "nowrap",
                                 }}
                                 title={a.text}
