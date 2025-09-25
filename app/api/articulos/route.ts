@@ -8,12 +8,12 @@ import * as path from "path"
 // ======== Config ========
 // Recomendado: mover credenciales a variables de entorno
 const fbConfig = {
-  host: process.env.FIREBIRD_HOST || "69.48.200.119",
+  host: process.env.FIREBIRD_HOST || "85.215.109.213",
   port: Number(process.env.FIREBIRD_PORT || 3050),
-  database: process.env.FIREBIRD_DATABASE || "C:\\Microsip datos\\GUIMARTEST.FDB",
+  database: process.env.FB_DATABASE || "D:\\Microsip datos\\GUIMARTEST.FDB",
   user: process.env.FIREBIRD_USER || "SYSDBA",
-  password: process.env.FIREBIRD_PASSWORD || "masterkeyBS",
-  charset: "UTF8", // 👈 fuerza UTF-8
+  password: process.env.FIREBIRD_PASSWORD || "BlueMamut$23",
+  charset: "ISO8859_1",   // ⚠️ cámbialo a "UTF8" si tu DB ya está en UTF8
 }
 
 const JWT_SECRET = process.env.JWT_SECRET || "elyssia-secret-key"
