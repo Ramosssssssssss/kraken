@@ -12,7 +12,7 @@ export const revalidate = 0
 
 // ======== Config ========
 const fbConfig = {
-  host: process.env.FIREBIRD_HOST || "201.110.64.212",
+  host: process.env.FIREBIRD_HOST || "69.48.200.119",
   port: Number(process.env.FIREBIRD_PORT || 3050),
   database: process.env.FIREBIRD_DATABASE || "C:\\Microsip datos\\GOUMAM.FDB",
   user: process.env.FIREBIRD_USER || "SYSDBA",

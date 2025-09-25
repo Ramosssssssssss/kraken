@@ -13,9 +13,9 @@ export const revalidate = 0
 
 // ======== Config ========
 const fbConfig = {
-  host: process.env.FIREBIRD_HOST || "85.215.109.213",
+  host: process.env.FIREBIRD_HOST || "69.48.200.119",
   port: Number(process.env.FIREBIRD_PORT || 3050),
-  database: process.env.FB_DATABASE || "D:\\Microsip datos\\GUIMAR.FDB",
+  database: process.env.FB_DATABASE || "C:\\Microsip datos\\GUIMARTEST.FDB",
   user: process.env.FIREBIRD_USER || "SYSDBA",
   password: process.env.FIREBIRD_PASSWORD || "BlueMamut$23",
   charset: "ISO8859_1",   // ⚠️ cámbialo a "UTF8" si tu DB ya está en UTF8
