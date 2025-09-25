@@ -78,7 +78,7 @@ export default function Dashboard() {
   };
 
   const handleEtiquetadorClick = () => {
-    router.push("/etiquetador");
+    router.push("/etiquetador_hub");
   };
 
   const renderContent = () => {
@@ -430,7 +430,7 @@ CONFIGURACIÓN DE TU CUENTA
                     </span>
                   </div>
                   <h4 className="text-lg font-semibold text-white mb-2">
-                    Etiquetador
+                    Centro de Etiquetado
                   </h4>
                   <p className="text-sm text-gray-400 mb-3">
                     Genera tus propias etiquetas con nuestro etiquetador
@@ -633,7 +633,7 @@ CONFIGURACIÓN DE TU CUENTA
         return (
           <div className="space-y-6">
             <h2 className="text-3xl font-bold text-white">
-              APLICACIONES Y MÓDULOS
+              PROCESOS Y MÓDULOS
             </h2>
 
             {/* Módulos Activos */}
