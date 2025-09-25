@@ -13,6 +13,7 @@ const fbConfig = {
   database: process.env.FIREBIRD_DATABASE || "C:\\Microsip datos\\GOUMAM.FDB",
   user: process.env.FIREBIRD_USER || "SYSDBA",
   password: process.env.FIREBIRD_PASSWORD || "masterkeyBS",
+  charset: "UTF8", // 👈 fuerza UTF-8
 }
 
 const JWT_SECRET = process.env.JWT_SECRET || "elyssia-secret-key"
