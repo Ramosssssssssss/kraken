@@ -1,33 +1,64 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Eye, EyeOff, User, Lock, Loader2 } from "lucide-react"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 import { useCompany } from "@/lib/company-context"
 
+function getTenantFromHost(hostname: string) {
+  const parts = hostname.split(".")
+  return parts.length >= 3 ? (parts[0] || "").toLowerCase() : null // ej: fyttsa.krkn.mx → "fyttsa"
+}
+
 export default function LoginPage() {
+  const router = useRouter()
+
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
-  const { companyData, apiUrl, isReady } = useCompany()
+  const { companyData, apiUrl: apiUrlFromCtx, isReady } = useCompany()
 
-  useEffect(() => {
-    if (isReady && !companyData) {
-      window.location.href = "/"
-    }
-  }, [isReady, companyData])
+  // Fallback: si el contexto aún no tiene apiUrl pero estamos en subdominio,
+  // puedes derivar un apiUrl determinístico. Ajusta a tu patrón real si aplica.
+  const derivedApiUrl = useMemo(() => {
+    if (apiUrlFromCtx) return apiUrlFromCtx
+    if (typeof window === "undefined") return null
+    const tenant = getTenantFromHost(window.location.hostname)
+    // ⚠️ Si NO tienes patrón fijo, deja null y confía en el provider que ya llama a check-cliente.
+    // Ejemplo determinístico (si tu backend lo usa):
+    // return tenant ? `https://api.${tenant}.krkn.mx` : null
+    return null
+  }, [apiUrlFromCtx])
+
+  // Partículas memorized (evita random en cada render → mismatch de hidratación)
+  const particles = useMemo(
+    () =>
+      Array.from({ length: 20 }).map(() => ({
+        left: `${Math.random() * 100}%`,
+        top: `${Math.random() * 100}%`,
+        delay: `${Math.random() * 3}s`,
+        duration: `${2 + Math.random() * 2}s`,
+      })),
+    []
+  )
+
+  // IMPORTANTE: ya no redirigimos a "/" si no hay companyData.
+  // Dejamos que el provider resuelva; si al final no hay apiUrl, mostramos mensaje en el form.
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setIsLoading(true)
 
+    const apiUrl = derivedApiUrl // fuente de verdad para este submit
+
     if (!apiUrl) {
-      setError("No se pudo obtener la URL de la API de la empresa")
+      setError("No se pudo obtener la URL de la API para este subdominio.")
       setIsLoading(false)
       return
     }
@@ -44,26 +75,21 @@ export default function LoginPage() {
 
       const response = await fetch(`${apiUrl}/login`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          user: email,
-          password: password,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user: email, password }),
       })
 
       const data = await response.json()
-
       console.log("[v0] Login response:", data)
 
       if (response.ok && data.message === "✅ Login exitoso") {
-        // Store user data in localStorage or context
-        localStorage.setItem("userData", JSON.stringify(data.user))
-        localStorage.setItem("companyData", JSON.stringify(companyData))
+        try {
+          localStorage.setItem("userData", JSON.stringify(data.user))
+          if (companyData) localStorage.setItem("companyData", JSON.stringify(companyData))
+        } catch {}
 
         console.log("[v0] Login successful, redirecting to dashboard")
-        window.location.href = "/dashboard"
+        router.replace("/dashboard")
       } else {
         setError(data.message || "Credenciales inválidas")
       }
@@ -75,7 +101,7 @@ export default function LoginPage() {
     }
   }
 
-  // Show loading while context is initializing
+  // Loader mientras el provider inicializa (evita parpadeos)
   if (!isReady) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -91,30 +117,28 @@ export default function LoginPage() {
         <div className="flex-[3] flex items-center justify-center p-8 relative overflow-hidden">
           {/* Partículas */}
           <div className="absolute inset-0">
-            {[...Array(20)].map((_, i) => (
+            {particles.map((p, i) => (
               <div
                 key={i}
                 className="absolute w-1 h-1 bg-blue-400/30 rounded-full animate-pulse"
                 style={{
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                  animationDelay: `${Math.random() * 3}s`,
-                  animationDuration: `${2 + Math.random() * 2}s`,
+                  left: p.left,
+                  top: p.top,
+                  animationDelay: p.delay,
+                  animationDuration: p.duration,
                 }}
               />
             ))}
           </div>
 
-          {/* Fondo fondo7  opcion */}
+          {/* Fondo */}
           <div className="absolute inset-0 flex items-center justify-center">
             <Image
               src="/OFICIAL.jpg"
               alt="3D Octopus"
               fill
               className="object-cover"
-              style={{
-                filter: "drop-shadow(0 0 30px rgba(43, 21, 85, 0.74))",
-              }}
+              style={{ filter: "drop-shadow(0 0 30px rgba(43, 21, 85, 0.74))" }}
             />
           </div>
         </div>
@@ -126,7 +150,7 @@ export default function LoginPage() {
 
         {/* Panel derecho */}
         <div className="flex-[1] flex flex-col p-8">
-          {/* Formulario centrado verticalmente */}
+          {/* Form */}
           <div className="flex flex-1 items-center justify-center">
             <div className="w-full max-w-xs space-y-8">
               {/* Logo KRKN */}
@@ -138,12 +162,9 @@ export default function LoginPage() {
                 {companyData && <p className="text-gray-400 text-sm">{companyData.nombre}</p>}
               </div>
 
-              {/* Form */}
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
-                  <label htmlFor="email" className="text-gray-300 text-sm font-medium">
-                    Usuario
-                  </label>
+                  <label htmlFor="email" className="text-gray-300 text-sm font-medium">Usuario</label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
                     <input
@@ -160,9 +181,7 @@ export default function LoginPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="password" className="text-gray-300 text-sm font-medium">
-                    Contraseña
-                  </label>
+                  <label htmlFor="password" className="text-gray-300 text-sm font-medium">Contraseña</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
                     <input
@@ -210,9 +229,11 @@ export default function LoginPage() {
                 </button>
               </div>
 
-              {apiUrl && (
+              {(apiUrlFromCtx || derivedApiUrl) && (
                 <div className="text-center">
-                  <p className="text-gray-600 text-xs">API: {apiUrl}</p>
+                  <p className="text-gray-600 text-xs">
+                    API: {apiUrlFromCtx || derivedApiUrl}
+                  </p>
                 </div>
               )}
             </div>

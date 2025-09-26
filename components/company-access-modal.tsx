@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { User, Loader2, CheckCircle } from "lucide-react"
 import { useCompany } from "@/lib/company-context"
+import { useRouter } from "next/navigation"
+function setTenantCookies(tenant: string, apiUrl: string) {
+  // cookie corta (5 min) para el brinco de subdominio
+  const exp = new Date(Date.now() + 5 * 60 * 1000).toUTCString()
+  document.cookie = `tenant=${tenant}; domain=.krkn.mx; path=/; expires=${exp}; SameSite=Lax`
+  document.cookie = `apiUrl=${encodeURIComponent(apiUrl)}; domain=.krkn.mx; path=/; expires=${exp}; SameSite=Lax`
+}
 
 interface CompanyAccessModalProps {
   isOpen: boolean
@@ -25,54 +32,59 @@ export function CompanyAccessModal({ isOpen, onClose }: CompanyAccessModalProps)
     return null
   }
 
-  const { setCompanyData } = company
+const router = useRouter()
+const { setCompanyData } = company
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault()
+  setError("")
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-
-    const code = companyCode.trim().toLowerCase()
-
-    if (!code) {
-      setError("Ingresa un código de empresa.")
-      return
-    }
-
-    setIsLoading(true)
-
-    try {
-      const response = await fetch("https://picking-backend.onrender.com/check-cliente", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ empresa: code }),
-      })
-
-      const data = await response.json()
-
-      if (data.ok && data.cliente) {
-        setCompanyData(data.cliente)
-
-        console.log("[v0] Company validated:", data.cliente.codigo)
-        console.log("[v0] API URL stored globally:", data.cliente.apiUrl)
-        console.log("[v0] Full company data:", data.cliente)
-
-        setIsSuccess(true)
-
-        setTimeout(() => {
-          window.location.href = `http://${code}.krkn.mx/login`
-        }, 1500)
-      } else {
-        setError("Código de empresa incorrecto. Intenta nuevamente.")
-      }
-    } catch (err) {
-      console.error("[v0] Error validating company:", err)
-      setError("Error de conexión. Intenta nuevamente.")
-    } finally {
-      setIsLoading(false)
-    }
+  const code = companyCode.trim().toLowerCase()
+  if (!code) {
+    setError("Ingresa un código de empresa.")
+    return
   }
+
+  setIsLoading(true)
+
+  try {
+    const response = await fetch("https://picking-backend.onrender.com/check-cliente", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ empresa: code }),
+    })
+
+    const data = await response.json()
+
+    if (response.ok && data?.ok && data?.cliente) {
+      // persistimos en context + localStorage
+      setCompanyData(data.cliente)
+      try {
+        localStorage.setItem("companyData", JSON.stringify(data.cliente))
+      } catch {}
+
+      // cookies de apoyo para el subdominio
+      setTenantCookies(data.cliente.codigo, data.cliente.apiUrl)
+
+      console.log("[v0] Company validated:", data.cliente.codigo)
+      console.log("[v0] API URL stored globally:", data.cliente.apiUrl)
+
+      setIsSuccess(true)
+
+      // navega con router; https y subdominio en minúsculas
+      const tenant = data.cliente.codigo.toLowerCase()
+      setTimeout(() => {
+        router.push(`https://${tenant}.krkn.mx/login`)
+      }, 800)
+    } else {
+      setError(data?.message || "Código de empresa incorrecto. Intenta nuevamente.")
+    }
+  } catch (err) {
+    console.error("[v0] Error validating company:", err)
+    setError("Error de conexión. Intenta nuevamente.")
+  } finally {
+    setIsLoading(false)
+  }
+}
 
   if (!isOpen) return null
 
