@@ -1,11 +1,11 @@
-// app/components/company-access-modal.tsx
 "use client"
 
 import type React from "react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { User } from "lucide-react"
+import { User, Loader2, CheckCircle } from "lucide-react"
+import { useCompany } from "@/lib/company-context"
 
 interface CompanyAccessModalProps {
   isOpen: boolean
@@ -15,28 +15,64 @@ interface CompanyAccessModalProps {
 export function CompanyAccessModal({ isOpen, onClose }: CompanyAccessModalProps) {
   const [companyCode, setCompanyCode] = useState("")
   const [error, setError] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
+  const company = useCompany()
 
-    const code = companyCode.trim().toLowerCase();
+  // Don't render modal if context isn't ready
+  if (!company.isReady) {
+    return null
+  }
 
-    // Acepta ambos (incluyo "goumam" por si ese era el correcto en tu caso)
-    const allowed = new Set(["demo", "goumam", "fyttsa"]);
+  const { setCompanyData } = company
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+
+    const code = companyCode.trim().toLowerCase()
 
     if (!code) {
-      setError("Ingresa un código de empresa.");
-      return;
+      setError("Ingresa un código de empresa.")
+      return
     }
 
-    if (allowed.has(code)) {
-      window.location.href = `http://${code}.krkn.mx/login`;
-    } else {
-      setError("Código de empresa incorrecto. Intenta nuevamente.");
-    }
-  };
+    setIsLoading(true)
 
+    try {
+      const response = await fetch("https://picking-backend.onrender.com/check-cliente", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ empresa: code }),
+      })
+
+      const data = await response.json()
+
+      if (data.ok && data.cliente) {
+        setCompanyData(data.cliente)
+
+        console.log("[v0] Company validated:", data.cliente.codigo)
+        console.log("[v0] API URL stored globally:", data.cliente.apiUrl)
+        console.log("[v0] Full company data:", data.cliente)
+
+        setIsSuccess(true)
+
+        setTimeout(() => {
+          window.location.href = `http://${code}.krkn.mx/login`
+        }, 1500)
+      } else {
+        setError("Código de empresa incorrecto. Intenta nuevamente.")
+      }
+    } catch (err) {
+      console.error("[v0] Error validating company:", err)
+      setError("Error de conexión. Intenta nuevamente.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   if (!isOpen) return null
 
@@ -68,47 +104,68 @@ export function CompanyAccessModal({ isOpen, onClose }: CompanyAccessModalProps)
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-white text-sm font-medium">Código de Empresa</label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                type="text"
-                placeholder="Ingresa tu código de empresa"
-                value={companyCode}
-                onChange={(e) => {
-                  setCompanyCode(e.target.value)
-                  setError("")
-                }}
-                className="w-full bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 pl-10 py-3 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
-                autoFocus
-              />
+        {isSuccess ? (
+          <div className="text-center space-y-4">
+            <CheckCircle className="w-16 h-16 text-green-500 mx-auto" />
+            <div>
+              <h3 className="text-white text-lg font-semibold mb-2">¡Empresa Validada!</h3>
+              <p className="text-gray-400 text-sm">Redirigiendo al login...</p>
             </div>
           </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-white text-sm font-medium">Código de Empresa</label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  type="text"
+                  placeholder="Ingresa tu código de empresa"
+                  value={companyCode}
+                  onChange={(e) => {
+                    setCompanyCode(e.target.value)
+                    setError("")
+                  }}
+                  className="w-full bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 pl-10 py-3 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                  autoFocus
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
 
-          {error && <p className="text-red-400 text-sm text-center">{error}</p>}
+            {error && <p className="text-red-400 text-sm text-center">{error}</p>}
 
-          <Button
-            type="submit"
-            className="w-full bg-gradient-to-r from-purple-800 to-indigo-900 hover:from-purple-900 hover:to-indigo-950 text-white font-semibold py-3 rounded-lg transition-all duration-200 transform hover:scale-[1.02]"
-          >
-            ENTRAR
-          </Button>
-        </form>
+            <Button
+              type="submit"
+              className="w-full bg-gradient-to-r from-purple-800 to-indigo-900 hover:from-purple-900 hover:to-indigo-950 text-white font-semibold py-3 rounded-lg transition-all duration-200 transform hover:scale-[1.02]"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Validando...
+                </>
+              ) : (
+                "ENTRAR"
+              )}
+            </Button>
+          </form>
+        )}
 
-        <div className="mt-6 text-center space-y-2">
-          <button className="text-gray-400 text-sm hover:text-white transition-colors">
-            ¿Olvidaste tu contraseña?
-          </button>
-          <div className="text-gray-400 text-sm">
-            ¿No tienes cuenta?{" "}
-            <button className="text-purple-400 hover:text-purple-300 transition-colors">Regístrate</button>
+        {!isSuccess && (
+          <div className="mt-6 text-center space-y-2">
+            <button className="text-gray-400 text-sm hover:text-white transition-colors">
+              ¿Olvidaste tu contraseña?
+            </button>
+            <div className="text-gray-400 text-sm">
+              ¿No tienes cuenta?{" "}
+              <button className="text-purple-400 hover:text-purple-300 transition-colors">Regístrate</button>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="mt-8 text-center">
-          <p className="text-gray-500 text-xs">© 2024 KRKN - Desde las profundidades del océano digital</p>
+          <p className="text-gray-500 text-xs">© 2025 KRKN - Desde las profundidades del océano digital</p>
         </div>
       </div>
     </div>

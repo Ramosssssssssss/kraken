@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ArrowRight } from "lucide-react"
 import { useEffect, useState } from "react"
-import { CompanyAccessModal } from "../company-access-modal"
+import { CompanyAccessModal } from "@/components/company-access-modal"
 
 interface HeroSectionProps {
   isVisible: boolean
@@ -15,7 +15,6 @@ export function HeroSection({ isVisible }: HeroSectionProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   useEffect(() => {
-    // Generate random positions and delays only on client-side
     const streams = [...Array(25)].map(() => ({
       left: `${Math.random() * 100}%`,
       delay: `${Math.random() * 6}s`,
@@ -27,12 +26,14 @@ export function HeroSection({ isVisible }: HeroSectionProps) {
     <section className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 plasma-background">
       <div className="absolute top-6 right-6 z-20">
         <span
-          className="text-muted-foreground/60 text-md hover:text-muted-foreground/80 transition-colors cursor-pointer"
+          className="text-muted-foreground/60 text-sm hover:text-muted-foreground/80 transition-colors cursor-pointer"
           onClick={() => setIsModalOpen(true)}
         >
           Inicia Sesión
         </span>
       </div>
+
+      <CompanyAccessModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
 
       <div className="absolute inset-0">
         <img
@@ -89,10 +90,11 @@ export function HeroSection({ isVisible }: HeroSectionProps) {
       <div
         className={`relative z-10 text-center max-w-4xl mx-auto transition-all duration-1000 cinematic-entrance ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
       >
-        <div
+           <div
           className="w-170 h-170 mx-auto mb-4 bg-cover bg-center bg-no-repeat opacity-80"
           style={{ backgroundImage: "url('/kraken6.png')" }}
         />
+
 
         <Badge className="mb-6 bg-primary/20 text-primary border-primary/30 hover:bg-primary/30 transition-colors glass-effect micro-bounce quantum-button">
           black_sheep®
@@ -140,8 +142,8 @@ export function HeroSection({ isVisible }: HeroSectionProps) {
           </Button>
         </div>
       </div>
-
-      <CompanyAccessModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </section>
   )
 }
+
+export { HeroSection as default }

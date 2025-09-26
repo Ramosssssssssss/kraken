@@ -1,34 +1,87 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
-import { Eye, EyeOff, User, Lock } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Eye, EyeOff, User, Lock, Loader2 } from "lucide-react"
 import Image from "next/image"
+import { useCompany } from "@/lib/company-context"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const { companyData, apiUrl, isReady } = useCompany()
+
+  useEffect(() => {
+    if (isReady && !companyData) {
+      window.location.href = "/"
+    }
+  }, [isReady, companyData])
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    setIsLoading(true)
 
-    const validUsers = [
-      { email: "MAR", password: "1" },
-      { email: "MIGUEL", password: "1" },
-    ]
-
-    const user = validUsers.find(
-      (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-    )
-
-    if (user) {
-      window.location.href = "/dashboard"
-    } else {
-      setError("Usuario o contraseña incorrectos")
+    if (!apiUrl) {
+      setError("No se pudo obtener la URL de la API de la empresa")
+      setIsLoading(false)
+      return
     }
+
+    if (!email || !password) {
+      setError("Usuario y contraseña son requeridos")
+      setIsLoading(false)
+      return
+    }
+
+    try {
+      console.log("[v0] Making login request to:", `${apiUrl}/login`)
+      console.log("[v0] Company data:", companyData)
+
+      const response = await fetch(`${apiUrl}/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user: email,
+          password: password,
+        }),
+      })
+
+      const data = await response.json()
+
+      console.log("[v0] Login response:", data)
+
+      if (response.ok && data.message === "✅ Login exitoso") {
+        // Store user data in localStorage or context
+        localStorage.setItem("userData", JSON.stringify(data.user))
+        localStorage.setItem("companyData", JSON.stringify(companyData))
+
+        console.log("[v0] Login successful, redirecting to dashboard")
+        window.location.href = "/dashboard"
+      } else {
+        setError(data.message || "Credenciales inválidas")
+      }
+    } catch (err) {
+      console.error("[v0] Login error:", err)
+      setError("Error de conexión. Intenta nuevamente.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Show loading while context is initializing
+  if (!isReady) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      </div>
+    )
   }
 
   return (
@@ -55,7 +108,7 @@ export default function LoginPage() {
           {/* Fondo fondo7  opcion */}
           <div className="absolute inset-0 flex items-center justify-center">
             <Image
-              src="OFICIAL.jpg"
+              src="/OFICIAL.jpg"
               alt="3D Octopus"
               fill
               className="object-cover"
@@ -79,26 +132,17 @@ export default function LoginPage() {
               {/* Logo KRKN */}
               <div className="text-center space-y-4">
                 <div className="flex justify-center">
-                  <Image
-                    src="/logogm.png"
-                    alt="Kraken Logo"
-                    width={100}
-                    height={100}
-                  />
+                  <Image src="/logogm.png" alt="Kraken Logo" width={100} height={100} />
                 </div>
-                <p className="text-gray-500 text-3xl mt-2 font-bold">
-                  Inicia Sesión
-                </p>
+                <p className="text-gray-500 text-3xl mt-2 font-bold">Inicia Sesión</p>
+                {companyData && <p className="text-gray-400 text-sm">{companyData.nombre}</p>}
               </div>
 
               {/* Form */}
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
-                  <label
-                    htmlFor="email"
-                    className="text-gray-300 text-sm font-medium"
-                  >
-                    Email
+                  <label htmlFor="email" className="text-gray-300 text-sm font-medium">
+                    Usuario
                   </label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
@@ -107,18 +151,16 @@ export default function LoginPage() {
                       type="text"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="usuario@krkn.com"
+                      placeholder="Ingresa tu usuario"
                       className="w-full bg-gray-900/80 border border-gray-800 rounded-lg px-10 py-3 text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-600 focus:border-transparent"
                       required
+                      disabled={isLoading}
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label
-                    htmlFor="password"
-                    className="text-gray-300 text-sm font-medium"
-                  >
+                  <label htmlFor="password" className="text-gray-300 text-sm font-medium">
                     Contraseña
                   </label>
                   <div className="relative">
@@ -131,30 +173,34 @@ export default function LoginPage() {
                       placeholder="••••••••"
                       className="w-full bg-gray-900/80 border border-gray-800 rounded-lg px-10 py-3 pr-12 text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-600 focus:border-transparent"
                       required
+                      disabled={isLoading}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-300"
+                      disabled={isLoading}
                     >
-                      {showPassword ? (
-                        <EyeOff className="w-5 h-5" />
-                      ) : (
-                        <Eye className="w-5 h-5" />
-                      )}
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
                 </div>
 
-                {error && (
-                  <div className="text-red-400 text-sm text-center">{error}</div>
-                )}
+                {error && <div className="text-red-400 text-sm text-center">{error}</div>}
 
                 <button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-700 hover:to-gray-800 text-gray-200 font-medium py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 group border border-gray-700"
+                  className="w-full bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-700 hover:to-gray-800 text-gray-200 font-medium py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 group border border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isLoading}
                 >
-                  ENTRAR
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Iniciando sesión...
+                    </>
+                  ) : (
+                    "ENTRAR"
+                  )}
                 </button>
               </form>
 
@@ -163,18 +209,18 @@ export default function LoginPage() {
                   ¿Olvidaste tu contraseña?
                 </button>
               </div>
+
+              {apiUrl && (
+                <div className="text-center">
+                  <p className="text-gray-600 text-xs">API: {apiUrl}</p>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Logo BS fijo abajo */}
           <div className="flex justify-center mt-auto">
-            <Image
-              src="/testbs.png"
-              alt="BS Logo"
-              width={40}
-              height={20}
-              className="object-contain"
-            />
+            <Image src="/testbs.png" alt="BS Logo" width={40} height={20} className="object-contain" />
           </div>
         </div>
       </div>
