@@ -38,10 +38,14 @@ function ModuleCard({ title, description, icon: Icon, version, onClick }: Module
 export default function ProcessesSection() {
     const router = useRouter()
   
-const handleEtiquetadorClick = () => {
+const handleReciboClick = () => {
     router.push("/recibo")
   }
-  
+    
+const handleEtiquetadorClick = () => {
+    router.push("/acomodo")
+  }
+
 
   return (
     <div className="space-y-6">
@@ -55,13 +59,15 @@ const handleEtiquetadorClick = () => {
             description="Registra la entrada de mercancía, validar contra órdenes de compra y asegurar cantidades correctas."
             icon={Inbox}
             version="v2.1.0"
-            onClick={handleEtiquetadorClick}
+            onClick={handleReciboClick}
           />
           <ModuleCard
             title="Acomodo"
             description="Ubica y organiza la mercancia recíbida en su posición correcta dentro del almacén."
             icon={LucideWarehouse}
             version="v2.1.0"
+            onClick={handleEtiquetadorClick}
+
           />
           <ModuleCard
             title="Picking"

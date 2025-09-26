@@ -18,6 +18,8 @@ import {
   Clock,
   CheckCircle2,
   Loader2,
+  TrendingUp,
+  Target,
 } from "lucide-react"
 
 interface Detalle {
@@ -121,6 +123,12 @@ export default function ReciboScreenPremium() {
       claveArticuloId: number
     }
   }>({})
+
+  const [lastScannedProduct, setLastScannedProduct] = useState<{
+    product: Detalle
+    index: number
+    timestamp: Date
+  } | null>(null)
 
   const focusScanner = useCallback(() => {
     requestAnimationFrame(() => {
@@ -451,6 +459,12 @@ export default function ReciboScreenPremium() {
           }
           setDetalles(newDetalles)
 
+          setLastScannedProduct({
+            product: newDetalles[foundIndex],
+            index: foundIndex,
+            timestamp: new Date(),
+          })
+
           playSound("success")
         } else {
           alert(
@@ -595,6 +609,7 @@ export default function ReciboScreenPremium() {
     setScannedProducts({})
     setReceptionComplete(false)
     setScannerActive(true)
+    setLastScannedProduct(null) // Reset last scanned product
     setTimeout(() => {
       if (folioRef.current) {
         folioRef.current.focus()
@@ -604,8 +619,9 @@ export default function ReciboScreenPremium() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 font-sans">
+      {/* Premium Header */}
       <div className="glass sticky top-0 z-50 border-b border-white/20">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="max-w-full mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
@@ -621,7 +637,7 @@ export default function ReciboScreenPremium() {
                 </div>
                 <div>
                   <h1 className="text-lg font-semibold text-slate-900">Recepción de Mercancía</h1>
-                  <p className="text-sm text-slate-500">Recibo Ordenes de Compra</p>
+                  <p className="text-sm text-slate-500">Sistema de gestión premium</p>
                 </div>
               </div>
             </div>
@@ -653,357 +669,514 @@ export default function ReciboScreenPremium() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Search Section */}
-        <div className="glass rounded-2xl p-6 mb-8 border border-white/20">
-          <div className="flex gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
-              <input
-                ref={folioRef}
-                value={folio}
-                onChange={(e) => setFolio(e.target.value)}
-                placeholder="Buscar por folio (ej. A-1234)..."
-                className="w-full pl-12 pr-4 py-3 bg-white/60 border border-white/30 rounded-xl text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-900/30 transition-all duration-200"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    buscar()
-                  }
-                }}
-                disabled={receptionComplete}
-              />
-            </div>
-            <button
-              className="btn-premium px-8 py-3 bg-slate-900 text-white rounded-xl font-medium hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg"
-              onClick={buscar}
-              disabled={loading || receptionComplete}
-            >
-              {loading ? (
-                <div className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Buscando...
+      <div className="flex h-[calc(100vh-80px)]">
+        {/* Main Content - 75% */}
+        <div className="flex-1 w-3/4 overflow-y-auto">
+          <div className="max-w-5xl mx-auto px-6 py-8">
+            {/* Search Section */}
+            <div className="glass rounded-2xl p-6 mb-8 border border-white/20">
+              <div className="flex gap-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <input
+                    ref={folioRef}
+                    value={folio}
+                    onChange={(e) => setFolio(e.target.value)}
+                    placeholder="Buscar por folio (ej. A-1234)..."
+                    className="w-full pl-12 pr-4 py-3 bg-white/60 border border-white/30 rounded-xl text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-900/30 transition-all duration-200"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        buscar()
+                      }
+                    }}
+                    disabled={receptionComplete}
+                  />
                 </div>
-              ) : (
-                "Buscar"
-              )}
-            </button>
+                <button
+                  className="btn-premium px-8 py-3 bg-slate-900 text-white rounded-xl font-medium hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg"
+                  onClick={buscar}
+                  disabled={loading || receptionComplete}
+                >
+                  {loading ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Buscando...
+                    </div>
+                  ) : (
+                    "Buscar"
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Hidden Scanner Input */}
+            <input
+              ref={scannerRef}
+              value={scanValue}
+              onChange={(e) => setScanValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  processScan(scanValue)
+                  setScanValue("")
+                  focusScanner()
+                }
+              }}
+              placeholder="Escanea código de artículo o código de barras..."
+              className="absolute w-px h-px opacity-0 -z-10"
+              autoComplete="off"
+              disabled={receptionComplete}
+            />
+
+            {/* Reception Complete State */}
+            {receptionComplete && (
+              <div className="glass rounded-2xl p-8 mb-8 border border-green-200/50 bg-gradient-to-r from-green-50/80 to-emerald-50/80 animate-fade-in-up">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse-success">
+                    <CheckCircle2 className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-green-900 mb-2">¡Recepción Completada!</h3>
+                  <p className="text-green-700 mb-6">El folio {caratula?.FOLIO} ha sido procesado exitosamente</p>
+                  <button
+                    className="btn-premium px-6 py-3 bg-slate-900 text-white rounded-xl font-medium hover:bg-slate-800 transition-all duration-200"
+                    onClick={handleNewReceipt}
+                  >
+                    Procesar Nuevo Recibo
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Loading State */}
+            {loading && !receptionComplete && (
+              <div className="glass rounded-2xl p-12 mb-8 border border-white/20">
+                <div className="text-center">
+                  <div className="w-12 h-12 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin mx-auto mb-4"></div>
+                  <p className="text-slate-600 font-medium">Cargando información del recibo...</p>
+                </div>
+              </div>
+            )}
+
+            {/* Caratula */}
+            {caratula && !receptionComplete && (
+              <div className="glass rounded-2xl p-6 mb-8 border border-white/20 animate-fade-in-up">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
+                    <BarChart3 className="w-5 h-5 text-slate-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900">Información del Recibo</h3>
+                    <p className="text-sm text-slate-500">Detalles de la orden de compra</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-white/60 rounded-xl p-4 border border-white/30">
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Folio</p>
+                    <p className="text-lg font-bold text-slate-900">{caratula.FOLIO || "—"}</p>
+                  </div>
+                  <div className="bg-white/60 rounded-xl p-4 border border-white/30">
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Proveedor</p>
+                    <p className="text-lg font-bold text-slate-900">{caratula.PROVEEDOR || "—"}</p>
+                  </div>
+                  <div className="bg-white/60 rounded-xl p-4 border border-white/30">
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Fecha</p>
+                    <p className="text-lg font-bold text-slate-900">{caratula.FECHA || "—"}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Incidents Indicator */}
+            {incidents.length > 0 && !receptionComplete && (
+              <div className="glass rounded-2xl p-4 mb-6 border border-orange-200/50 bg-gradient-to-r from-orange-50/80 to-amber-50/80 animate-fade-in-up">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
+                    <AlertTriangle className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-orange-900">
+                      {incidents.length} incidencia{incidents.length !== 1 ? "s" : ""} reportada
+                      {incidents.length !== 1 ? "s" : ""}
+                    </p>
+                    <p className="text-sm text-orange-700">Se procesarán automáticamente al completar la recepción</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Progress Section */}
+            {detalles.length > 0 && !receptionComplete && (
+              <div className="glass rounded-2xl p-6 mb-8 border border-white/20 animate-fade-in-up">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
+                      <Clock className="w-4 h-4 text-slate-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-slate-900">Progreso de Recepción</h3>
+                      <p className="text-sm text-slate-500">
+                        {lineasCompletas}/{totalLineas} líneas • {totalHechas}/{totalRequeridas} piezas
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="text-4xl font-bold text-slate-900">{Math.round(progreso * 100)}%</p>
+                    <p className="text-xs text-slate-500 uppercase tracking-wide">Completado</p>
+                  </div>
+                </div>
+
+                <div className="relative h-4 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className={`absolute top-0 left-0 h-full rounded-full transition-all duration-500 ${
+                      listo
+                        ? "bg-gradient-to-r from-green-500 to-emerald-500"
+                        : "bg-gradient-to-r from-slate-600 to-slate-800"
+                    }`}
+                    style={{ width: `${progreso * 100}%` }}
+                  />
+                  {progreso > 0 && <div className="absolute top-0 left-0 h-full w-full shimmer rounded-full" />}
+                </div>
+              </div>
+            )}
+
+            {/* Products List */}
+            {detalles.length > 0 && !receptionComplete && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
+                    <Package className="w-4 h-4 text-slate-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900">Detalle de Productos</h3>
+                    <p className="text-sm text-slate-500">{detalles.length} artículos para recepcionar</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3 custom-scrollbar max-h-96 overflow-y-auto">
+                  {detalles.map((item, index) => {
+                    const req = item.UNIDADES ?? 0
+                    const pk = item.packed ?? 0
+                    const sc = item.scanned ?? 0
+                    const okLinea = requireScan ? sc >= req : pk >= req
+                    const isFlash = flashIndex.current === index
+
+                    return (
+                      <div
+                        key={item._key || `r-${index}`}
+                        id={`product-${index}`}
+                        className={`glass rounded-2xl p-6 border transition-all duration-300 animate-fade-in-up ${
+                          okLinea
+                            ? "border-green-200/50 bg-gradient-to-r from-green-50/80 to-emerald-50/80"
+                            : "border-white/20"
+                        } ${isFlash ? "ring-2 ring-slate-900/20 scale-[1.02]" : ""}`}
+                        style={{ animationDelay: `${index * 50}ms` }}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3 mb-3">
+                              <div
+                                className={`status-dot w-3 h-3 rounded-full ${
+                                  okLinea ? "bg-green-500 status-success" : "bg-slate-300"
+                                }`}
+                              />
+                              <h4 className="text-lg font-bold text-slate-900 truncate">
+                                {item.CLAVE_ARTICULO || "—"}
+                              </h4>
+                            </div>
+
+                            {item.NOMBRE && <p className="text-slate-600 mb-3 leading-relaxed">{item.NOMBRE}</p>}
+
+                            <div className="grid grid-cols-2 gap-4 mb-4">
+                              <div className="bg-white/60 rounded-lg p-3 border border-white/30">
+                                <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
+                                  Requerido
+                                </p>
+                                <p className="text-xl font-bold text-slate-900">{req}</p>
+                              </div>
+                              <div className="bg-white/60 rounded-lg p-3 border border-white/30">
+                                <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
+                                  Escaneado
+                                </p>
+                                <p className="text-xl font-bold text-green-600">{sc}</p>
+                              </div>
+                            </div>
+
+                            {(item.UMED || item.CODIGO_BARRAS) && (
+                              <div className="flex flex-wrap gap-2 text-xs text-slate-500">
+                                {item.UMED && (
+                                  <span className="bg-slate-100 px-2 py-1 rounded-md">UM: {item.UMED}</span>
+                                )}
+                                {item.CODIGO_BARRAS && (
+                                  <span className="bg-slate-100 px-2 py-1 rounded-md">CB: {item.CODIGO_BARRAS}</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex flex-col items-center gap-3 ml-6">
+                            <div className="flex items-center gap-2">
+                              <button
+                                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${
+                                  requireScan
+                                    ? "bg-slate-200 cursor-not-allowed"
+                                    : "bg-slate-900 hover:bg-slate-800 shadow-lg"
+                                }`}
+                                onClick={() => !requireScan && dec(index)}
+                                disabled={requireScan}
+                              >
+                                <Minus className="w-4 h-4 text-white" />
+                              </button>
+
+                              <div className="w-12 text-center">
+                                <span className="text-xl font-bold text-slate-900">{pk}</span>
+                              </div>
+
+                              <button
+                                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${
+                                  requireScan
+                                    ? "bg-slate-200 cursor-not-allowed"
+                                    : "bg-slate-900 hover:bg-slate-800 shadow-lg"
+                                }`}
+                                onClick={() => !requireScan && inc(index)}
+                                onMouseDown={(e) => {
+                                  if (!requireScan) {
+                                    const timer = setTimeout(() => fillToRequired(index), 250)
+                                    const handleMouseUp = () => {
+                                      clearTimeout(timer)
+                                      document.removeEventListener("mouseup", handleMouseUp)
+                                    }
+                                    document.addEventListener("mouseup", handleMouseUp)
+                                  }
+                                }}
+                                disabled={requireScan}
+                              >
+                                <Plus className="w-4 h-4 text-white" />
+                              </button>
+                            </div>
+
+                            <p className="text-xs text-center text-slate-500 leading-tight max-w-24">
+                              {requireScan ? "Escanea para avanzar" : "Mantén + para llenar"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Empty State */}
+            {!loading && caratula && detalles.length === 0 && !receptionComplete && (
+              <div className="glass rounded-2xl p-12 border border-white/20 text-center">
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Package className="w-8 h-8 text-slate-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">Sin productos</h3>
+                <p className="text-slate-500">No se encontraron detalles para este folio.</p>
+              </div>
+            )}
+
+            {/* Action Button */}
+            {caratula && !receptionComplete && (
+              <div className="sticky bottom-8 mt-8">
+                <button
+                  className={`w-full btn-premium py-4 rounded-2xl font-semibold text-lg transition-all duration-300 shadow-2xl ${
+                    listo
+                      ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700"
+                      : "bg-slate-300 text-slate-500 cursor-not-allowed"
+                  }`}
+                  onClick={handleRecepcionar}
+                  disabled={!caratula?.DOCTO_CM_ID || !listo || loading}
+                >
+                  <div className="flex items-center justify-center gap-3">
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Procesando recepción...
+                      </>
+                    ) : listo ? (
+                      <>
+                        <CheckCircle className="w-5 h-5" />
+                        Aplicar Recepción
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="w-5 h-5" />
+                        Complete todos los productos
+                      </>
+                    )}
+                  </div>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Hidden Scanner Input */}
-        <input
-          ref={scannerRef}
-          value={scanValue}
-          onChange={(e) => setScanValue(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              processScan(scanValue)
-              setScanValue("")
-              focusScanner()
-            }
-          }}
-          placeholder="Escanea código de artículo o código de barras..."
-          className="absolute w-px h-px opacity-0 -z-10"
-          autoComplete="off"
-          disabled={receptionComplete}
-        />
-
-        {/* Reception Complete State */}
-        {receptionComplete && (
-          <div className="glass rounded-2xl p-8 mb-8 border border-green-200/50 bg-gradient-to-r from-green-50/80 to-emerald-50/80 animate-fade-in-up">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse-success">
-                <CheckCircle2 className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold text-green-900 mb-2">¡Recepción Completada!</h3>
-              <p className="text-green-700 mb-6">El folio {caratula?.FOLIO} ha sido procesado exitosamente</p>
-              <button
-                className="btn-premium px-6 py-3 bg-slate-900 text-white rounded-xl font-medium hover:bg-slate-800 transition-all duration-200"
-                onClick={handleNewReceipt}
-              >
-                Procesar Nuevo Recibo
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Loading State */}
-        {loading && !receptionComplete && (
-          <div className="glass rounded-2xl p-12 mb-8 border border-white/20">
-            <div className="text-center">
-              <div className="w-12 h-12 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-slate-600 font-medium">Cargando información del recibo...</p>
-            </div>
-          </div>
-        )}
-
-        {/* Caratula */}
-        {caratula && !receptionComplete && (
-          <div className="glass rounded-2xl p-6 mb-8 border border-white/20 animate-fade-in-up">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
-                <BarChart3 className="w-5 h-5 text-slate-600" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-slate-900">Información del Recibo</h3>
-                <p className="text-sm text-slate-500">Detalles de la orden de compra</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white/60 rounded-xl p-4 border border-white/30">
-                <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Folio</p>
-                <p className="text-lg font-bold text-slate-900">{caratula.FOLIO || "—"}</p>
-              </div>
-              <div className="bg-white/60 rounded-xl p-4 border border-white/30">
-                <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Proveedor</p>
-                <p className="text-lg font-bold text-slate-900">{caratula.PROVEEDOR || "—"}</p>
-              </div>
-              <div className="bg-white/60 rounded-xl p-4 border border-white/30">
-                <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Fecha</p>
-                <p className="text-lg font-bold text-slate-900">{caratula.FECHA || "—"}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Incidents Indicator */}
-        {incidents.length > 0 && !receptionComplete && (
-          <div className="glass rounded-2xl p-4 mb-6 border border-orange-200/50 bg-gradient-to-r from-orange-50/80 to-amber-50/80 animate-fade-in-up">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
-                <AlertTriangle className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <p className="font-medium text-orange-900">
-                  {incidents.length} incidencia{incidents.length !== 1 ? "s" : ""} reportada
-                  {incidents.length !== 1 ? "s" : ""}
-                </p>
-                <p className="text-sm text-orange-700">Se procesarán automáticamente al completar la recepción</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Progress Section */}
-        {detalles.length > 0 && !receptionComplete && (
-          <div className="glass rounded-2xl p-6 mb-8 border border-white/20 animate-fade-in-up">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
-                  <Clock className="w-4 h-4 text-slate-600" />
+        <div className="w-1/4 border-l border-white/20 bg-gradient-to-b from-slate-50/80 to-white/80 backdrop-blur-sm">
+          <div className="p-6 h-full flex flex-col">
+    
+        
+            {/* Last Scanned Product */}
+            {lastScannedProduct && !receptionComplete && (
+              <div className="glass rounded-xl p-4 mb-6 border border-green-200/50 bg-gradient-to-br from-green-50/80 to-emerald-50/80 animate-fade-in-up">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-6 h-6 bg-green-500 rounded-lg flex items-center justify-center">
+                    <Target className="w-3 h-3 text-white" />
+                  </div>
+                  <h4 className="font-semibold text-green-900 text-sm">Último Escaneado</h4>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-slate-900 text-3xl">Progreso de Recepción</h3>
-                  <p className="text-2xl text-slate-500 ">
-                    {lineasCompletas}/{totalLineas} líneas • {totalHechas}/{totalRequeridas} piezas
-                  </p>
+
+                {/* Product Image - Cinta de Aislar */}
+                <div className="relative mb-4">
+                  <img
+                    src="/CINTA.jpeg"
+                    alt="Cinta de aislar"
+                    className="w-full h-24 object-contain rounded-lg border border-green-200"
+                  />
+                  <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-md font-bold">
+                    ✓ ESCANEADO
+                  </div>
                 </div>
-              </div>
 
-              <div className="text-right">
-                <p className="text-5xl font-bold text-slate-900">{Math.round(progreso * 100)}%</p>
-                <p className="text-xs text-slate-500 uppercase tracking-wide">Completado</p>
-              </div>
-            </div>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-xs font-medium text-green-700 uppercase tracking-wide">Clave</p>
+                    <p className="font-bold text-green-900 text-sm">{lastScannedProduct.product.CLAVE_ARTICULO}</p>
+                  </div>
 
-            <div className="relative h-3 bg-slate-100 rounded-full overflow-hidden">
-              <div
-                className={`absolute top-0 left-0 h-full rounded-full transition-all duration-500 ${
-                  listo
-                    ? "bg-gradient-to-r from-green-500 to-emerald-500"
-                    : "bg-gradient-to-r from-slate-600 to-slate-800"
-                }`}
-                style={{ width: `${progreso * 100}%` }}
-              />
-              {progreso > 0 && <div className="absolute top-0 left-0 h-full w-full shimmer rounded-full" />}
-            </div>
-          </div>
-        )}
+                  {lastScannedProduct.product.NOMBRE && (
+                    <div>
+                      <p className="text-xs font-medium text-green-700 uppercase tracking-wide">Producto</p>
+                      <p className="text-green-800 text-xs leading-tight">{lastScannedProduct.product.NOMBRE}</p>
+                    </div>
+                  )}
 
-        {detalles.length > 0 && !receptionComplete && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
-                <Package className="w-4 h-4 text-slate-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900">Detalle de Productos</h3>
-                <p className="text-sm text-slate-500">{detalles.length} artículos para recepcionar</p>
-              </div>
-            </div>
-
-            <div className="space-y-3 custom-scrollbar max-h-96 overflow-y-auto">
-              {detalles.map((item, index) => {
-                const req = item.UNIDADES ?? 0
-                const pk = item.packed ?? 0
-                const sc = item.scanned ?? 0
-                const okLinea = requireScan ? sc >= req : pk >= req
-                const isFlash = flashIndex.current === index
-
-                return (
-                  <div
-                    key={item._key || `r-${index}`}
-                    id={`product-${index}`}
-                    className={`glass rounded-2xl p-6 border transition-all duration-300 animate-fade-in-up ${
-                      okLinea
-                        ? "border-green-200/50 bg-gradient-to-r from-green-50/80 to-emerald-50/80"
-                        : "border-white/20"
-                    } ${isFlash ? "ring-2 ring-slate-900/20 scale-[1.02]" : ""}`}
-                    style={{ animationDelay: `${index * 50}ms` }}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div
-                            className={`status-dot w-3 h-3 rounded-full ${
-                              okLinea ? "bg-green-500 status-success" : "bg-slate-300"
-                            }`}
-                          />
-                          <h4 className="text-lg font-bold text-slate-900 truncate">{item.CLAVE_ARTICULO || "—"}</h4>
-                        </div>
-
-                        {item.NOMBRE && <p className="text-slate-600 mb-3 leading-relaxed">{item.NOMBRE}</p>}
-
-                        <div className="grid grid-cols-2 gap-4 mb-4">
-                          <div className="bg-white/60 rounded-lg p-3 border border-white/30">
-                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Requerido</p>
-                            <p className="text-xl font-bold text-slate-900">{req}</p>
-                          </div>
-                          <div className="bg-white/60 rounded-lg p-3 border border-white/30">
-                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Escaneado</p>
-                            <p className="text-xl font-bold text-green-600">{sc}</p>
-                          </div>
-                        </div>
-
-                        {(item.UMED || item.CODIGO_BARRAS) && (
-                          <div className="flex flex-wrap gap-2 text-xs text-slate-500">
-                            {item.UMED && <span className="bg-slate-100 px-2 py-1 rounded-md">UM: {item.UMED}</span>}
-                            {item.CODIGO_BARRAS && (
-                              <span className="bg-slate-100 px-2 py-1 rounded-md">CB: {item.CODIGO_BARRAS}</span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex flex-col items-center gap-3 ml-6">
-                        <div className="flex items-center gap-2">
-                          <button
-                            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${
-                              requireScan
-                                ? "bg-slate-200 cursor-not-allowed"
-                                : "bg-slate-900 hover:bg-slate-800 shadow-lg"
-                            }`}
-                            onClick={() => !requireScan && dec(index)}
-                            disabled={requireScan}
-                          >
-                            <Minus className="w-4 h-4 text-white" />
-                          </button>
-
-                          <div className="w-12 text-center">
-                            <span className="text-xl font-bold text-slate-900">{pk}</span>
-                          </div>
-
-                          <button
-                            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${
-                              requireScan
-                                ? "bg-slate-200 cursor-not-allowed"
-                                : "bg-slate-900 hover:bg-slate-800 shadow-lg"
-                            }`}
-                            onClick={() => !requireScan && inc(index)}
-                            onMouseDown={(e) => {
-                              if (!requireScan) {
-                                const timer = setTimeout(() => fillToRequired(index), 250)
-                                const handleMouseUp = () => {
-                                  clearTimeout(timer)
-                                  document.removeEventListener("mouseup", handleMouseUp)
-                                }
-                                document.addEventListener("mouseup", handleMouseUp)
-                              }
-                            }}
-                            disabled={requireScan}
-                          >
-                            <Plus className="w-4 h-4 text-white" />
-                          </button>
-                        </div>
-
-                        <p className="text-xs text-center text-slate-500 leading-tight max-w-24">
-                          {requireScan ? "Escanea para avanzar" : "Mantén + para llenar"}
-                        </p>
-                      </div>
+                  <div className="grid grid-cols-2 gap-2 pt-2">
+                    <div className="bg-white/60 rounded-lg p-2 border border-green-200/50">
+                      <p className="text-xs font-medium text-green-700">Escaneado</p>
+                      <p className="text-lg font-bold text-green-900">{lastScannedProduct.product.scanned}</p>
+                    </div>
+                    <div className="bg-white/60 rounded-lg p-2 border border-green-200/50">
+                      <p className="text-xs font-medium text-green-700">Requerido</p>
+                      <p className="text-lg font-bold text-green-900">{lastScannedProduct.product.UNIDADES}</p>
                     </div>
                   </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
 
-        {/* Empty State */}
-        {!loading && caratula && detalles.length === 0 && !receptionComplete && (
-          <div className="glass rounded-2xl p-12 border border-white/20 text-center">
-            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Package className="w-8 h-8 text-slate-400" />
-            </div>
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">Sin productos</h3>
-            <p className="text-slate-500">No se encontraron detalles para este folio.</p>
-          </div>
-        )}
+                  {/* Individual Progress */}
+                  <div className="pt-2">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs font-medium text-green-700">Completado</span>
+                      <span className="text-sm font-bold text-green-900">
+                        {Math.round(
+                          ((lastScannedProduct.product.scanned || 0) / (lastScannedProduct.product.UNIDADES || 1)) *
+                            100,
+                        )}
+                        %
+                      </span>
+                    </div>
+                    <div className="h-2 bg-green-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full transition-all duration-500"
+                        style={{
+                          width: `${Math.min(100, ((lastScannedProduct.product.scanned || 0) / (lastScannedProduct.product.UNIDADES || 1)) * 100)}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
 
-        {/* Incident FAB */}
-        {caratula && !receptionComplete && (
-          <button
-            className="fixed bottom-24 right-8 w-14 h-14 bg-gradient-to-r from-orange-500 to-amber-500 rounded-2xl flex items-center justify-center shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 z-40"
-            onClick={() => {
-              if (!caratula) {
-                alert("Primero debes cargar un folio de recepción")
-                return
-              }
-              // Open incident modal logic would go here
-            }}
-          >
-            <AlertTriangle className="w-6 h-6 text-white" />
-            {incidents.length > 0 && (
-              <div className="absolute -top-2 -right-2 bg-red-500 rounded-full min-w-6 h-6 flex items-center justify-center border-2 border-white shadow-lg">
-                <span className="text-white text-xs font-bold">{incidents.length}</span>
+                  <div className="pt-2 border-t border-green-200/50">
+                    <p className="text-xs text-green-600">
+                      Escaneado hace {Math.floor((Date.now() - lastScannedProduct.timestamp.getTime()) / 1000)}s
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
-          </button>
-        )}
 
-        {caratula && !receptionComplete && (
-          <div className="sticky bottom-8 mt-8">
-            <button
-              className={`w-full btn-premium py-4 rounded-2xl font-semibold text-lg transition-all duration-300 shadow-2xl ${
-                listo
-                  ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700"
-                  : "bg-slate-300 text-slate-500 cursor-not-allowed"
-              }`}
-              onClick={handleRecepcionar}
-              disabled={!caratula?.DOCTO_CM_ID || !listo || loading}
-            >
-              <div className="flex items-center justify-center gap-3">
-                {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Procesando recepción...
-                  </>
-                ) : listo ? (
-                  <>
-                    <CheckCircle className="w-5 h-5" />
-                    Aplicar Recepción
-                  </>
-                ) : (
-                  <>
-                    <AlertCircle className="w-5 h-5" />
-                    Complete todos los productos
-                  </>
+            {/* Quick Stats */}
+            {detalles.length > 0 && !receptionComplete && (
+              <div className="space-y-3 flex-1">
+                <h4 className="font-semibold text-slate-900 text-sm mb-3">Estadísticas Rápidas</h4>
+
+                <div className="glass rounded-lg p-3 border border-white/20">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-slate-600">Líneas Completas</span>
+                    <span className="font-bold text-slate-900">
+                      {lineasCompletas}/{totalLineas}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="glass rounded-lg p-3 border border-white/20">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-slate-600">Piezas Procesadas</span>
+                    <span className="font-bold text-slate-900">
+                      {totalHechas}/{totalRequeridas}
+                    </span>
+                  </div>
+                </div>
+
+                {incidents.length > 0 && (
+                  <div className="glass rounded-lg p-3 border border-orange-200/50 bg-orange-50/50">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-orange-700">Incidencias</span>
+                      <span className="font-bold text-orange-900">{incidents.length}</span>
+                    </div>
+                  </div>
                 )}
+
+                <div className="glass rounded-lg p-3 border border-white/20">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-slate-600">Estado</span>
+                    <span
+                      className={`text-xs font-bold px-2 py-1 rounded-md ${
+                        listo ? "bg-green-100 text-green-800" : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      {listo ? "LISTO" : "EN PROCESO"}
+                    </span>
+                  </div>
+                </div>
               </div>
-            </button>
+            )}
+
+            {/* Default State */}
+            {!lastScannedProduct && detalles.length === 0 && !loading && (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Scan className="w-8 h-8 text-slate-400" />
+                  </div>
+                  <p className="text-slate-500 text-sm">Busca un folio para comenzar</p>
+                </div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
+
+      {/* Incident FAB */}
+      {caratula && !receptionComplete && (
+        <button
+          className="fixed bottom-24 right-8 w-14 h-14 bg-gradient-to-r from-orange-500 to-amber-500 rounded-2xl flex items-center justify-center shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 z-40"
+          onClick={() => {
+            if (!caratula) {
+              alert("Primero debes cargar un folio de recepción")
+              return
+            }
+            // Open incident modal logic would go here
+          }}
+        >
+          <AlertTriangle className="w-6 h-6 text-white" />
+          {incidents.length > 0 && (
+            <div className="absolute -top-2 -right-2 bg-red-500 rounded-full min-w-6 h-6 flex items-center justify-center border-2 border-white shadow-lg">
+              <span className="text-white text-xs font-bold">{incidents.length}</span>
+            </div>
+          )}
+        </button>
+      )}
     </div>
   )
 }
