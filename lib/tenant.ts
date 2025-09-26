@@ -7,7 +7,7 @@ export function getTenantFromHost(hostname: string) {
 
 export function resolveApiUrlDeterministic(tenant: string | null) {
   if (!tenant) return null
-  return `https://api.${tenant}.krkn.mx` // ajusta a tu patrón real
+  return `http://api.${tenant}.krkn.mx` // ajusta a tu patrón real
 }
 
 export async function resolveApiUrlDynamic(tenant: string | null) {

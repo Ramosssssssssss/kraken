@@ -73,7 +73,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       // navega con router; https y subdominio en minúsculas
       const tenant = data.cliente.codigo.toLowerCase()
       setTimeout(() => {
-        router.push(`https://${tenant}.krkn.mx/login`)
+        router.push(`http://${tenant}.krkn.mx/login`)
       }, 800)
     } else {
       setError(data?.message || "Código de empresa incorrecto. Intenta nuevamente.")

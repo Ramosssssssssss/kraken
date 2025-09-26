@@ -31,7 +31,7 @@ export default function LoginPage() {
     const tenant = getTenantFromHost(window.location.hostname)
     // ⚠️ Si NO tienes patrón fijo, deja null y confía en el provider que ya llama a check-cliente.
     // Ejemplo determinístico (si tu backend lo usa):
-    // return tenant ? `https://api.${tenant}.krkn.mx` : null
+    // return tenant ? `http://api.${tenant}.krkn.mx` : null
     return null
   }, [apiUrlFromCtx])
 
