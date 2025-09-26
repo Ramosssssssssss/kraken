@@ -1,1111 +1,138 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { useRouter } from "next/navigation"; // Added useRouter for navigation
-import {
-  User,
-  Settings,
-  Grid3X3,
-  Puzzle,
-  LogOut,
-  Menu,
-  X,
-  Crown,
-  Clock,
-  Users,
-  Edit3,
-  Shield,
-  Zap,
-  Database,
-  Webhook,
-  Bot,
-  Mail,
-  Calendar,
-  Users2Icon,
-  Receipt,
-  Settings2Icon,
-  InboxIcon,
-  CheckCircle2Icon,
-  Inbox,
-  Shell,
-  WarehouseIcon,
-  LucideWarehouse,
-  BoxIcon,
-  ScanBarcode,
-  PackagePlusIcon,
-  FireExtinguisherIcon,
-  ListStartIcon,
-  Paperclip,
-  FolderArchive,
-  FolderArchiveIcon,
-} from "lucide-react";
-import Image from "next/image";
-import { userAgent } from "next/server";
-import { kill } from "process";
+import { useEffect, useState } from "react"
+import { Loader2 } from "lucide-react"
+import { useRouter } from "next/navigation"
 
-export default function Dashboard() {
-  const [activeSection, setActiveSection] = useState("Cuenta");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const router = useRouter(); // Added router instance
+import Sidebar from "@/components/dashboard/sidebar"
+import DashboardHeader from "@/components/dashboard/dashboard-header"
+import AccountSection from "@/components/dashboard/account-section"
+import PersonalizeSection from "@/components/dashboard/personalize-section"
+import UsersSection from "@/components/dashboard/users-section"
+import ApplicationsSection from "@/components/dashboard/applications-section"
+import CatalogsSection from "@/components/dashboard/catalogs-section"
+import ProcessesSection from "@/components/dashboard/processes-section"
+import InventorySection from "@/components/dashboard/inventory-sections"
+import EmbarquesSection from "@/components/dashboard/embarques-section"
+import IntegrationsSection from "@/components/dashboard/integrations-section"
 
-  const menuItems = [
-    { name: "CUENTA", icon: User },
-    { name: "PERSONALIZAR", icon: Settings },
-    { name: "USUARIOS", icon: Users2Icon },
-    { name: "CATÁLOGOS", icon: FolderArchiveIcon },
+interface UserData {
+  PIKER_ID: number
+  NOMBRE: string
+  USUARIO: string
+  ESTATUS: string
+  IMAGEN_COLAB?: string
+  IMAGEN_COLAB_MIME?: string
+  ROL: string
+  MODULOS_KRKN: string
+  MODULOS_KRKN_ARRAY: number[]
+}
 
-    { name: "PROCESOS", icon: ListStartIcon },
+interface CompanyData {
+  id: number
+  codigo: string
+  nombre: string
+  apiUrl: string
+  branding?: any
+}
 
-    { name: "INVENTARIO", icon: PackagePlusIcon },
-        { name: "EMBARQUES", icon: PackagePlusIcon },
+export default function DashboardPage() {
+  const router = useRouter()
 
-    { name: "APLICACIONES", icon: Grid3X3 },
+  const [userData, setUserData] = useState<UserData | null>(null)
+  const [companyData, setCompanyData] = useState<CompanyData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [activeSection, setActiveSection] = useState("CUENTA")
 
-    { name: "INTEGRACIONES", icon: Puzzle },
-    { name: "CERRAR SESIÓN", icon: LogOut },
-  ];
+  // nuevo: estado para abrir/cerrar sidebar
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const onToggleSidebar = () => setSidebarOpen((s) => !s)
+
+  useEffect(() => {
+    const storedUserData = localStorage.getItem("userData")
+    const storedCompanyData = localStorage.getItem("companyData")
+
+    if (storedUserData && storedCompanyData) {
+      setUserData(JSON.parse(storedUserData))
+      setCompanyData(JSON.parse(storedCompanyData))
+      setIsLoading(false)
+    } else {
+      // si no hay sesión, vete al inicio
+      router.replace("/")
+    }
+  }, [router])
 
   const handleLogout = () => {
-    window.location.href = "/login";
-  };
+    localStorage.removeItem("userData")
+    localStorage.removeItem("companyData")
+    router.replace("/login")
+  }
 
-  const handleMenuClick = (itemName: string) => {
-    if (itemName === "CERRAR SESIÓN") {
-      handleLogout();
-    } else {
-      setActiveSection(itemName);
-    }
-  };
-
-  const handleEtiquetadorClick = () => {
-    router.push("/etiquetador_hub");
-  };
+  const handleSectionChange = (section: string) => {
+    setActiveSection(section)
+  }
 
   const renderContent = () => {
     switch (activeSection) {
       case "CUENTA":
-        return (
-          <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-white">
-CONFIGURACIÓN DE TU CUENTA 
-           </h2>
-
-            {/* Información del Usuario */}
-            <div className="bg-black border border-white/20 rounded-lg p-6 space-y-4">
-              <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-gray-800 to-black rounded-full flex items-center justify-center border border-white/30">
-                  <User className="w-8 h-8 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-white">
-                    Usuario KRKN
-                  </h3>
-                  <p className="text-gray-400">Administrador del abismo</p>
-                  <p className="text-sm text-gray-500">usuario@krkn.com</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Información de Suscripción */}
-            <div className="bg-black border border-white/20 rounded-lg p-6">
-              <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
-                <Crown className="w-5 h-5 mr-2 text-yellow-400" />
-                Tu Suscripción
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-black border border-white/10 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-gray-400">Plan Actual</span>
-                    <div className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-2 py-1 rounded text-xs font-semibold">
-                      PRO
-                    </div>
-                  </div>
-                  <p className="text-2xl font-bold text-white">Plan Pro</p>
-                  <p className="text-sm text-gray-500">$29.99/mes</p>
-                </div>
-
-                <div className="bg-black border border-white/10 rounded-lg p-4">
-                  <div className="flex items-center mb-2">
-                    <Clock className="w-4 h-4 mr-2 text-green-400" />
-                    <span className="text-gray-400">Tiempo Restante</span>
-                  </div>
-                  <p className="text-2xl font-bold text-green-400">23 días</p>
-                  <p className="text-sm text-gray-500">
-                    Próxima facturación: 15 Ene 2025
-                  </p>
-                </div>
-
-                <div className="bg-black border border-white/10 rounded-lg p-4">
-                  <div className="flex items-center mb-2">
-                    <Zap className="w-4 h-4 mr-2 text-blue-400" />
-                    <span className="text-gray-400">Uso Mensual</span>
-                  </div>
-                  <p className="text-2xl font-bold text-blue-400">2.4K</p>
-                  <p className="text-sm text-gray-500">de 10K requests</p>
-                </div>
-              </div>
-
-              <div className="mt-6 flex space-x-3">
-                <button className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
-                  Actualizar Plan
-                </button>
-                <button className="border border-white/30 text-white px-4 py-2 rounded-lg hover:bg-white/10 transition-colors">
-                  Ver Facturación
-                </button>
-              </div>
-            </div>
-
-            {/* Estadísticas de Uso */}
-            <div className="bg-black border border-white/20 rounded-lg p-6">
-              <h3 className="text-xl font-semibold text-white mb-4">
-                Estadísticas de Uso
-              </h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-400">156</div>
-                  <div className="text-sm text-gray-500">Proyectos</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-400">2.4K</div>
-                  <div className="text-sm text-gray-500">API Calls</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-400">89%</div>
-                  <div className="text-sm text-gray-500">Uptime</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-yellow-400">12</div>
-                  <div className="text-sm text-gray-500">INTEGRACIONES</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
+        return <AccountSection />
       case "PERSONALIZAR":
-        return (
-          <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-white">Personalización</h2>
-
-            {/* Configuración de Perfil */}
-            <div className="bg-black border border-white/20 rounded-lg p-6">
-              <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
-                <Edit3 className="w-5 h-5 mr-2 text-blue-400" />
-                Información Personal
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Nombre de Usuario
-                  </label>
-                  <input
-                    type="text"
-                    defaultValue="Usuario KRKN"
-                    className="w-full bg-black border border-white/30 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-400"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    defaultValue="usuario@krkn.com"
-                    className="w-full bg-black border border-white/30 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-400"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Nombre de Organización
-                  </label>
-                  <input
-                    type="text"
-                    defaultValue="KRKN Corp"
-                    className="w-full bg-black border border-white/30 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-400"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Zona Horaria
-                  </label>
-                  <select className="w-full bg-black border border-white/30 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-400">
-                    <option>UTC-5 (América/Bogotá)</option>
-                    <option>UTC-6 (América/México)</option>
-                    <option>UTC-3 (América/Argentina)</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Gestión de USUARIOS */}
-            <div className="bg-black border border-white/20 rounded-lg p-6">
-              <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
-                <Users className="w-5 h-5 mr-2 text-green-400" />
-                Gestión de USUARIOS
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-black border border-white/10 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                      <User className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-white font-medium">Usuario KRKN</p>
-                      <p className="text-sm text-gray-500">
-                        Administrador • usuario@krkn.com
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
-                      Activo
-                    </span>
-                    <button className="text-gray-400 hover:text-white">
-                      <Edit3 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-black border border-white/10 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-gray-600 to-black rounded-full flex items-center justify-center border border-white/20">
-                      <User className="w-5 h-5 text-gray-400" />
-                    </div>
-                    <div>
-                      <p className="text-white font-medium">Colaborador 1</p>
-                      <p className="text-sm text-gray-500">
-                        Editor • colaborador@krkn.com
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded text-xs">
-                      Pendiente
-                    </span>
-                    <button className="text-gray-400 hover:text-white">
-                      <Edit3 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <button className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                + Invitar Usuario
-              </button>
-            </div>
-
-            {/* Configuración de Seguridad */}
-            <div className="bg-black border border-white/20 rounded-lg p-6">
-              <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
-                <Shield className="w-5 h-5 mr-2 text-red-400" />
-                Seguridad
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-white font-medium">
-                      Autenticación de Dos Factores
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Protege tu cuenta con 2FA
-                    </p>
-                  </div>
-                  <button className="bg-green-600 text-white px-3 py-1 rounded text-sm">
-                    Activado
-                  </button>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-white font-medium">Sesiones Activas</p>
-                    <p className="text-sm text-gray-500">
-                      Gestiona tus sesiones activas
-                    </p>
-                  </div>
-                  <button className="text-blue-400 hover:text-blue-300 text-sm">
-                    Ver Sesiones
-                  </button>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-white font-medium">Cambiar Contraseña</p>
-                    <p className="text-sm text-gray-500">
-                      Actualiza tu contraseña
-                    </p>
-                  </div>
-                  <button className="text-blue-400 hover:text-blue-300 text-sm">
-                    Cambiar
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
+        return <PersonalizeSection />
       case "USUARIOS":
-        return (
-          <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-white">Personalización</h2>
-
-            {/* Gestión de Usuarios */}
-            <div className="bg-black border border-white/20 rounded-lg p-6">
-              <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
-                <Users className="w-5 h-5 mr-2 text-green-400" />
-                Gestión de Usuarios
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-black border border-white/10 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                      <User className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-white font-medium">Usuario KRKN</p>
-                      <p className="text-sm text-gray-500">
-                        Administrador • usuario@krkn.com
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
-                      Activo
-                    </span>
-                    <button className="text-gray-400 hover:text-white">
-                      <Edit3 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-black border border-white/10 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-gray-600 to-black rounded-full flex items-center justify-center border border-white/20">
-                      <User className="w-5 h-5 text-gray-400" />
-                    </div>
-                    <div>
-                      <p className="text-white font-medium">Colaborador 1</p>
-                      <p className="text-sm text-gray-500">
-                        Editor • colaborador@krkn.com
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded text-xs">
-                      Pendiente
-                    </span>
-                    <button className="text-gray-400 hover:text-white">
-                      <Edit3 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <button className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                + Invitar Usuario
-              </button>
-            </div>
-          </div>
-        );
-
+        return <UsersSection />
       case "APLICACIONES":
-        return (
-          <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-white">
-              APLICACIONES & MÓDULOS
-            </h2>
-
-            {/* Módulos Activos */}
-            <div className="bg-black border border-white/20 rounded-lg p-6">
-              <h3 className="text-xl font-semibold text-white mb-4">
-                Módulos Activos
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div
-                  onClick={handleEtiquetadorClick}
-                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
-                      <Database className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
-                      Activo
-                    </span>
-                  </div>
-                  <h4 className="text-lg font-semibold text-white mb-2">
-                    Centro de Etiquetado
-                  </h4>
-                  <p className="text-sm text-gray-400 mb-3">
-                    Genera tus propias etiquetas con nuestro etiquetador
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">v2.1.0</span>
-                    <span className="text-blue-400 text-sm">Abrir →</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Módulos Disponibles 
-            <div className="bg-black border border-white/20 rounded-lg p-6">
-              <h3 className="text-xl font-semibold text-white mb-4">Módulos Disponibles</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="bg-black border border-white/10 rounded-lg p-4 opacity-75">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-orange-500/20 rounded-lg flex items-center justify-center border border-orange-400/30">
-                      <Calendar className="w-5 h-5 text-orange-400" />
-                    </div>
-                    <span className="bg-gray-600/20 text-gray-400 px-2 py-1 rounded text-xs">Disponible</span>
-                  </div>
-                  <h4 className="text-lg font-semibold text-white mb-2">PICKING</h4>
-                  <p className="text-sm text-gray-400 mb-3">Gestión de eventos y programación de tareas</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">v1.0.0</span>
-                    <button className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors">
-                      Instalar
-                    </button>
-                  </div>
-                </div>
-
-                <div className="bg-black border border-white/10 rounded-lg p-4 opacity-75">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center border border-red-400/30">
-                      <Shield className="w-5 h-5 text-red-400" />
-                    </div>
-                    <span className="bg-gray-600/20 text-gray-400 px-2 py-1 rounded text-xs">Disponible</span>
-                  </div>
-                  <h4 className="text-lg font-semibold text-white mb-2">Seguridad Avanzada</h4>
-                  <p className="text-sm text-gray-400 mb-3">Monitoreo y protección en tiempo real</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">v2.5.0</span>
-                    <button className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors">
-                      Instalar
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            */}
-          </div>
-        );
+        return <ApplicationsSection />
       case "CATÁLOGOS":
-        return (
-          <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-white">CATÁLOGOS</h2>
-
-            {/* Módulos Activos */}
-            <div className="bg-black border border-white/20 rounded-lg p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Recibo */}
-                <div
-                  onClick={handleEtiquetadorClick}
-                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
-                      <Inbox className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
-                      Activo
-                    </span>
-                  </div>
-                  <h4 className="text-lg font-semibold text-white mb-2">
-                    Pedidos
-                  </h4>
-                  <p className="text-sm text-gray-400 mb-3 text-center">
-                    Registra la entrada de mercancía, validar contra órdenes de
-                    compra y asegurar cantidades correctas.
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">v2.1.0</span>
-                    <span className="text-blue-400 text-sm">Abrir →</span>
-                  </div>
-                </div>
-
-                {/* Acomodo */}
-                <div
-                  onClick={handleEtiquetadorClick}
-                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
-                      <LucideWarehouse className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
-                      Activo
-                    </span>
-                  </div>
-                  <h4 className="text-lg font-semibold text-white mb-2">
-                    Órdenes de compra
-                  </h4>
-                  <p className="text-sm text-gray-400 mb-3 text-center">
-                    Ubica y organiza la mercancia recíbida en su posición
-                    correcta dentro del almacén.
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">v2.1.0</span>
-                    <span className="text-blue-400 text-sm p-4">Abrir →</span>
-                  </div>
-                </div>
-
-                {/* Picking */}
-                <div
-                  onClick={handleEtiquetadorClick}
-                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
-                      <ScanBarcode className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
-                      Activo
-                    </span>
-                  </div>
-                  <h4 className="text-lg font-semibold text-white mb-2">
-                    Proveedores
-                  </h4>
-                  <p className="text-sm text-gray-400 mb-3 text-center">
-                    Prepara los productos solicitados tomando la mercancía de su
-                    ubicación en almacén.
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">v2.1.0</span>
-                    <span className="text-blue-400 text-sm p-4">Abrir →</span>
-                  </div>
-                </div>
-
-                {/* Packing */}
-                <div
-                  onClick={handleEtiquetadorClick}
-                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
-                      <BoxIcon className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
-                      Activo
-                    </span>
-                  </div>
-                  <h4 className="text-lg font-semibold text-white mb-2">
-                    Clientes
-                  </h4>
-                  <p className="text-sm text-gray-400 mb-3 text-center">
-                    Empaca y consolida los productos seleccionados para el envío
-                    o entrega.
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">v2.1.0</span>
-                    <span className="text-blue-400 text-sm p-4">Abrir →</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="bg-black border border-white/20 rounded-lg p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Recibo */}
-                <div
-                  onClick={handleEtiquetadorClick}
-                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
-                      <Inbox className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
-                      Activo
-                    </span>
-                  </div>
-                  <h4 className="text-lg font-semibold text-white mb-2">
-                    Articulos
-                  </h4>
-                  <p className="text-sm text-gray-400 mb-3 text-center">
-                    Registra la entrada de mercancía, validar contra órdenes de
-                    compra y asegurar cantidades correctas.
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">v2.1.0</span>
-                    <span className="text-blue-400 text-sm">Abrir →</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
+        return <CatalogsSection />
       case "PROCESOS":
-        return (
-          <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-white">
-              PROCESOS Y MÓDULOS
-            </h2>
-
-            {/* Módulos Activos */}
-            <div className="bg-black border border-white/20 rounded-lg p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Recibo */}
-                <div
-                  onClick={handleEtiquetadorClick}
-                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
-                      <Inbox className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
-                      Activo
-                    </span>
-                  </div>
-                  <h4 className="text-lg font-semibold text-white mb-2">
-                    Recibo
-                  </h4>
-                  <p className="text-sm text-gray-400 mb-3 text-center">
-                    Registra la entrada de mercancía, validar contra órdenes de
-                    compra y asegurar cantidades correctas.
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">v2.1.0</span>
-                    <span className="text-blue-400 text-sm">Abrir →</span>
-                  </div>
-                </div>
-
-                {/* Acomodo */}
-                <div
-                  onClick={handleEtiquetadorClick}
-                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
-                      <LucideWarehouse className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
-                      Activo
-                    </span>
-                  </div>
-                  <h4 className="text-lg font-semibold text-white mb-2">
-                    Acomodo
-                  </h4>
-                  <p className="text-sm text-gray-400 mb-3 text-center">
-                    Ubica y organiza la mercancia recíbida en su posición
-                    correcta dentro del almacén.
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">v2.1.0</span>
-                    <span className="text-blue-400 text-sm p-4">Abrir →</span>
-                  </div>
-                </div>
-
-                {/* Picking */}
-                <div
-                  onClick={handleEtiquetadorClick}
-                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
-                      <ScanBarcode className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
-                      Activo
-                    </span>
-                  </div>
-                  <h4 className="text-lg font-semibold text-white mb-2">
-                    Picking
-                  </h4>
-                  <p className="text-sm text-gray-400 mb-3 text-center">
-                    Prepara los productos solicitados tomando la mercancía de su
-                    ubicación en almacén.
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">v2.1.0</span>
-                    <span className="text-blue-400 text-sm p-4">Abrir →</span>
-                  </div>
-                </div>
-
-                {/* Packing */}
-                <div
-                  onClick={handleEtiquetadorClick}
-                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
-                      <BoxIcon className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
-                      Activo
-                    </span>
-                  </div>
-                  <h4 className="text-lg font-semibold text-white mb-2">
-                    Packing
-                  </h4>
-                  <p className="text-sm text-gray-400 mb-3 text-center">
-                    Empaca y consolida los productos seleccionados para el envío
-                    o entrega.
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">v2.1.0</span>
-                    <span className="text-blue-400 text-sm p-4">Abrir →</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Módulos Disponibles 
-            <div className="bg-black border border-white/20 rounded-lg p-6">
-              <h3 className="text-xl font-semibold text-white mb-4">Módulos Disponibles</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="bg-black border border-white/10 rounded-lg p-4 opacity-75">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-orange-500/20 rounded-lg flex items-center justify-center border border-orange-400/30">
-                      <Calendar className="w-5 h-5 text-orange-400" />
-                    </div>
-                    <span className="bg-gray-600/20 text-gray-400 px-2 py-1 rounded text-xs">Disponible</span>
-                  </div>
-                  <h4 className="text-lg font-semibold text-white mb-2">PICKING</h4>
-                  <p className="text-sm text-gray-400 mb-3">Gestión de eventos y programación de tareas</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">v1.0.0</span>
-                    <button className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors">
-                      Instalar
-                    </button>
-                  </div>
-                </div>
-
-                <div className="bg-black border border-white/10 rounded-lg p-4 opacity-75">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center border border-red-400/30">
-                      <Shield className="w-5 h-5 text-red-400" />
-                    </div>
-                    <span className="bg-gray-600/20 text-gray-400 px-2 py-1 rounded text-xs">Disponible</span>
-                  </div>
-                  <h4 className="text-lg font-semibold text-white mb-2">Seguridad Avanzada</h4>
-                  <p className="text-sm text-gray-400 mb-3">Monitoreo y protección en tiempo real</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">v2.5.0</span>
-                    <button className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors">
-                      Instalar
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            */}
-          </div>
-        );
-
+        return <ProcessesSection />
       case "INVENTARIO":
-        return (
-          <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-white">INVENTARIO</h2>
-
-            {/* Módulos Activos */}
-            <div className="bg-black border border-white/20 rounded-lg p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Recibo */}
-                <div
-                  onClick={handleEtiquetadorClick}
-                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
-                      <Inbox className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
-                      Activo
-                    </span>
-                  </div>
-                  <h4 className="text-lg font-semibold text-white mb-2">
-                    Conteo
-                  </h4>
-                  <p className="text-sm text-gray-400 mb-3 text-center">
-                    Registra la entrada de mercancía, validar contra órdenes de
-                    compra y asegurar cantidades correctas.
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">v2.1.0</span>
-                    <span className="text-blue-400 text-sm">Abrir →</span>
-                  </div>
-                </div>
-
-                {/* Acomodo */}
-                <div
-                  onClick={handleEtiquetadorClick}
-                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
-                      <LucideWarehouse className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
-                      Activo
-                    </span>
-                  </div>
-                  <h4 className="text-lg font-semibold text-white mb-2">
-                    Movimientos
-                  </h4>
-                  <p className="text-sm text-gray-400 mb-3 text-center">
-                    Ubica y organiza la mercancia recíbida en su posición
-                    correcta dentro del almacén.
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">v2.1.0</span>
-                    <span className="text-blue-400 text-sm p-4">Abrir →</span>
-                  </div>
-                </div>
-
-                {/* Picking */}
-                <div
-                  onClick={handleEtiquetadorClick}
-                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
-                      <ScanBarcode className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
-                      Activo
-                    </span>
-                  </div>
-                  <h4 className="text-lg font-semibold text-white mb-2">
-                    Lotes
-                  </h4>
-                  <p className="text-sm text-gray-400 mb-3 text-center">
-                    Prepara los productos solicitados tomando la mercancía de su
-                    ubicación en almacén.
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">v2.1.0</span>
-                    <span className="text-blue-400 text-sm p-4">Abrir →</span>
-                  </div>
-                </div>
-
-                {/* Packing */}
-                <div
-                  onClick={handleEtiquetadorClick}
-                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
-                      <BoxIcon className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
-                      Activo
-                    </span>
-                  </div>
-                  <h4 className="text-lg font-semibold text-white mb-2">
-                    Calidades & Garantias
-                  </h4>
-                  <p className="text-sm text-gray-400 mb-3 text-center">
-                    Empaca y consolida los productos seleccionados para el envío
-                    o entrega.
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">v2.1.0</span>
-                    <span className="text-blue-400 text-sm p-4">Abrir →</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="bg-black border border-white/20 rounded-lg p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Recibo */}
-                <div
-                  onClick={handleEtiquetadorClick}
-                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
-                      <Inbox className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
-                      Activo
-                    </span>
-                  </div>
-                  <h4 className="text-lg font-semibold text-white mb-2">
-                    Merma
-                  </h4>
-                  <p className="text-sm text-gray-400 mb-3 text-center">
-                    Registra la entrada de mercancía, validar contra órdenes de
-                    compra y asegurar cantidades correctas.
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">v2.1.0</span>
-                    <span className="text-blue-400 text-sm">Abrir →</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
+        return <InventorySection />
+      case "EMBARQUES":
+        return <EmbarquesSection />
       case "INTEGRACIONES":
-        return (
-          <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-white">INTEGRACIONES</h2>
-
-            {/* Módulos Activos */}
-            <div className="bg-black border border-white/20 rounded-lg p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Recibo */}
-                <div
-                  onClick={handleEtiquetadorClick}
-                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
-                      <Inbox className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
-                      Activo
-                    </span>
-                  </div>
-                  <h4 className="text-lg font-semibold text-white mb-2">
-                    Importador
-                  </h4>
-                  <p className="text-sm text-gray-400 mb-3 text-center">
-                    Registra la entrada de mercancía, validar contra órdenes de
-                    compra y asegurar cantidades correctas.
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">v2.1.0</span>
-                    <span className="text-blue-400 text-sm">Abrir →</span>
-                  </div>
-                </div>
-
-                {/* Acomodo */}
-                <div
-                  onClick={handleEtiquetadorClick}
-                  className="bg-black border border-white/20 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer hover:bg-white/5"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
-                      <LucideWarehouse className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
-                      Activo
-                    </span>
-                  </div>
-                  <h4 className="text-lg font-semibold text-white mb-2">
-                    API
-                  </h4>
-                  <p className="text-sm text-gray-400 mb-3 text-center">
-                    Ubica y organiza la mercancia recíbida en su posición
-                    correcta dentro del almacén.
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">v2.1.0</span>
-                    <span className="text-blue-400 text-sm p-4">Abrir →</span>
-                  </div>
-                </div>
-
-             
-              </div>
-            </div>
-           
-          </div>
-        );
-
-   
-   
-
+        return <IntegrationsSection />
       default:
-        return null;
+        return <AccountSection />
     }
-  };
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      </div>
+    )
+  }
+
+  if (!userData || !companyData) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-400">No se encontraron datos de sesión</p>
+          <button onClick={() => router.replace("/")} className="mt-4 text-blue-400 hover:text-blue-300">
+            Volver al inicio
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-black flex">
-      {/* Sidebar */}
-      <div
-        className={`${
-          sidebarOpen ? "w-64" : "w-16"
-        } bg-black border-r border-white/20 transition-all duration-300 flex flex-col`}
-      >
-        {/* Header */}
-        <div className="p-4 border-b border-white/20">
-          <div className="flex items-center justify-between">
-            {sidebarOpen && (
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-800 via-gray-900 to-black flex items-center justify-center border border-white/30">
-                  <Image
-                    src="/kraken6.png"
-                    alt="Kraken Logo"
-                    width={24}
-                    height={24}
-                    className="w-6 h-6"
-                  />
-                </div>
-                <div>
-                  <h1 className="text-xl font-bold text-white">KRKN</h1>
-                  <p className="text-xs text-gray-400">Dashboard</p>
-                </div>
-              </div>
-            )}
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-            >
-              {sidebarOpen ? (
-                <X className="w-5 h-5" />
-              ) : (
-                <Menu className="w-5 h-5" />
-              )}
-            </button>
-          </div>
-        </div>
+      <Sidebar
+        activeSection={activeSection}
+        onSectionChange={handleSectionChange}
+        onLogout={handleLogout}
+        // 👇 props que pedía SidebarProps
+        sidebarOpen={sidebarOpen}
+        onToggleSidebar={onToggleSidebar}
+      />
 
-        {/* Menu Items */}
-        <nav className="flex-1 p-4 space-y-2">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeSection === item.name;
-            const isLogout = item.name === "CERRAR SESIÓN";
-
-            return (
-              <button
-                key={item.name}
-                onClick={() => handleMenuClick(item.name)}
-                className={`w-full flex items-center space-x-3 px-3 py-3 rounded-lg transition-all duration-200 group ${
-                  isActive && !isLogout
-                    ? "bg-gray-800 text-white border border-gray-600"
-                    : isLogout
-                    ? "text-red-400 hover:bg-red-900/30 hover:text-red-300"
-                    : "text-gray-300 hover:bg-gray-900 hover:text-white"
-                }`}
-              >
-                <Icon
-                  className={`w-5 h-5 ${
-                    isLogout ? "text-red-400 group-hover:text-red-300" : ""
-                  }`}
-                />
-                {sidebarOpen && (
-                  <span className="font-medium">{item.name}</span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* Footer */}
-        {sidebarOpen && (
-          <div className="p-4 border-t border-white/20">
-            <div className="text-xs text-gray-500 text-center">
-              KRKN Dashboard v1.0
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        {/* Top Bar */}
-        <header className="bg-black border-b border-white/20 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-white">{activeSection}</h1>
-            <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-400">Bienvenido al abismo</div>
-            </div>
-          </div>
-        </header>
-
-        {/* Content Area */}
+        <DashboardHeader activeSection={activeSection} />
         <main className="flex-1 p-6 overflow-auto">{renderContent()}</main>
       </div>
     </div>
-  );
+  )
 }
