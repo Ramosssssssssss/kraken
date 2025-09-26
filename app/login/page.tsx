@@ -70,10 +70,10 @@ export default function LoginPage() {
     }
 
     try {
-      console.log("[v0] Making login request to:", `${apiUrl}/login`)
+      console.log("[v0] Making login request to:", `${apiUrl}/login-krkn`)
       console.log("[v0] Company data:", companyData)
 
-      const response = await fetch(`${apiUrl}/login`, {
+      const response = await fetch(`${apiUrl}/login-krkn`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user: email, password }),
