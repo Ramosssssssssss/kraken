@@ -1,10 +1,16 @@
 "use client"
 
-import { useState, useCallback, useRef, useMemo, useEffect } from "react"
+import { useState, useCallback, useRef, useMemo, useEffect, Suspense } from "react"
 import { useCompany } from "@/lib/company-context"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft, Search, X, ImageIcon, MapPin, Info, Scan, Loader2, Package, AlertCircle } from "lucide-react"
-
+export default function CatalogoAlmacenPremium() {
+  return (
+    <Suspense fallback={null}>
+      <CatalogoAlmacenPremiumInner />
+    </Suspense>
+  )
+}
 interface Producto {
   ARTICULO_ID: string
   IMAGEN?: string
@@ -289,7 +295,8 @@ const ProductCard = ({
   )
 }
 
-export default function CatalogoAlmacenPremium() {
+ function CatalogoAlmacenPremiumInner() {
+    
   const searchParams = useSearchParams()
   const almacenId = searchParams.get("almacenId") || ""
   const almacenNombre = searchParams.get("almacenNombre") || ""
