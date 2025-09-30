@@ -583,6 +583,13 @@ export default function LabelGenerator() {
       text-align:center;
       word-break:break-word;
     }
+
+
+    @media print {
+  body * {
+    visibility: hidden !important;
+  }
+    }
   </style>
 </head>
 <body>
