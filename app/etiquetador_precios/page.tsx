@@ -7,10 +7,13 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Eye, Settings, Printer, Plus, Trash2, Minus, Loader2, AlertCircle, Upload, Download, LayoutTemplate, ArrowLeft } from "lucide-react"
+import { Eye, Settings, Printer, Plus, Trash2, Minus, Loader2, AlertCircle, Upload, Download, LayoutTemplate, ArrowLeft, RotateCcw } from "lucide-react"
 import * as XLSX from "xlsx"
 import pLimit from "p-limit"
 
+import Noty from "noty";
+import "noty/lib/noty.css";
+import "noty/lib/themes/mint.css";
 // ====== Types & consts ======
 type ArticleItem = {
   id: string
@@ -308,6 +311,21 @@ export default function LabelGenerator() {
   const [loadingAdd, setLoadingAdd] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
 
+  const resetArticles = () => {
+    if (articles.length === 0) return;
+
+    setArticles([]);
+    new Noty({
+      type: "success",
+      layout: "topRight",
+      theme: "mint",
+      text: "Se eliminaron todos los artículos",
+      timeout: 2500,
+      progressBar: true,
+    }).show();
+  };
+
+
   const upsert = (item: ArticleItem) => setArticles((prev) => {
     const i = prev.findIndex((a) => a.codigo === item.codigo)
     if (i !== -1) { const next = [...prev]; next[i] = { ...next[i], quantity: next[i].quantity + item.quantity }; return next }
@@ -594,8 +612,24 @@ export default function LabelGenerator() {
             <div className="flex flex-col gap-6 h-full min-h-0">
               <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm flex-1 flex min-h-0">
                 <CardHeader className="border-b border-gray-600 shrink-0">
-                  <div className="flex items-center justify-between gap-3"><CardTitle className="text-white">Artículos ({articles.length})</CardTitle><span className="text-sm text-purple-300">Total: {totalLabels} etiquetas</span></div>
+                  <div className="flex items-center justify-between gap-3">
+                    <CardTitle className="text-white">Artículos ({articles.length})</CardTitle>
+                   <div className="flex items-center">
+                     <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={resetArticles}
+                      disabled={articles.length === 0}
+                      title="Eliminar todos los artículos"
+                      className="text-red-400 hover:text-red-300 hover:bg-red-900/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                    </Button>
+
+                    <span className="text-sm text-purple-300">Total: {totalLabels} etiquetas</span></div>
+                   </div>
                 </CardHeader>
+
                 <CardContent className="p-6 flex-1 flex flex-col min-h-0">
                   {articles.length === 0 ? (
                     <div className="text-center py-8 text-gray-400"><p>No hay artículos agregados</p><p className="text-sm">Escribe un código y presiona Enter o el botón +</p></div>

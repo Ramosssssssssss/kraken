@@ -9,8 +9,11 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Eye, Settings, Printer, Plus, Trash2, Save, BookOpen, Loader2, AlertCircle, Minus, ArrowLeft } from "lucide-react"
+import { Eye, Settings, Printer, Plus, Trash2, Save, BookOpen, Loader2, AlertCircle, Minus, ArrowLeft, RotateCcw } from "lucide-react"
 
+import Noty from "noty";
+import "noty/lib/noty.css";
+import "noty/lib/themes/mint.css";
 
 interface ArticleItem {
   id: string
@@ -277,6 +280,21 @@ export default function LabelGenerator() {
   const [tamanosError, setTamanosError] = useState<string | null>(null)
   const [selectedTamanoId, setSelectedTamanoId] = useState<string>("")
 
+  // dentro de LabelGenerator, debajo de los useState:
+  const resetArticles = () => {
+    if (articles.length === 0) return;
+
+    setArticles([]);
+    new Noty({
+      type: "success",
+      layout: "topRight",
+      theme: "mint",
+      text: "Se eliminaron todos los artículos",
+      timeout: 2500,
+      progressBar: true,
+    }).show();
+  };
+
   // ======= IMPORTACIÓN DESDE EXCEL =======
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   type ImportRow = { code: string; copies: number }
@@ -531,35 +549,35 @@ export default function LabelGenerator() {
 
   // 👉 Imprime en la MISMA pestaña (iframe oculto). Papel = etiqueta exacta.
   // 👉 Imprimir etiquetas
-const isMobile = () =>
-  /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isMobile = () =>
+    /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-const handlePrint = () => {
-  if (articles.length === 0) return;
+  const handlePrint = () => {
+    if (articles.length === 0) return;
 
-  const labelW = clampMm(parseFloat(labelConfig.width), MAX_W_MM);
-  const labelH = clampMm(parseFloat(labelConfig.height), MAX_H_MM);
-  const padding = Math.max(0, parseFloat(labelConfig.margin));
-  const barH = clampBarHeight(parseFloat(labelConfig.barHeightMm || "20"), labelH, padding);
-  const fontPx = parseFloat(labelConfig.fontSize);
-  const fontFamily = labelConfig.font;
-  const fmt = barcodeFormat;
+    const labelW = clampMm(parseFloat(labelConfig.width), MAX_W_MM);
+    const labelH = clampMm(parseFloat(labelConfig.height), MAX_H_MM);
+    const padding = Math.max(0, parseFloat(labelConfig.margin));
+    const barH = clampBarHeight(parseFloat(labelConfig.barHeightMm || "20"), labelH, padding);
+    const fontPx = parseFloat(labelConfig.fontSize);
+    const fontFamily = labelConfig.font;
+    const fmt = barcodeFormat;
 
-  const bodyHtml = articles.map(a =>
-    Array.from({ length: a.quantity }, () => `
+    const bodyHtml = articles.map(a =>
+      Array.from({ length: a.quantity }, () => `
       <div class="page">
         <div class="label ${fmt === "QR" ? "row" : "column"}">
           ${fmt === "QR"
-            ? `<canvas class="qr-canvas" data-value="${a.barcode}"></canvas>`
-            : `<svg class="barcode-svg" data-value="${a.barcode}" data-format="${fmt}"></svg>`
-          }
+          ? `<canvas class="qr-canvas" data-value="${a.barcode}"></canvas>`
+          : `<svg class="barcode-svg" data-value="${a.barcode}" data-format="${fmt}"></svg>`
+        }
           <div class="label-text">SKU ${a.text}</div>
         </div>
       </div>
     `).join("")
-  ).join("");
+    ).join("");
 
-  const printHtml = `
+    const printHtml = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -602,30 +620,30 @@ ${bodyHtml}
 </body>
 </html>`;
 
-  if (isMobile()) {
-    // 📱 en móvil: nueva pestaña/ventana
-    const w = window.open('', '_blank', 'noopener,noreferrer');
-    if (!w) {
-      alert('Activa las ventanas emergentes para imprimir las etiquetas.');
-      return;
+    if (isMobile()) {
+      // 📱 en móvil: nueva pestaña/ventana
+      const w = window.open('', '_blank', 'noopener,noreferrer');
+      if (!w) {
+        alert('Activa las ventanas emergentes para imprimir las etiquetas.');
+        return;
+      }
+      w.document.open();
+      w.document.write(printHtml);
+      w.document.close();
+    } else {
+      // 💻 en desktop: iframe oculto como antes
+      const iframe = document.createElement("iframe");
+      iframe.style.position = "fixed";
+      iframe.style.width = "0";
+      iframe.style.height = "0";
+      iframe.style.border = "0";
+      document.body.appendChild(iframe);
+      const doc = iframe.contentDocument!;
+      doc.open(); doc.write(printHtml); doc.close();
+      const cleanup = () => { try { document.body.removeChild(iframe); } catch { } };
+      setTimeout(cleanup, 10000);
     }
-    w.document.open();
-    w.document.write(printHtml);
-    w.document.close();
-  } else {
-    // 💻 en desktop: iframe oculto como antes
-    const iframe = document.createElement("iframe");
-    iframe.style.position = "fixed";
-    iframe.style.width = "0";
-    iframe.style.height = "0";
-    iframe.style.border = "0";
-    document.body.appendChild(iframe);
-    const doc = iframe.contentDocument!;
-    doc.open(); doc.write(printHtml); doc.close();
-    const cleanup = () => { try { document.body.removeChild(iframe); } catch {} };
-    setTimeout(cleanup, 10000);
-  }
-};
+  };
 
 
 
@@ -727,7 +745,7 @@ ${bodyHtml}
                 </CardTitle>
 
                 <div className="flex items-center gap-2 text-white font-light text-xs">
-                  Version 1.2.0
+                  v1.2.1
 
                   {/* Enlace a historial de actualizaciones */}
                   <Link
@@ -997,6 +1015,15 @@ ${bodyHtml}
                     Imprimir
                   </Button>
                 </div>
+                <div className="flex gap-3 pt-4">
+                  <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white border-0" onClick={onPickExcelClick} title="Importar desde Excel/CSV">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Importar Excel
+                  </Button>
+                  <Button size="sm" variant="ghost" className="text-gray-300 hover:text-white" onClick={downloadTemplate} title="Descargar plantilla CSV">
+                    Descargar plantilla
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
@@ -1012,13 +1039,19 @@ ${bodyHtml}
 
                     <div className="flex items-center gap-2 flex-wrap">
                       <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={onExcelInputChange} className="hidden" />
-                      <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white border-0" onClick={onPickExcelClick} title="Importar desde Excel/CSV">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Importar Excel
+
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={resetArticles}
+                        disabled={articles.length === 0}
+                        title="Eliminar todos los artículos"
+                        className="text-red-400 hover:text-red-300 hover:bg-red-900/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                        aria-label="Eliminar todos los artículos"
+                      >
+                        <RotateCcw className="w-4 h-4" />
                       </Button>
-                      <Button size="sm" variant="ghost" className="text-gray-300 hover:text-white" onClick={downloadTemplate} title="Descargar plantilla CSV">
-                        Descargar plantilla
-                      </Button>
+
                       <span className="text-sm text-purple-300"> Total: {totalLabels} etiquetas </span>
                     </div>
                   </div>

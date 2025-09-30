@@ -149,6 +149,9 @@ importers:
       node-firebird:
         specifier: ^1.1.9
         version: 1.1.9
+      noty:
+        specifier: 3.2.0-beta-deprecated
+        version: 3.2.0-beta-deprecated
       p-limit:
         specifier: ^7.1.1
         version: 7.1.1
@@ -1848,6 +1851,10 @@ packages:
   normalize-range@0.1.2:
     resolution: {integrity: sha512-bdok/XvKII3nUpklnV6P2hxtMNrCboOjAcyBuQnWEhO665FwrSNRxU+AqpsyvO6LgGYPspN+lu5CLtw4jPRKNA==}
     engines: {node: '>=0.10.0'}
+
+  noty@3.2.0-beta-deprecated:
+    resolution: {integrity: sha512-ntRbHuQ9SnnnVFZm/oq5L1DBCaHQUvsU24AwZH3PGjAWx2YqR/IhOadMk11vmJovYiQo00oqTj6Hp+D6PGtmLA==}
+    deprecated: no longer supported
 
   object-assign@4.1.1:
     resolution: {integrity: sha512-rJgTQnkUnH1sFw8yT6VSU3zD3sWmu6sZhIseY8VX+GRu3P6F7Fu+JNDoXfklElbLJSnc3FUQHVe4cU5hj+BcUg==}
@@ -3842,6 +3849,8 @@ snapshots:
   node-releases@2.0.19: {}
 
   normalize-range@0.1.2: {}
+
+  noty@3.2.0-beta-deprecated: {}
 
   object-assign@4.1.1: {}
 

@@ -11,16 +11,15 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 export const revalidate = 0
 
-// ===== Config =====
-// Usa variables de entorno en prod
-const fbConfig: fb.Options = {
+// ===== Config ===== CORREGIDO
+const fbConfig = {
   host: process.env.FIREBIRD_HOST || "85.215.109.213",
   port: Number(process.env.FIREBIRD_PORT || 3050),
   database: process.env.FB_DATABASE || "D:\\Microsip datos\\GUIMAR.FDB",
   user: process.env.FIREBIRD_USER || "SYSDBA",
   password: process.env.FIREBIRD_PASSWORD || "BlueMamut$23",
-  charset: process.env.FB_CHARSET || "UTF8", // cambia a UTF8 si tu DB lo es
-}
+  encoding: 'UTF8', // 👈 CORRECCIÓN: usar 'encoding' en lugar de 'charset'
+} as fb.Options; 
 
 const JWT_SECRET = process.env.JWT_SECRET || "elyssia-secret-key"
 const LOGS_DIR = process.env.LOGS_DIR || "./logs"
@@ -43,7 +42,7 @@ function nowMX(): string {
 }
 
 function log(msg: string, level: "INFO" | "ERROR" | "DEBUG" | "WARN" = "INFO") {
-  const file = path.join(LOGS_DIR, `buscar_folio-${new Date().toISOString().slice(0,10)}.log`)
+  const file = path.join(LOGS_DIR, `buscar_folio-${new Date().toISOString().slice(0, 10)}.log`)
   const line = `[${nowMX()}] [${level}] ${msg}\n`
   try { fs.appendFileSync(file, line, "utf8") } catch (e) { console.error(e) }
   if (level === "ERROR") console.error(line)
@@ -59,19 +58,79 @@ function verifyToken(token?: string) {
   catch (e) { log(`JWT inválido: ${e}`, "WARN"); return null }
 }
 
-// ===== Helpers DB / mappers =====
+// ===== NUEVO: Funciones mejoradas para decodificación =====
 function decodeField(v: any): string {
   if (typeof v !== "string") return v == null ? "" : String(v)
-  try { return iconv.decode(Buffer.from(v, "binary"), "utf8") } catch { return v }
+  
+  try {
+    // Si ya está bien codificado, retornar tal cual
+    if (!v.includes('�')) return v;
+    
+    // Intentar diferentes codificaciones
+    const encodings = ['win1252', 'latin1', 'iso-8859-1', 'utf8'];
+    
+    for (const encoding of encodings) {
+      try {
+        const decoded = iconv.decode(Buffer.from(v, 'binary'), encoding);
+        if (!decoded.includes('�') && !decoded.includes('Ã')) {
+          return decoded;
+        }
+      } catch (e) {
+        // Continuar con el siguiente encoding
+      }
+    }
+    
+    // Si no funciona, aplicar mapeo manual de caracteres corruptos
+    return corregirCaracteresManualmente(v);
+  } catch { 
+    return v 
+  }
+}
+
+// ===== NUEVO: Mapeo manual de caracteres corruptos =====
+function corregirCaracteresManualmente(texto: string): string {
+  if (!texto) return texto;
+  
+  const mapeoCaracteres: { [key: string]: string } = {
+    '�': 'Ñ',
+    'Ã‘': 'Ñ',
+    'Ã±': 'ñ',
+    'Ã¡': 'á',
+    'Ã©': 'é',
+    'Ã­': 'í',
+    'Ã³': 'ó',
+    'Ãº': 'ú',
+    'Ã': 'Á',
+    'Ã‰': 'É',
+    'Ã': 'Í',
+    'Ã“': 'Ó',
+    'Ãš': 'Ú',
+    'Ã±': 'ñ',
+    'Ã‘': 'Ñ',
+    'Ã¼': 'ü',
+    'Ãœ': 'Ü',
+    'Ã': 'Ñ',
+    'Ã±': 'ñ',
+    'Ã': 'ß',
+    'Â¿': '¿',
+    'Â¡': '¡'
+  };
+
+  let textoCorregido = texto;
+  Object.keys(mapeoCaracteres).forEach(caracterCorrupto => {
+    const regex = new RegExp(caracterCorrupto, 'g');
+    textoCorregido = textoCorregido.replace(regex, mapeoCaracteres[caracterCorrupto]);
+  });
+
+  return textoCorregido;
 }
 
 function toNum(v: any, d = 0) { const n = Number(v); return Number.isFinite(n) ? n : d }
 
-// 🔧 Normalizador universal de folios: separa prefijo letras + parte numérica con ceros a la izquierda
-//    Ej.: "FCT2333" -> "FCT002333" si lenTotal=9  (ajusta lenTotal si tu sistema usa otros largos)
+// 🔧 Normalizador universal de folios
 function normalizeFolio(raw: string, lenTotal = 9): string {
   const s = (raw || "").trim()
-  const m = s.match(/^([^\d]*)(\d+)$/) // prefijo no-dígitos + números
+  const m = s.match(/^([^\d]*)(\d+)$/)
   if (!m) return s
   const pref = m[1]
   const num = m[2]
@@ -85,39 +144,39 @@ function denormalizeFolio(folio: string): string {
   const m = (folio || "").match(/^([^\d]*)(\d+)$/)
   if (!m) return folio
   const pref = m[1]
-  const num = String(Number(m[2])) // convierte a número y elimina ceros a la izq
+  const num = String(Number(m[2]))
   return pref + num
 }
 
-// 🔧 Conexión/consulta Firebird (abre/cierra por cada request)
+// 🔧 Conexión/consulta Firebird
 function queryFirebird<T = any>(sql: string, params: any[] = []): Promise<T[]> {
   return new Promise((resolve, reject) => {
     fb.attach(fbConfig, (err, db) => {
       if (err || !db) return reject(err)
       db.query(sql, params, (qErr: any, rows: any[]) => {
         if (qErr) {
-          try { db.detach(() => {}) } catch {}
+          try { db.detach(() => { }) } catch { }
           return reject(qErr)
         }
-        try { db.detach(() => {}) } catch {}
+        try { db.detach(() => { }) } catch { }
         resolve(rows || [])
       })
     })
   })
 }
 
-// 🔧 NUEVO: tipos de etiqueta admitidos
+// 🔧 tipos de etiqueta admitidos
 type TipoEtiqueta = "factura" | "traspaso" | "puntoVenta"
 
-// 🔧 NUEVO: Normalizador de tipo (por si llega mayúsculas u otros IDs)
+// 🔧 Normalizador de tipo
 function normalizeTipo(raw?: string | null): TipoEtiqueta {
   const s = (raw || "").toString().trim().toLowerCase()
   if (s === "traspaso" || s === "traspasos") return "traspaso"
   if (s === "puntoventa" || s === "punto_venta" || s === "pv") return "puntoVenta"
-  return "factura" // default
+  return "factura"
 }
 
-// 🔧 Estructura de salida unificada (incluye Factura)
+// 🔧 Estructura de salida unificada
 type Salida = {
   folio: string
   peso_embarque: number
@@ -128,7 +187,7 @@ type Salida = {
   colonia: string
   ciudad: string
   codigo_postal: string
-  Factura: string           // <- para matchear con plantilla
+  Factura: string
   tipoDetectado: TipoEtiqueta
 }
 
@@ -164,9 +223,9 @@ function buildQueryByTipo(tipo: TipoEtiqueta): { sql: string; mapper: (r: any) =
           cliente: decodeField(r.CLIENTE),
           nombre_calle: decodeField(r.NOMBRE_CALLE),
           colonia: decodeField(r.COLONIA),
-          ciudad: decodeField(r.CIUDAD), 
+          ciudad: decodeField(r.CIUDAD),
           codigo_postal: decodeField(r.CODIGO_POSTAL),
-          Factura: denormalizeFolio(decodeField(r.FOLIO)), // igual que arriba
+          Factura: denormalizeFolio(decodeField(r.FOLIO)),
           tipoDetectado: "factura",
         }),
       }
@@ -183,15 +242,15 @@ INNER JOIN CIUDADES C ON C.CIUDAD_ID = S3.CIUDAD_ID
 WHERE TI.FOLIO = ?
         `,
         mapper: (r: any): Salida => ({
-        folio: denormalizeFolio(decodeField(r.FOLIO)),
-          peso_embarque: toNum(r.PESO_EMBARQUE),
+          folio: denormalizeFolio(decodeField(r.FOLIO)),
+          peso_embarque: toNum(r.PESO_EMBARQUE || 0), // 👈 Agregado valor por defecto
           sucursal: decodeField(r.SUCURSAL_DESTINO),
           via_embarque: decodeField(r.VIA_EMBARQUE),
-          cliente: decodeField(r.CLIENTE),
+          cliente: "TRASPASO", // 👈 Valor por defecto para traspasos
           nombre_calle: decodeField(r.CALLE),
-          colonia: decodeField(r.COLONIA),
+          colonia: "", // 👈 Agregado valor por defecto
           ciudad: decodeField(r.CIUDAD),
-          codigo_postal: decodeField(r.CODIGO),
+          codigo_postal: decodeField(r.CODIGO_POSTAL),
           Factura: decodeField(r.FOLIO),
           tipoDetectado: "traspaso",
         }),
@@ -201,17 +260,17 @@ WHERE TI.FOLIO = ?
       return {
         sql: `
 SELECT FOLIO, C.NOMBRE AS CLIENTE ,S.NOMBRE AS SUCURSAL, DC.CALLE, DC.COLONIA, CI.NOMBRE, DC.CODIGO_POSTAL, DPV.PESO_EMBARQUE FROM DOCTOS_PV DPV
-INNER JOIN SUCURSALES S ON S.SUCURSAL_ID = DPV.SUCURSAL_ID
-INNER JOIN CLIENTES C ON C.CLIENTE_ID = DPV.CLIENTE_ID
-INNER JOIN DIRS_CLIENTES DC ON DC.DIR_CLI_ID = DPV.DIR_CLI_ID
-INNER JOIN CIUDADES CI ON CI.CIUDAD_ID = DC.CIUDAD_ID
+LEFT JOIN SUCURSALES S ON S.SUCURSAL_ID = DPV.SUCURSAL_ID
+LEFT JOIN CLIENTES C ON C.CLIENTE_ID = DPV.CLIENTE_ID
+LEFT JOIN DIRS_CLIENTES DC ON DC.DIR_CLI_ID = DPV.DIR_CLI_ID
+LEFT JOIN CIUDADES CI ON CI.CIUDAD_ID = DC.CIUDAD_ID
 WHERE FOLIO = ?
         `,
         mapper: (r: any): Salida => ({
           folio: denormalizeFolio(decodeField(r.FOLIO)),
           peso_embarque: toNum(r.PESO_EMBARQUE),
           sucursal: decodeField(r.SUCURSAL),
-          via_embarque: decodeField(r.VIA_EMBARQUE),
+          via_embarque: "", // 👈 Agregado valor por defecto
           cliente: decodeField(r.CLIENTE),
           nombre_calle: decodeField(r.CALLE),
           colonia: decodeField(r.COLONIA),
@@ -224,10 +283,10 @@ WHERE FOLIO = ?
   }
 }
 
-// 🔧 NUEVO: intenta en orden varios tipos hasta encontrar resultados
+// 🔧 intenta en orden varios tipos hasta encontrar resultados
 async function tryQueriesInOrder(folio: string, prefer?: TipoEtiqueta): Promise<Salida[] & { __tipo?: TipoEtiqueta }> {
   const order: TipoEtiqueta[] = prefer
-    ? [prefer, ...(["factura","traspaso","puntoVenta"] as TipoEtiqueta[]).filter(t => t !== prefer)]
+    ? [prefer, ...(["factura", "traspaso", "puntoVenta"] as TipoEtiqueta[]).filter(t => t !== prefer)]
     : ["factura", "traspaso", "puntoVenta"]
 
   for (const tipo of order) {
@@ -235,7 +294,7 @@ async function tryQueriesInOrder(folio: string, prefer?: TipoEtiqueta): Promise<
     const rows = await queryFirebird(sql, [folio])
     if (rows.length > 0) {
       const data = rows.map(mapper) as Salida[]
-      ;(data as any).__tipo = tipo
+        ; (data as any).__tipo = tipo
       return data as any
     }
   }
@@ -248,14 +307,11 @@ export async function GET(req: NextRequest) {
   try {
     log(`[${rid}] GET /api/buscar_folio`)
 
-    // auth opcional (igual)
     const authHeader = req.headers.get("authorization")
     if (authHeader?.startsWith("Bearer ")) verifyToken(authHeader.slice(7))
 
     const { searchParams } = new URL(req.url)
     const folioRaw = (searchParams.get("folio") || req.headers.get("x-folio") || "").trim()
-
-    // 🔧 NUEVO: parametro tipo (opcional, para forzar)
     const tipoRaw = searchParams.get("tipo") || req.headers.get("x-tipo") || ""
     const tipoPreferido = normalizeTipo(tipoRaw || undefined)
 
@@ -269,7 +325,6 @@ export async function GET(req: NextRequest) {
     const folio = normalizeFolio(folioRaw, 9)
     log(`[${rid}] folio='${folioRaw}' -> '${folio}' | tipoPreferido='${tipoRaw}' -> '${tipoPreferido}'`, "DEBUG")
 
-    // 🔧 NUEVO: probar 3 consultas en orden
     const resultados = await tryQueriesInOrder(folio, tipoRaw ? tipoPreferido : undefined)
 
     if (resultados.length === 0) {
@@ -281,9 +336,15 @@ export async function GET(req: NextRequest) {
     }
 
     const tipoDetectado = (resultados as any).__tipo as TipoEtiqueta
+    
+    // 👇 NUEVO: Log para verificar la decodificación
+    if (resultados.length > 0) {
+      const primerResultado = resultados[0];
+      log(`[${rid}] Cliente decodificado: '${primerResultado.cliente}'`, "DEBUG");
+    }
+    
     log(`[${rid}] Resultados folio=${folio} tipoDetectado=${tipoDetectado}: ${resultados.length}`, "INFO")
 
-    // 🔧 Salida uniforme con Factura incluido por mapper
     return NextResponse.json(
       { ok: true, data: resultados, tipo: tipoDetectado },
       { headers: { "Access-Control-Allow-Origin": "*" } }
@@ -312,4 +373,3 @@ export async function OPTIONS() {
     }
   )
 }
- 

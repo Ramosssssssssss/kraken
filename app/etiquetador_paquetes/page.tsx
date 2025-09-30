@@ -6,9 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { Eye, Settings, Printer, Plus, Trash2, Minus, Loader2, AlertCircle, Upload, ArrowLeft } from "lucide-react"
+import { Eye, Settings, Printer, Plus, Trash2, Minus, Loader2, AlertCircle, Upload, ArrowLeft, RotateCcw } from "lucide-react"
 import * as XLSX from "xlsx"
 import pLimit from "p-limit"
+// si TypeScript se queja por tipos, ver nota de TS más abajo
+import Noty from "noty";
+import "noty/lib/noty.css";
+import "noty/lib/themes/mint.css";
+
 // Select UI
 import {
     Select,
@@ -19,7 +24,14 @@ import {
 } from "@/components/ui/select"
 
 // ====== Types & consts ======
-type TipoEtiqueta = "factura" | "traspaso" | "puntoVenta"
+type TipoApi = "factura" | "traspaso" | "puntoVenta"
+type TipoEtiqueta = "Factura" | "Traspaso" | "Ruta"
+
+const TIPO_API_TO_UI: Record<TipoApi, { label: TipoEtiqueta; badgeClass: string }> = {
+    factura: { label: "Factura", badgeClass: "bg-emerald-500/15 border border-emerald-500/40 text-emerald-300" },
+    traspaso: { label: "Traspaso", badgeClass: "bg-sky-500/15 border border-sky-500/40 text-sky-300" },
+    puntoVenta: { label: "Ruta", badgeClass: "bg-amber-500/15 border border-amber-500/40 text-amber-300" },
+}
 
 type PaqItem = {
     id: string
@@ -35,6 +47,7 @@ type PaqItem = {
     sucursal: string
     // NUEVO: tipo detectado y plantilla asignada
     tipo: TipoEtiqueta
+    tipoClass: string
     templateId: Template["id"]
 }
 
@@ -282,7 +295,7 @@ const baseTemplate: Template = {
 
 const baseTemplate2: Template = {
     id: "etiqueta_traspaso",
-    name: "traspaso",
+    name: "Traspaso",
     width: 101,
     height: 101,
     css: (w: number, h: number) => `
@@ -465,7 +478,7 @@ const baseTemplate2: Template = {
 
 const baseTemplate3: Template = {
     id: "etiqueta_puntoVenta",
-    name: "Factura",
+    name: "Ruta",
     width: 101,
     height: 101,
     css: (w: number, h: number) => `
@@ -634,10 +647,12 @@ const LABEL_TEMPLATES: Template[] = [
 ]
 
 const TIPO_TO_TEMPLATE_ID: Record<TipoEtiqueta, Template["id"]> = {
-    factura: "etiqueta_facturas",
-    traspaso: "etiqueta_traspaso",
-    puntoVenta: "etiqueta_puntoVenta",
+    Factura: "etiqueta_facturas",
+    Traspaso: "etiqueta_traspaso",
+    Ruta: "etiqueta_puntoVenta",
 }
+// Borra todos los folios sin preguntar
+
 
 // ====== Page ======
 export default function EtiquetadorPaquetes() {
@@ -652,7 +667,37 @@ export default function EtiquetadorPaquetes() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    const upsert = (it: PaqItem) => setItems(prev => [...prev, it])
+    // Reemplaza tu upsert actual por este:
+    const upsert = (it: PaqItem) =>
+        setItems(prev => {
+            // normaliza para que no fallen mayúsculas/espacios
+            const norm = (s: string) => s.trim().toUpperCase();
+
+            const idx = prev.findIndex(x => norm(x.folio) === norm(it.folio));
+            // 👉 si prefieres acumular solo si también coincide el tipo/plantilla:
+            // const idx = prev.findIndex(x => norm(x.folio) === norm(it.folio) && x.templateId === it.templateId);
+
+            if (idx !== -1) {
+                const next = [...prev];
+                const antes = next[idx].quantity;
+                next[idx] = { ...next[idx], quantity: antes + it.quantity };
+
+                // feedback opcional
+                new Noty({
+                    type: "success",
+                    layout: "topRight",
+                    theme: "mint",
+                    text: `Folio ${it.folio}: +${it.quantity} (total ${antes + it.quantity})`,
+                    timeout: 1800,
+                    progressBar: true,
+                }).show();
+
+                return next;
+            }
+
+            return [...prev, it];
+        });
+
     const totalLabels = useMemo(() => items.reduce((s, a) => s + a.quantity, 0), [items])
 
     // ====== Importación Excel (opcional) ======
@@ -688,6 +733,20 @@ export default function EtiquetadorPaquetes() {
         } finally { setImporting(false) }
     }
 
+    const resetFolios = () => {
+        if (items.length === 0) return;
+
+        setItems([]);
+        new Noty({
+            type: "success",
+            layout: "topRight",
+            theme: "mint",
+            text: "Se eliminaron todos los folios",
+            timeout: 2500,
+            progressBar: true,
+        }).show();
+    };
+
     // ====== Conexión al API /api/buscar_folio ======
     async function addByFolio(folioRaw: string, paquetesOverride?: number) {
         const clean = (folioRaw || "").trim()
@@ -705,8 +764,11 @@ export default function EtiquetadorPaquetes() {
             const row = Array.isArray(j.data) ? j.data[0] : j.data
             if (!row) throw new Error("Respuesta sin datos.")
 
-            const tipoDetectado: TipoEtiqueta = (j.tipo || "factura") as TipoEtiqueta
-            const templateId = TIPO_TO_TEMPLATE_ID[tipoDetectado] || LABEL_TEMPLATES[0].id
+            const tipoApi = (j.tipo || "factura") as TipoApi
+            const ui = TIPO_API_TO_UI[tipoApi] ?? TIPO_API_TO_UI.factura
+            const tipoUI: TipoEtiqueta = ui.label
+            const templateId = TIPO_TO_TEMPLATE_ID[tipoUI] || LABEL_TEMPLATES[0].id
+
 
             const dir = [
                 (row.CALLE || row.nombre_calle || "").toString().trim(),
@@ -730,9 +792,11 @@ export default function EtiquetadorPaquetes() {
                 peso: Number(row.PESO_EMBARQUE ?? row.peso_embarque ?? 0) || 0,
                 fecha: todayMX(),
                 quantity: qty,
-                tipo: tipoDetectado,
+                tipo: tipoUI,              // 👈 UI label ya mapeado
+                tipoClass: ui.badgeClass,  // 👈 clases de color para el badge
                 templateId,
             }
+
             upsert(it)
 
             // auto-seleccionar la plantilla del tipo detectado
@@ -748,32 +812,32 @@ export default function EtiquetadorPaquetes() {
     }
 
     // ====== Print (usa la plantilla seleccionada actual)
- // Imprimir TODO junto respetando el formato de cada plantilla (mismo tamaño)
-const handlePrint = () => {
-  if (!items.length) return
+    // Imprimir TODO junto respetando el formato de cada plantilla (mismo tamaño)
+    const handlePrint = () => {
+        if (!items.length) return
 
-  // 1) Tamaño del job: como todas son iguales, usa el de la primera plantilla
-  const firstTpl =
-    LABEL_TEMPLATES.find(t => t.id === (items[0]?.templateId || tplId)) ||
-    LABEL_TEMPLATES[0]
-  const jobW = firstTpl.width
-  const jobH = firstTpl.height
+        // 1) Tamaño del job: como todas son iguales, usa el de la primera plantilla
+        const firstTpl =
+            LABEL_TEMPLATES.find(t => t.id === (items[0]?.templateId || tplId)) ||
+            LABEL_TEMPLATES[0]
+        const jobW = firstTpl.width
+        const jobH = firstTpl.height
 
-  // 2) Juntamos los CSS de cada plantilla PERO sin sus @page
-  const stripAtPage = (css: string) => css.replace(/@page\s*\{[^}]*\}\s*/g, "")
-  const usedTplIds = Array.from(new Set(items.map(i => i.templateId)))
-  const cssBlocks = usedTplIds.map(tid => {
-    const tpl = LABEL_TEMPLATES.find(t => t.id === tid) || LABEL_TEMPLATES[0]
-    return stripAtPage(tpl.css(tpl.width, tpl.height))
-  })
+        // 2) Juntamos los CSS de cada plantilla PERO sin sus @page
+        const stripAtPage = (css: string) => css.replace(/@page\s*\{[^}]*\}\s*/g, "")
+        const usedTplIds = Array.from(new Set(items.map(i => i.templateId)))
+        const cssBlocks = usedTplIds.map(tid => {
+            const tpl = LABEL_TEMPLATES.find(t => t.id === tid) || LABEL_TEMPLATES[0]
+            return stripAtPage(tpl.css(tpl.width, tpl.height))
+        })
 
-  // 3) Construir las páginas en el orden original (sin escalado porque todas miden igual)
-  const pagesHTML = items.flatMap(a => {
-    const tpl = LABEL_TEMPLATES.find(t => t.id === a.templateId) || LABEL_TEMPLATES[0]
-    return Array.from({ length: a.quantity }, (_, idx) => tpl.renderHTML(a, idx + 1, a.quantity))
-  }).join("")
+        // 3) Construir las páginas en el orden original (sin escalado porque todas miden igual)
+        const pagesHTML = items.flatMap(a => {
+            const tpl = LABEL_TEMPLATES.find(t => t.id === a.templateId) || LABEL_TEMPLATES[0]
+            return Array.from({ length: a.quantity }, (_, idx) => tpl.renderHTML(a, idx + 1, a.quantity))
+        }).join("")
 
-  const html = `<!DOCTYPE html>
+        const html = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8" />
@@ -817,17 +881,17 @@ const handlePrint = () => {
 </body>
 </html>`;
 
-  const f = document.createElement("iframe")
-  Object.assign(f.style, { position: "fixed", right: "0", bottom: "0", width: "0", height: "0", border: "0", opacity: "0" })
-  document.body.appendChild(f)
+        const f = document.createElement("iframe")
+        Object.assign(f.style, { position: "fixed", right: "0", bottom: "0", width: "0", height: "0", border: "0", opacity: "0" })
+        document.body.appendChild(f)
 
-  const d = (f.contentDocument || (f as any).ownerDocument) as Document
-  d.open(); d.write(html); d.close()
+        const d = (f.contentDocument || (f as any).ownerDocument) as Document
+        d.open(); d.write(html); d.close()
 
-  const cleanup = () => { try { document.body.removeChild(f) } catch {} }
-  setTimeout(cleanup, 10000)
-  ;(f.contentWindow as any)?.addEventListener?.("afterprint", cleanup)
-}
+        const cleanup = () => { try { document.body.removeChild(f) } catch { } }
+        setTimeout(cleanup, 10000)
+            ; (f.contentWindow as any)?.addEventListener?.("afterprint", cleanup)
+    }
 
 
     const naturalW = mmToPx(template.width), naturalH = mmToPx(template.height)
@@ -889,7 +953,7 @@ const handlePrint = () => {
                                     </div>
 
                                     {/* Selector manual de plantilla (puede cambiar al vuelo) */}
-                                    <div className="space-y-1 sm:col-span-2">
+                                    {/* <div className="space-y-1 sm:col-span-2">
                                         <Label className="text-gray-100 font-medium">Plantilla</Label>
                                         <Select value={tplId} onValueChange={(v) => setTplId(v as any)}>
                                             <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
@@ -904,7 +968,7 @@ const handlePrint = () => {
                                         <p className="text-xs text-gray-400 mt-1">
                                             Al agregar un folio, se selecciona automáticamente la plantilla según el tipo detectado por el backend.
                                         </p>
-                                    </div>
+                                    </div> */}
                                 </div>
 
                                 <div className="flex gap-2">
@@ -982,7 +1046,20 @@ const handlePrint = () => {
                                 <CardHeader className="border-b border-gray-600 shrink-0">
                                     <div className="flex items-center justify-between gap-3">
                                         <CardTitle className="text-white">Folios agregados ({items.length})</CardTitle>
-                                        <span className="text-sm text-purple-300">Total: {totalLabels} etiquetas</span>
+                                        <CardTitle className="flex items-center">
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={resetFolios}
+                                                disabled={items.length === 0}
+                                                title="Eliminar todos los folios"
+                                                className="text-red-400 hover:text-red-300 hover:bg-red-900/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                                            >
+                                                <RotateCcw className="w-4 h-4" />
+                                            </Button>
+
+                                            <span className="text-sm text-purple-300">Total: {totalLabels} etiquetas</span>
+                                        </CardTitle>
                                     </div>
                                 </CardHeader>
                                 <CardContent className="p-6 flex-1 flex flex-col min-h-0">
@@ -998,7 +1075,7 @@ const handlePrint = () => {
                                                     <div className="flex-1 min-w-0">
                                                         <p className="text-white font-medium truncate">{a.cliente}</p>
                                                         <p className="text-gray-300 text-sm">
-                                                            <span className="inline-flex items-center px-2 py-0.5 rounded bg-purple-900/40 border border-purple-600 text-purple-200 mr-2">
+                                                            <span className={`inline-flex items-center px-2 py-0.5 rounded mr-2 ${a.tipoClass}`}>
                                                                 {a.tipo}
                                                             </span>
                                                             Folio: {a.folio} • {a.direccion} • {a.ciudad}{a.cp ? ` CP ${a.cp}` : ""} • Peso: {a.peso || 0} kg • Fecha: {a.fecha}
