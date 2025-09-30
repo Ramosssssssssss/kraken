@@ -531,117 +531,102 @@ export default function LabelGenerator() {
 
   // 👉 Imprime en la MISMA pestaña (iframe oculto). Papel = etiqueta exacta.
   // 👉 Imprimir etiquetas
-  const handlePrint = () => {
-    if (articles.length === 0) return
+const isMobile = () =>
+  /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-    const labelW = clampMm(parseFloat(labelConfig.width), MAX_W_MM)
-    const labelH = clampMm(parseFloat(labelConfig.height), MAX_H_MM)
-    const padding = Math.max(0, parseFloat(labelConfig.margin))
-    const barH = clampBarHeight(parseFloat(labelConfig.barHeightMm || "20"), labelH, padding)
-    const fontPx = parseFloat(labelConfig.fontSize)
-    const fontFamily = labelConfig.font
-    const fmt = barcodeFormat
+const handlePrint = () => {
+  if (articles.length === 0) return;
 
-    const printHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>Etiquetas</title>
-  <style>
-    @page { size: ${labelW}mm ${labelH}mm; margin: 0; padding: 0; }
-    body { margin:0; padding:0; font-family:${fontFamily}; }
-    .page {
-      width:${labelW}mm;
-      height:${labelH}mm;
-      display:grid;
-      place-items:center;
-      page-break-after:always;
-    }
-    .label {
-      width:${labelW}mm;
-      height:${labelH}mm;
-      padding:${padding}mm;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:4px;
-    }
-    .label.column { flex-direction:column; } /* para barras */
-    .label.row { 
-    flex-direction:column;
-    }       /* para QR */
-    .barcode-svg { width:100%; height:${barH}mm; }
-    .qr-canvas {
-      width:${labelConfig.qrSizeMm || 20}mm;
-      height:${labelConfig.qrSizeMm || 20}mm;
-        justify-self:center; /* fija el QR a la izquierda */
-    }
-    .label-text {
-      font-size:${fontPx}px;
-      font-weight:bold;
-      text-align:center;
-      word-break:break-word;
-    }
+  const labelW = clampMm(parseFloat(labelConfig.width), MAX_W_MM);
+  const labelH = clampMm(parseFloat(labelConfig.height), MAX_H_MM);
+  const padding = Math.max(0, parseFloat(labelConfig.margin));
+  const barH = clampBarHeight(parseFloat(labelConfig.barHeightMm || "20"), labelH, padding);
+  const fontPx = parseFloat(labelConfig.fontSize);
+  const fontFamily = labelConfig.font;
+  const fmt = barcodeFormat;
 
-
-    @media print {
-  body * {
-    visibility: hidden !important;
-  }
-    }
-  </style>
-</head>
-<body>
-  ${articles.map(a =>
-      Array.from({ length: a.quantity }, () => `
+  const bodyHtml = articles.map(a =>
+    Array.from({ length: a.quantity }, () => `
       <div class="page">
         <div class="label ${fmt === "QR" ? "row" : "column"}">
           ${fmt === "QR"
-          ? `<canvas class="qr-canvas" data-value="${a.barcode}"></canvas>`
-          : `<svg class="barcode-svg" data-value="${a.barcode}" data-format="${fmt}"></svg>`
-        }
+            ? `<canvas class="qr-canvas" data-value="${a.barcode}"></canvas>`
+            : `<svg class="barcode-svg" data-value="${a.barcode}" data-format="${fmt}"></svg>`
+          }
           <div class="label-text">SKU ${a.text}</div>
         </div>
       </div>
     `).join("")
-    ).join("")}
+  ).join("");
 
-  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
-  <script>
-    (function () {
-      function render() {
-        document.querySelectorAll('svg.barcode-svg').forEach(svg => {
-          try { JsBarcode(svg, svg.dataset.value, { format: svg.dataset.format, displayValue:false, margin:0 }) } catch(e){}
-        })
-        document.querySelectorAll('canvas.qr-canvas').forEach(c => {
-          try { QRCode.toCanvas(c, c.dataset.value, { errorCorrectionLevel:"M", margin:0, width:c.offsetWidth }) } catch(e){}
-        })
-      }
-      window.onload = () => { render(); setTimeout(()=>{window.print()},100) }
-      window.onafterprint = () => { try { parent.postMessage({ type: '__PRINT_DONE__' }, '*') } catch(e){} }
-    })()
-  </script>
-</body>
-</html>`
-
-    const iframe = document.createElement("iframe")
-    iframe.style.position = "fixed"
-    iframe.style.width = "0"
-    iframe.style.height = "0"
-    iframe.style.border = "0"
-    document.body.appendChild(iframe)
-    const doc = iframe.contentDocument!
-    doc.open(); doc.write(printHtml); doc.close()
-
-    const cleanup = () => {
-      try { document.body.removeChild(iframe) } catch { }
-    }
-    window.addEventListener("message", (ev: MessageEvent) => {
-      if (ev?.data?.type === "__PRINT_DONE__") cleanup()
-    })
+  const printHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Etiquetas</title>
+  <style>
+    @page { size: ${labelW}mm ${labelH}mm; margin: 0; }
+    body { margin:0; padding:0; font-family:${fontFamily}; }
+    .page { width:${labelW}mm; height:${labelH}mm; display:grid; place-items:center; page-break-after:always; }
+    .label { width:${labelW}mm; height:${labelH}mm; padding:${padding}mm; display:flex; align-items:center; justify-content:center; gap:4px; }
+    .label.column { flex-direction:column; }
+    .label.row { flex-direction:column; }
+    .barcode-svg { width:100%; height:${barH}mm; }
+    .qr-canvas { width:${labelConfig.qrSizeMm || 20}mm; height:${labelConfig.qrSizeMm || 20}mm; }
+    .label-text { font-size:${fontPx}px; font-weight:bold; text-align:center; word-break:break-word; }
+  </style>
+</head>
+<body>
+${bodyHtml}
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<script>
+(function(){
+  function render() {
+    document.querySelectorAll('svg.barcode-svg').forEach(svg=>{
+      try{ JsBarcode(svg, svg.dataset.value, { format: svg.dataset.format, displayValue:false, margin:0 }) }catch(e){}
+    });
+    document.querySelectorAll('canvas.qr-canvas').forEach(c=>{
+      try{ QRCode.toCanvas(c, c.dataset.value, { errorCorrectionLevel:"M", margin:0, width:c.offsetWidth }) }catch(e){}
+    });
   }
+  window.addEventListener('load', ()=>{
+    render();
+    setTimeout(()=>{ window.print(); },200);
+  });
+  window.addEventListener('afterprint', ()=>{ try{ window.close(); }catch(e){} });
+})();
+</script>
+</body>
+</html>`;
+
+  if (isMobile()) {
+    // 📱 en móvil: nueva pestaña/ventana
+    const w = window.open('', '_blank', 'noopener,noreferrer');
+    if (!w) {
+      alert('Activa las ventanas emergentes para imprimir las etiquetas.');
+      return;
+    }
+    w.document.open();
+    w.document.write(printHtml);
+    w.document.close();
+  } else {
+    // 💻 en desktop: iframe oculto como antes
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument!;
+    doc.open(); doc.write(printHtml); doc.close();
+    const cleanup = () => { try { document.body.removeChild(iframe); } catch {} };
+    setTimeout(cleanup, 10000);
+  }
+};
+
 
 
   /******************************************************/
