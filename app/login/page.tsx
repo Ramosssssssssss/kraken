@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { Eye, EyeOff, User, Lock, Loader2 } from "lucide-react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
@@ -21,6 +21,10 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
+  const [customLogo, setCustomLogo] = useState<string | null>(null)
+  const [customBackground, setCustomBackground] = useState<string | null>(null)
+  const [brandingLoaded, setBrandingLoaded] = useState(false)
+
   const { companyData, apiUrl: apiUrlFromCtx, isReady } = useCompany()
 
   const derivedApiUrl = useMemo(() => {
@@ -29,6 +33,57 @@ export default function LoginPage() {
     const tenant = getTenantFromHost(window.location.hostname)
     return null
   }, [apiUrlFromCtx])
+
+  useEffect(() => {
+    const fetchBranding = async () => {
+      console.log("[v0] fetchBranding called")
+      console.log("[v0] companyData:", companyData)
+      console.log("[v0] derivedApiUrl:", derivedApiUrl)
+      console.log("[v0] isReady:", isReady)
+
+      if (!companyData?.codigo || !derivedApiUrl) {
+        console.log("[v0] Missing codigo or apiUrl, skipping branding fetch")
+        setBrandingLoaded(true)
+        return
+      }
+
+      const brandingUrl = `${derivedApiUrl}/get-branding/${companyData.codigo}`
+      console.log("[v0] Fetching branding from:", brandingUrl)
+
+      try {
+        const response = await fetch(brandingUrl)
+        console.log("[v0] Branding response status:", response.status)
+
+        const data = await response.json()
+        console.log("[v0] Branding response data:", data)
+
+        if (data.ok && data.branding) {
+          console.log("[v0] Branding found!")
+          console.log("[v0] Logo:", data.branding.logo ? "YES" : "NO")
+          console.log("[v0] Background:", data.branding.background ? "YES" : "NO")
+
+          if (data.branding.logo) {
+            console.log("[v0] Setting custom logo")
+            setCustomLogo(data.branding.logo)
+          }
+          if (data.branding.background) {
+            console.log("[v0] Setting custom background")
+            setCustomBackground(data.branding.background)
+          }
+        } else {
+          console.log("[v0] No branding found or response not ok")
+        }
+      } catch (error) {
+        console.error("[v0] Error fetching branding:", error)
+      } finally {
+        setBrandingLoaded(true)
+      }
+    }
+
+    if (isReady) {
+      fetchBranding()
+    }
+  }, [companyData, derivedApiUrl, isReady]) // Updated dependency array
 
   const particles = useMemo(
     () =>
@@ -92,7 +147,7 @@ export default function LoginPage() {
     }
   }
 
-  if (!isReady) {
+  if (!isReady || !brandingLoaded) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
@@ -121,15 +176,23 @@ export default function LoginPage() {
             ))}
           </div>
 
-          {/* Fondo */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <Image
-              src="/OFICIAL.jpg"
-              alt="3D Octopus"
-              fill
-              className="object-cover"
-              style={{ filter: "drop-shadow(0 0 30px rgba(43, 21, 85, 0.74))" }}
-            />
+            {customBackground ? (
+              <img
+                src={customBackground || "/placeholder.svg"}
+                alt="Custom Background"
+                className="w-full h-full object-cover"
+                style={{ filter: "drop-shadow(0 0 30px rgba(43, 21, 85, 0.74))" }}
+              />
+            ) : (
+              <Image
+                src="/test.jpg"
+                alt="3D Octopus"
+                fill
+                className="object-cover"
+                style={{ filter: "drop-shadow(0 0 30px rgba(43, 21, 85, 0.74))" }}
+              />
+            )}
           </div>
         </div>
 
@@ -143,10 +206,17 @@ export default function LoginPage() {
           {/* Form */}
           <div className="flex flex-1 items-center justify-center">
             <div className="w-full max-w-xs space-y-8">
-              {/* Logo KRKN */}
               <div className="text-center space-y-4">
                 <div className="flex justify-center">
-                  <Image src="/logogm.png" alt="Kraken Logo" width={100} height={100} />
+                  {customLogo ? (
+                    <img
+                      src={customLogo || "/placeholder.svg"}
+                      alt="Company Logo"
+                      className="w-[100px] h-[100px] object-contain"
+                    />
+                  ) : (
+                    <Image src="/logogm.png" alt="Kraken Logo" width={100} height={100} />
+                  )}
                 </div>
                 <p className="text-gray-500 text-3xl mt-2 font-bold">Inicia Sesión</p>
                 {companyData && <p className="text-gray-400 text-sm">{companyData.nombre}</p>}
