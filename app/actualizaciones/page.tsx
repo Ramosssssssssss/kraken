@@ -40,7 +40,7 @@ export default function ActualizacionesPage() {
                 {/* Header */}
                 <div className="flex items-center justify-between text-white">
                     <h1 className="text-3xl font-bold">Historial de actualizaciones</h1>
-                    <Link href="/" className="flex items-center gap-2 text-purple-300 hover:text-purple-200">
+                    <Link href="/etiquetador" className="flex items-center gap-2 text-purple-300 hover:text-purple-200">
                         <ArrowLeft className="w-4 h-4" />
                         Volver
                     </Link>

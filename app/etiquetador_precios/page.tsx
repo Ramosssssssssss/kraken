@@ -1,5 +1,5 @@
 "use client"
-
+import Link from "next/link"
 import React, { useEffect, useMemo, useRef, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Eye, Settings, Printer, Plus, Trash2, Minus, Loader2, AlertCircle, Upload, Download, LayoutTemplate } from "lucide-react"
+import { Eye, Settings, Printer, Plus, Trash2, Minus, Loader2, AlertCircle, Upload, Download, LayoutTemplate, ArrowLeft } from "lucide-react"
 import * as XLSX from "xlsx"
 import pLimit from "p-limit"
 
@@ -494,6 +494,10 @@ export default function LabelGenerator() {
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold text-white mb-1">Etiquetador de <span className="text-purple-300">Precios</span></h1>
             <p className="text-gray-200 text-lg">Sucursal actual: <span className="font-semibold text-purple-200">{sucursalActual ? sucursalActual.nombre : "—"}</span></p>
+            <Link href="/etiquetador_hub" className="flex items-center gap-2 text-purple-300 hover:text-purple-200">
+              <ArrowLeft className="w-4 h-4" />
+              Volver
+            </Link>
           </div>
 
           <div className="grid lg:grid-cols-2 gap-8 items-stretch min-h-0">

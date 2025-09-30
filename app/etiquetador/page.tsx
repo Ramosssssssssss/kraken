@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Eye, Settings, Printer, Plus, Trash2, Save, BookOpen, Loader2, AlertCircle, Minus } from "lucide-react"
+import { Eye, Settings, Printer, Plus, Trash2, Save, BookOpen, Loader2, AlertCircle, Minus, ArrowLeft } from "lucide-react"
 
 
 interface ArticleItem {
@@ -716,6 +716,11 @@ export default function LabelGenerator() {
               Generador de <span className="text-purple-300">Etiquetas</span>
             </h1>
             <p className="text-gray-200 text-lg">Crea e imprime etiquetas personalizadas con códigos de barras</p>
+
+            <Link href="/etiquetador_hub" className="flex items-center gap-2 text-purple-300 hover:text-purple-200">
+              <ArrowLeft className="w-4 h-4" />
+              Volver
+            </Link>
           </div>
 
           {/* Grid principal: columnas de igual altura */}
@@ -1008,12 +1013,12 @@ export default function LabelGenerator() {
               {/* Tabla de artículos */}
               <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm flex-1 flex min-h-0">
                 <CardHeader className="border-b border-gray-600 shrink-0">
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
                     <CardTitle className="text-white">
                       Artículos ({articles.length})
                     </CardTitle>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={onExcelInputChange} className="hidden" />
                       <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white border-0" onClick={onPickExcelClick} title="Importar desde Excel/CSV">
                         <Plus className="w-4 h-4 mr-2" />

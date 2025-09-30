@@ -1,0 +1,921 @@
+[2025-09-26 08:32:49] [INFO] [bzatxdny] GET /api/tamano_etiqueta
+[2025-09-26 08:32:49] [DEBUG] [bzatxdny] Listando todas las etiquetas
+[2025-09-26 08:32:49] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 08:32:50] [ERROR] Error conectando a Firebird: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+[2025-09-26 08:32:50] [ERROR] Error GET /api/tamano_etiqueta: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+[2025-09-26 08:32:50] [DEBUG] Stack: Error: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:232:29)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 08:32:50] [INFO] [et0kfhqk] GET /api/tamano_etiqueta
+[2025-09-26 08:32:50] [DEBUG] [et0kfhqk] Listando todas las etiquetas
+[2025-09-26 08:32:50] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 08:32:51] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:32:51] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:32:51] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 08:32:52] [INFO] [tp782g19] GET /api/tamano_etiqueta
+[2025-09-26 08:32:52] [DEBUG] [tp782g19] Listando todas las etiquetas
+[2025-09-26 08:32:52] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 08:32:53] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:32:53] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:32:53] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 08:32:53] [INFO] [ardkfku7] GET /api/tamano_etiqueta
+[2025-09-26 08:32:53] [DEBUG] [ardkfku7] Listando todas las etiquetas
+[2025-09-26 08:32:53] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 08:32:54] [ERROR] Error conectando a Firebird: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+[2025-09-26 08:32:54] [ERROR] Error GET /api/tamano_etiqueta: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+[2025-09-26 08:32:54] [DEBUG] Stack: Error: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:232:29)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 08:32:56] [INFO] [a0rdwj6y] GET /api/tamano_etiqueta
+[2025-09-26 08:32:56] [DEBUG] [a0rdwj6y] Listando todas las etiquetas
+[2025-09-26 08:32:56] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 08:32:57] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:32:57] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:32:57] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 08:32:57] [INFO] [mzggulef] GET /api/tamano_etiqueta
+[2025-09-26 08:32:57] [DEBUG] [mzggulef] Listando todas las etiquetas
+[2025-09-26 08:32:57] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 08:32:59] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:32:59] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:32:59] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 08:34:05] [INFO] [fl2mrwvp] GET /api/tamano_etiqueta
+[2025-09-26 08:34:05] [DEBUG] [fl2mrwvp] Listando todas las etiquetas
+[2025-09-26 08:34:05] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 08:34:06] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:34:06] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:34:06] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 08:34:06] [INFO] [px6ci8lh] GET /api/tamano_etiqueta
+[2025-09-26 08:34:06] [DEBUG] [px6ci8lh] Listando todas las etiquetas
+[2025-09-26 08:34:06] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 08:34:08] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:34:08] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:34:08] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 08:35:28] [INFO] [qh2qxwjc] GET /api/tamano_etiqueta
+[2025-09-26 08:35:28] [DEBUG] [qh2qxwjc] Listando todas las etiquetas
+[2025-09-26 08:35:28] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 08:35:29] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:35:29] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:35:29] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 08:35:29] [INFO] [u72vrz0k] GET /api/tamano_etiqueta
+[2025-09-26 08:35:29] [DEBUG] [u72vrz0k] Listando todas las etiquetas
+[2025-09-26 08:35:29] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 08:35:30] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:35:30] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:35:30] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 08:35:51] [INFO] [v0tnitk4] GET /api/tamano_etiqueta
+[2025-09-26 08:35:51] [DEBUG] [v0tnitk4] Listando todas las etiquetas
+[2025-09-26 08:35:51] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 08:35:52] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:35:52] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:35:52] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 08:35:52] [INFO] [446bru9x] GET /api/tamano_etiqueta
+[2025-09-26 08:35:52] [DEBUG] [446bru9x] Listando todas las etiquetas
+[2025-09-26 08:35:52] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 08:35:54] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:35:54] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:35:54] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 08:37:07] [INFO] [akmhb1cw] GET /api/tamano_etiqueta
+[2025-09-26 08:37:07] [DEBUG] [akmhb1cw] Listando todas las etiquetas
+[2025-09-26 08:37:07] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 08:37:08] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:37:08] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:37:08] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 08:43:04] [INFO] [6quhx7hp] GET /api/tamano_etiqueta
+[2025-09-26 08:43:04] [DEBUG] [6quhx7hp] Listando todas las etiquetas
+[2025-09-26 08:43:04] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 08:43:05] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:43:05] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:43:05] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 08:43:05] [INFO] [v7n84c51] GET /api/tamano_etiqueta
+[2025-09-26 08:43:05] [DEBUG] [v7n84c51] Listando todas las etiquetas
+[2025-09-26 08:43:05] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 08:43:06] [ERROR] Error conectando a Firebird: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+[2025-09-26 08:43:06] [ERROR] Error GET /api/tamano_etiqueta: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+[2025-09-26 08:43:06] [DEBUG] Stack: Error: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:232:29)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 08:43:29] [INFO] [awx1rg4l] GET /api/tamano_etiqueta
+[2025-09-26 08:43:29] [DEBUG] [awx1rg4l] Listando todas las etiquetas
+[2025-09-26 08:43:29] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 08:43:30] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:43:30] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:43:30] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 08:43:43] [INFO] [9dzsfu6p] GET /api/tamano_etiqueta
+[2025-09-26 08:43:43] [DEBUG] [9dzsfu6p] Listando todas las etiquetas
+[2025-09-26 08:43:43] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 08:43:44] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:43:44] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:43:44] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 08:43:44] [INFO] [u0r6i81c] GET /api/tamano_etiqueta
+[2025-09-26 08:43:44] [DEBUG] [u0r6i81c] Listando todas las etiquetas
+[2025-09-26 08:43:44] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 08:43:45] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:43:45] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:43:45] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 08:45:09] [INFO] [tbbindl9] GET /api/tamano_etiqueta
+[2025-09-26 08:45:09] [DEBUG] [tbbindl9] Listando todas las etiquetas
+[2025-09-26 08:45:09] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 08:45:09] [INFO] [p2rmm8xn] GET /api/tamano_etiqueta
+[2025-09-26 08:45:09] [DEBUG] [p2rmm8xn] Listando todas las etiquetas
+[2025-09-26 08:45:09] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 08:45:10] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:45:10] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:45:10] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 08:45:10] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:45:10] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:45:10] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 08:47:11] [INFO] [pskuwb5w] GET /api/tamano_etiqueta
+[2025-09-26 08:47:11] [DEBUG] [pskuwb5w] Listando todas las etiquetas
+[2025-09-26 08:47:11] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 08:47:13] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:47:13] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:47:13] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 08:47:21] [INFO] [y39jpz8t] GET /api/tamano_etiqueta
+[2025-09-26 08:47:21] [DEBUG] [y39jpz8t] Listando todas las etiquetas
+[2025-09-26 08:47:21] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 08:47:21] [INFO] [st7c0n4j] GET /api/tamano_etiqueta
+[2025-09-26 08:47:21] [DEBUG] [st7c0n4j] Listando todas las etiquetas
+[2025-09-26 08:47:21] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 08:47:22] [ERROR] Error conectando a Firebird: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+[2025-09-26 08:47:22] [ERROR] Error GET /api/tamano_etiqueta: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+[2025-09-26 08:47:22] [DEBUG] Stack: Error: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:232:29)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 08:47:22] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:47:22] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:47:22] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 08:47:26] [INFO] [1fpotyu8] GET /api/tamano_etiqueta
+[2025-09-26 08:47:26] [DEBUG] [1fpotyu8] Listando todas las etiquetas
+[2025-09-26 08:47:26] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 08:47:27] [ERROR] Error conectando a Firebird: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+[2025-09-26 08:47:27] [ERROR] Error GET /api/tamano_etiqueta: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+[2025-09-26 08:47:27] [DEBUG] Stack: Error: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:232:29)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 08:48:26] [INFO] [fipd07m6] GET /api/tamano_etiqueta
+[2025-09-26 08:48:26] [DEBUG] [fipd07m6] Listando todas las etiquetas
+[2025-09-26 08:48:26] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 08:48:27] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:48:27] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:48:27] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 08:50:27] [INFO] [b2kr8sf1] GET /api/tamano_etiqueta
+[2025-09-26 08:50:27] [DEBUG] [b2kr8sf1] Listando todas las etiquetas
+[2025-09-26 08:50:27] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 08:50:29] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:50:29] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:50:29] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 08:50:30] [INFO] [xolvv5m5] GET /api/tamano_etiqueta
+[2025-09-26 08:50:30] [DEBUG] [xolvv5m5] Listando todas las etiquetas
+[2025-09-26 08:50:30] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 08:50:30] [INFO] [ikhu6rk2] GET /api/tamano_etiqueta
+[2025-09-26 08:50:30] [DEBUG] [ikhu6rk2] Listando todas las etiquetas
+[2025-09-26 08:50:30] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 08:50:31] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:50:31] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:50:31] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 08:50:31] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:50:31] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:50:31] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 08:50:41] [INFO] [82pb6z23] GET /api/tamano_etiqueta
+[2025-09-26 08:50:41] [DEBUG] [82pb6z23] Listando todas las etiquetas
+[2025-09-26 08:50:41] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 08:50:42] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:50:42] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:50:42] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 08:53:33] [INFO] [lk7zur0p] GET /api/tamano_etiqueta
+[2025-09-26 08:53:33] [DEBUG] [lk7zur0p] Listando todas las etiquetas
+[2025-09-26 08:53:33] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 08:53:34] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:53:34] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 08:53:34] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 09:03:31] [INFO] [y1aet25t] GET /api/tamano_etiqueta
+[2025-09-26 09:03:31] [DEBUG] [y1aet25t] Listando todas las etiquetas
+[2025-09-26 09:03:31] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 09:03:33] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 09:03:33] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 09:03:33] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 09:10:28] [INFO] [w7vjixp5] GET /api/tamano_etiqueta
+[2025-09-26 09:10:28] [DEBUG] [w7vjixp5] Listando todas las etiquetas
+[2025-09-26 09:10:28] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 09:10:29] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 09:10:29] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 09:10:29] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 16:07:10] [INFO] [j67yxtog] GET /api/tamano_etiqueta
+[2025-09-26 16:07:10] [DEBUG] [j67yxtog] Listando todas las etiquetas
+[2025-09-26 16:07:10] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 16:07:12] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 16:07:12] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 16:07:12] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 16:07:12] [INFO] [diki9238] GET /api/tamano_etiqueta
+[2025-09-26 16:07:12] [DEBUG] [diki9238] Listando todas las etiquetas
+[2025-09-26 16:07:12] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 16:07:13] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 16:07:13] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 16:07:13] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 16:07:14] [INFO] [5bdtkib5] Iniciando GET /api/articulos
+[2025-09-26 16:07:14] [DEBUG] [5bdtkib5] q recibido: "12"
+[2025-09-26 16:07:14] [INFO] [5bdtkib5] Solicitud sin token (endpoint público)
+[2025-09-26 16:07:14] [DEBUG] Ejecutando consulta: SELECT FIRST 10 ca.CLAVE_ARTICULO, a.NOMBRE FROM CLAVES_ARTICULOS ca INNER JOIN ARTICULOS a ON a.ARTICULO_ID = ca.ARTICULO_ID WHERE UPPER(ca.CLAVE_ARTICULO) LIKE UPPER(?) OR UPPER(a.NOMBRE) LIKE UPPER(?) ORDER BY a.NOMBRE con parámetros: ["%12%","%12%"]
+[2025-09-26 16:07:14] [INFO] [318k4f79] Iniciando GET /api/articulos
+[2025-09-26 16:07:14] [DEBUG] [318k4f79] q recibido: "120"
+[2025-09-26 16:07:14] [INFO] [318k4f79] Solicitud sin token (endpoint público)
+[2025-09-26 16:07:14] [DEBUG] Ejecutando consulta: SELECT FIRST 10 ca.CLAVE_ARTICULO, a.NOMBRE FROM CLAVES_ARTICULOS ca INNER JOIN ARTICULOS a ON a.ARTICULO_ID = ca.ARTICULO_ID WHERE UPPER(ca.CLAVE_ARTICULO) LIKE UPPER(?) OR UPPER(a.NOMBRE) LIKE UPPER(?) ORDER BY a.NOMBRE con parámetros: ["%120%","%120%"]
+[2025-09-26 16:07:15] [INFO] [hwyzfod4] Iniciando GET /api/articulos
+[2025-09-26 16:07:15] [DEBUG] [hwyzfod4] q recibido: "12500"
+[2025-09-26 16:07:15] [INFO] [hwyzfod4] Solicitud sin token (endpoint público)
+[2025-09-26 16:07:15] [DEBUG] Ejecutando consulta: SELECT FIRST 10 ca.CLAVE_ARTICULO, a.NOMBRE FROM CLAVES_ARTICULOS ca INNER JOIN ARTICULOS a ON a.ARTICULO_ID = ca.ARTICULO_ID WHERE UPPER(ca.CLAVE_ARTICULO) LIKE UPPER(?) OR UPPER(a.NOMBRE) LIKE UPPER(?) ORDER BY a.NOMBRE con parámetros: ["%12500%","%12500%"]
+[2025-09-26 16:07:16] [DEBUG] Consulta OK. Filas: 10
+[2025-09-26 16:07:16] [INFO] [318k4f79] Búsqueda completada. Coincidencias: 10
+[2025-09-26 16:07:17] [DEBUG] Consulta OK. Filas: 10
+[2025-09-26 16:07:17] [INFO] [5bdtkib5] Búsqueda completada. Coincidencias: 10
+[2025-09-26 16:07:17] [DEBUG] Consulta OK. Filas: 10
+[2025-09-26 16:07:17] [INFO] [hwyzfod4] Búsqueda completada. Coincidencias: 10
+[2025-09-26 16:07:18] [INFO] [j3tg6s8a] Iniciando GET /api/articulos
+[2025-09-26 16:07:18] [DEBUG] [j3tg6s8a] q recibido: "12500"
+[2025-09-26 16:07:18] [INFO] [j3tg6s8a] Solicitud sin token (endpoint público)
+[2025-09-26 16:07:18] [DEBUG] Ejecutando consulta: SELECT FIRST 10 ca.CLAVE_ARTICULO, a.NOMBRE FROM CLAVES_ARTICULOS ca INNER JOIN ARTICULOS a ON a.ARTICULO_ID = ca.ARTICULO_ID WHERE UPPER(ca.CLAVE_ARTICULO) LIKE UPPER(?) OR UPPER(a.NOMBRE) LIKE UPPER(?) ORDER BY a.NOMBRE con parámetros: ["%12500%","%12500%"]
+[2025-09-26 16:07:20] [DEBUG] Consulta OK. Filas: 10
+[2025-09-26 16:07:20] [INFO] [j3tg6s8a] Búsqueda completada. Coincidencias: 10
+[2025-09-26 16:07:21] [INFO] [1t84j70a] Iniciando GET /api/articulos
+[2025-09-26 16:07:21] [DEBUG] [1t84j70a] q recibido: "12501"
+[2025-09-26 16:07:21] [INFO] [1t84j70a] Solicitud sin token (endpoint público)
+[2025-09-26 16:07:21] [DEBUG] Ejecutando consulta: SELECT FIRST 10 ca.CLAVE_ARTICULO, a.NOMBRE FROM CLAVES_ARTICULOS ca INNER JOIN ARTICULOS a ON a.ARTICULO_ID = ca.ARTICULO_ID WHERE UPPER(ca.CLAVE_ARTICULO) LIKE UPPER(?) OR UPPER(a.NOMBRE) LIKE UPPER(?) ORDER BY a.NOMBRE con parámetros: ["%12501%","%12501%"]
+[2025-09-26 16:07:23] [DEBUG] Consulta OK. Filas: 10
+[2025-09-26 16:07:23] [INFO] [1t84j70a] Búsqueda completada. Coincidencias: 10
+[2025-09-26 16:07:27] [INFO] [w3ja5zkj] Iniciando GET /api/articulos
+[2025-09-26 16:07:27] [DEBUG] [w3ja5zkj] q recibido: "1250"
+[2025-09-26 16:07:27] [INFO] [w3ja5zkj] Solicitud sin token (endpoint público)
+[2025-09-26 16:07:27] [DEBUG] Ejecutando consulta: SELECT FIRST 10 ca.CLAVE_ARTICULO, a.NOMBRE FROM CLAVES_ARTICULOS ca INNER JOIN ARTICULOS a ON a.ARTICULO_ID = ca.ARTICULO_ID WHERE UPPER(ca.CLAVE_ARTICULO) LIKE UPPER(?) OR UPPER(a.NOMBRE) LIKE UPPER(?) ORDER BY a.NOMBRE con parámetros: ["%1250%","%1250%"]
+[2025-09-26 16:07:28] [INFO] [dzrmoh7y] Iniciando GET /api/articulos
+[2025-09-26 16:07:28] [DEBUG] [dzrmoh7y] q recibido: "12502"
+[2025-09-26 16:07:28] [INFO] [dzrmoh7y] Solicitud sin token (endpoint público)
+[2025-09-26 16:07:28] [DEBUG] Ejecutando consulta: SELECT FIRST 10 ca.CLAVE_ARTICULO, a.NOMBRE FROM CLAVES_ARTICULOS ca INNER JOIN ARTICULOS a ON a.ARTICULO_ID = ca.ARTICULO_ID WHERE UPPER(ca.CLAVE_ARTICULO) LIKE UPPER(?) OR UPPER(a.NOMBRE) LIKE UPPER(?) ORDER BY a.NOMBRE con parámetros: ["%12502%","%12502%"]
+[2025-09-26 16:07:29] [DEBUG] Consulta OK. Filas: 10
+[2025-09-26 16:07:29] [INFO] [w3ja5zkj] Búsqueda completada. Coincidencias: 10
+[2025-09-26 16:07:30] [DEBUG] Consulta OK. Filas: 7
+[2025-09-26 16:07:30] [INFO] [dzrmoh7y] Búsqueda completada. Coincidencias: 7
+[2025-09-26 16:07:33] [INFO] [ajh8gdww] Iniciando GET /api/articulos
+[2025-09-26 16:07:33] [DEBUG] [ajh8gdww] q recibido: "12"
+[2025-09-26 16:07:33] [INFO] [ajh8gdww] Solicitud sin token (endpoint público)
+[2025-09-26 16:07:33] [DEBUG] Ejecutando consulta: SELECT FIRST 10 ca.CLAVE_ARTICULO, a.NOMBRE FROM CLAVES_ARTICULOS ca INNER JOIN ARTICULOS a ON a.ARTICULO_ID = ca.ARTICULO_ID WHERE UPPER(ca.CLAVE_ARTICULO) LIKE UPPER(?) OR UPPER(a.NOMBRE) LIKE UPPER(?) ORDER BY a.NOMBRE con parámetros: ["%12%","%12%"]
+[2025-09-26 16:07:34] [INFO] [ftlvvrju] Iniciando GET /api/articulos
+[2025-09-26 16:07:34] [DEBUG] [ftlvvrju] q recibido: "12501"
+[2025-09-26 16:07:34] [INFO] [ftlvvrju] Solicitud sin token (endpoint público)
+[2025-09-26 16:07:34] [DEBUG] Ejecutando consulta: SELECT FIRST 10 ca.CLAVE_ARTICULO, a.NOMBRE FROM CLAVES_ARTICULOS ca INNER JOIN ARTICULOS a ON a.ARTICULO_ID = ca.ARTICULO_ID WHERE UPPER(ca.CLAVE_ARTICULO) LIKE UPPER(?) OR UPPER(a.NOMBRE) LIKE UPPER(?) ORDER BY a.NOMBRE con parámetros: ["%12501%","%12501%"]
+[2025-09-26 16:07:35] [DEBUG] Consulta OK. Filas: 10
+[2025-09-26 16:07:35] [INFO] [ajh8gdww] Búsqueda completada. Coincidencias: 10
+[2025-09-26 16:07:36] [DEBUG] Consulta OK. Filas: 10
+[2025-09-26 16:07:36] [INFO] [ftlvvrju] Búsqueda completada. Coincidencias: 10
+[2025-09-26 16:07:37] [INFO] [gftaj5s9] Iniciando GET /api/articulos
+[2025-09-26 16:07:37] [DEBUG] [gftaj5s9] q recibido: "1250"
+[2025-09-26 16:07:37] [INFO] [gftaj5s9] Solicitud sin token (endpoint público)
+[2025-09-26 16:07:37] [DEBUG] Ejecutando consulta: SELECT FIRST 10 ca.CLAVE_ARTICULO, a.NOMBRE FROM CLAVES_ARTICULOS ca INNER JOIN ARTICULOS a ON a.ARTICULO_ID = ca.ARTICULO_ID WHERE UPPER(ca.CLAVE_ARTICULO) LIKE UPPER(?) OR UPPER(a.NOMBRE) LIKE UPPER(?) ORDER BY a.NOMBRE con parámetros: ["%1250%","%1250%"]
+[2025-09-26 16:07:38] [INFO] [9j3pz9z3] Iniciando GET /api/articulos
+[2025-09-26 16:07:38] [DEBUG] [9j3pz9z3] q recibido: "12503"
+[2025-09-26 16:07:38] [INFO] [9j3pz9z3] Solicitud sin token (endpoint público)
+[2025-09-26 16:07:38] [DEBUG] Ejecutando consulta: SELECT FIRST 10 ca.CLAVE_ARTICULO, a.NOMBRE FROM CLAVES_ARTICULOS ca INNER JOIN ARTICULOS a ON a.ARTICULO_ID = ca.ARTICULO_ID WHERE UPPER(ca.CLAVE_ARTICULO) LIKE UPPER(?) OR UPPER(a.NOMBRE) LIKE UPPER(?) ORDER BY a.NOMBRE con parámetros: ["%12503%","%12503%"]
+[2025-09-26 16:07:39] [DEBUG] Consulta OK. Filas: 10
+[2025-09-26 16:07:39] [INFO] [gftaj5s9] Búsqueda completada. Coincidencias: 10
+[2025-09-26 16:07:39] [INFO] [wi905euw] Iniciando GET /api/articulos
+[2025-09-26 16:07:39] [DEBUG] [wi905euw] q recibido: "12"
+[2025-09-26 16:07:39] [INFO] [wi905euw] Solicitud sin token (endpoint público)
+[2025-09-26 16:07:39] [DEBUG] Ejecutando consulta: SELECT FIRST 10 ca.CLAVE_ARTICULO, a.NOMBRE FROM CLAVES_ARTICULOS ca INNER JOIN ARTICULOS a ON a.ARTICULO_ID = ca.ARTICULO_ID WHERE UPPER(ca.CLAVE_ARTICULO) LIKE UPPER(?) OR UPPER(a.NOMBRE) LIKE UPPER(?) ORDER BY a.NOMBRE con parámetros: ["%12%","%12%"]
+[2025-09-26 16:07:40] [DEBUG] Consulta OK. Filas: 9
+[2025-09-26 16:07:40] [INFO] [9j3pz9z3] Búsqueda completada. Coincidencias: 9
+[2025-09-26 16:07:41] [INFO] [3d8g5h55] Iniciando GET /api/articulos
+[2025-09-26 16:07:41] [DEBUG] [3d8g5h55] q recibido: "12504"
+[2025-09-26 16:07:41] [INFO] [3d8g5h55] Solicitud sin token (endpoint público)
+[2025-09-26 16:07:41] [DEBUG] Ejecutando consulta: SELECT FIRST 10 ca.CLAVE_ARTICULO, a.NOMBRE FROM CLAVES_ARTICULOS ca INNER JOIN ARTICULOS a ON a.ARTICULO_ID = ca.ARTICULO_ID WHERE UPPER(ca.CLAVE_ARTICULO) LIKE UPPER(?) OR UPPER(a.NOMBRE) LIKE UPPER(?) ORDER BY a.NOMBRE con parámetros: ["%12504%","%12504%"]
+[2025-09-26 16:07:42] [DEBUG] Consulta OK. Filas: 10
+[2025-09-26 16:07:42] [INFO] [wi905euw] Búsqueda completada. Coincidencias: 10
+[2025-09-26 16:07:42] [INFO] [6itc7jsv] Iniciando GET /api/articulos
+[2025-09-26 16:07:42] [DEBUG] [6itc7jsv] q recibido: "1250"
+[2025-09-26 16:07:42] [INFO] [6itc7jsv] Solicitud sin token (endpoint público)
+[2025-09-26 16:07:42] [DEBUG] Ejecutando consulta: SELECT FIRST 10 ca.CLAVE_ARTICULO, a.NOMBRE FROM CLAVES_ARTICULOS ca INNER JOIN ARTICULOS a ON a.ARTICULO_ID = ca.ARTICULO_ID WHERE UPPER(ca.CLAVE_ARTICULO) LIKE UPPER(?) OR UPPER(a.NOMBRE) LIKE UPPER(?) ORDER BY a.NOMBRE con parámetros: ["%1250%","%1250%"]
+[2025-09-26 16:07:43] [DEBUG] Consulta OK. Filas: 10
+[2025-09-26 16:07:43] [INFO] [3d8g5h55] Búsqueda completada. Coincidencias: 10
+[2025-09-26 16:07:43] [INFO] [7rjpmtqf] Iniciando GET /api/articulos
+[2025-09-26 16:07:43] [DEBUG] [7rjpmtqf] q recibido: "12505"
+[2025-09-26 16:07:43] [INFO] [7rjpmtqf] Solicitud sin token (endpoint público)
+[2025-09-26 16:07:43] [DEBUG] Ejecutando consulta: SELECT FIRST 10 ca.CLAVE_ARTICULO, a.NOMBRE FROM CLAVES_ARTICULOS ca INNER JOIN ARTICULOS a ON a.ARTICULO_ID = ca.ARTICULO_ID WHERE UPPER(ca.CLAVE_ARTICULO) LIKE UPPER(?) OR UPPER(a.NOMBRE) LIKE UPPER(?) ORDER BY a.NOMBRE con parámetros: ["%12505%","%12505%"]
+[2025-09-26 16:07:43] [ERROR] Error conectando a Firebird: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+[2025-09-26 16:07:43] [ERROR] [7rjpmtqf] Error en GET /api/articulos: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+[2025-09-26 16:07:43] [DEBUG] [7rjpmtqf] Stack: Error: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:232:29)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 16:07:44] [INFO] [6djzsdlc] Iniciando GET /api/articulos
+[2025-09-26 16:07:44] [DEBUG] [6djzsdlc] q recibido: "12"
+[2025-09-26 16:07:44] [INFO] [6djzsdlc] Solicitud sin token (endpoint público)
+[2025-09-26 16:07:44] [DEBUG] Ejecutando consulta: SELECT FIRST 10 ca.CLAVE_ARTICULO, a.NOMBRE FROM CLAVES_ARTICULOS ca INNER JOIN ARTICULOS a ON a.ARTICULO_ID = ca.ARTICULO_ID WHERE UPPER(ca.CLAVE_ARTICULO) LIKE UPPER(?) OR UPPER(a.NOMBRE) LIKE UPPER(?) ORDER BY a.NOMBRE con parámetros: ["%12%","%12%"]
+[2025-09-26 16:07:44] [DEBUG] Consulta OK. Filas: 10
+[2025-09-26 16:07:44] [INFO] [6itc7jsv] Búsqueda completada. Coincidencias: 10
+[2025-09-26 16:07:45] [INFO] [xfos24a7] Iniciando GET /api/articulos
+[2025-09-26 16:07:45] [DEBUG] [xfos24a7] q recibido: "1256"
+[2025-09-26 16:07:45] [INFO] [xfos24a7] Solicitud sin token (endpoint público)
+[2025-09-26 16:07:45] [DEBUG] Ejecutando consulta: SELECT FIRST 10 ca.CLAVE_ARTICULO, a.NOMBRE FROM CLAVES_ARTICULOS ca INNER JOIN ARTICULOS a ON a.ARTICULO_ID = ca.ARTICULO_ID WHERE UPPER(ca.CLAVE_ARTICULO) LIKE UPPER(?) OR UPPER(a.NOMBRE) LIKE UPPER(?) ORDER BY a.NOMBRE con parámetros: ["%1256%","%1256%"]
+[2025-09-26 16:07:46] [DEBUG] Consulta OK. Filas: 10
+[2025-09-26 16:07:46] [INFO] [6djzsdlc] Búsqueda completada. Coincidencias: 10
+[2025-09-26 16:07:47] [DEBUG] Consulta OK. Filas: 10
+[2025-09-26 16:07:47] [INFO] [xfos24a7] Búsqueda completada. Coincidencias: 10
+[2025-09-26 16:07:57] [INFO] [8z7y9dor] Iniciando GET /api/articulos
+[2025-09-26 16:07:57] [DEBUG] [8z7y9dor] q recibido: "125"
+[2025-09-26 16:07:57] [INFO] [8z7y9dor] Solicitud sin token (endpoint público)
+[2025-09-26 16:07:57] [DEBUG] Ejecutando consulta: SELECT FIRST 10 ca.CLAVE_ARTICULO, a.NOMBRE FROM CLAVES_ARTICULOS ca INNER JOIN ARTICULOS a ON a.ARTICULO_ID = ca.ARTICULO_ID WHERE UPPER(ca.CLAVE_ARTICULO) LIKE UPPER(?) OR UPPER(a.NOMBRE) LIKE UPPER(?) ORDER BY a.NOMBRE con parámetros: ["%125%","%125%"]
+[2025-09-26 16:07:58] [INFO] [w7xvymyj] Iniciando GET /api/articulos
+[2025-09-26 16:07:58] [DEBUG] [w7xvymyj] q recibido: "12506"
+[2025-09-26 16:07:58] [INFO] [w7xvymyj] Solicitud sin token (endpoint público)
+[2025-09-26 16:07:58] [DEBUG] Ejecutando consulta: SELECT FIRST 10 ca.CLAVE_ARTICULO, a.NOMBRE FROM CLAVES_ARTICULOS ca INNER JOIN ARTICULOS a ON a.ARTICULO_ID = ca.ARTICULO_ID WHERE UPPER(ca.CLAVE_ARTICULO) LIKE UPPER(?) OR UPPER(a.NOMBRE) LIKE UPPER(?) ORDER BY a.NOMBRE con parámetros: ["%12506%","%12506%"]
+[2025-09-26 16:07:58] [ERROR] Error conectando a Firebird: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+[2025-09-26 16:07:58] [ERROR] [8z7y9dor] Error en GET /api/articulos: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+[2025-09-26 16:07:58] [DEBUG] [8z7y9dor] Stack: Error: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:232:29)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 16:08:00] [DEBUG] Consulta OK. Filas: 6
+[2025-09-26 16:08:00] [INFO] [w7xvymyj] Búsqueda completada. Coincidencias: 6
+[2025-09-26 16:08:01] [INFO] [jjd26rnb] Iniciando GET /api/articulos
+[2025-09-26 16:08:01] [DEBUG] [jjd26rnb] q recibido: "1250"
+[2025-09-26 16:08:01] [INFO] [jjd26rnb] Solicitud sin token (endpoint público)
+[2025-09-26 16:08:01] [DEBUG] Ejecutando consulta: SELECT FIRST 10 ca.CLAVE_ARTICULO, a.NOMBRE FROM CLAVES_ARTICULOS ca INNER JOIN ARTICULOS a ON a.ARTICULO_ID = ca.ARTICULO_ID WHERE UPPER(ca.CLAVE_ARTICULO) LIKE UPPER(?) OR UPPER(a.NOMBRE) LIKE UPPER(?) ORDER BY a.NOMBRE con parámetros: ["%1250%","%1250%"]
+[2025-09-26 16:08:03] [DEBUG] Consulta OK. Filas: 10
+[2025-09-26 16:08:03] [INFO] [jjd26rnb] Búsqueda completada. Coincidencias: 10
+[2025-09-26 16:08:04] [INFO] [qu4vzp0o] Iniciando GET /api/articulos
+[2025-09-26 16:08:04] [DEBUG] [qu4vzp0o] q recibido: "1250"
+[2025-09-26 16:08:04] [INFO] [qu4vzp0o] Solicitud sin token (endpoint público)
+[2025-09-26 16:08:04] [DEBUG] Ejecutando consulta: SELECT FIRST 10 ca.CLAVE_ARTICULO, a.NOMBRE FROM CLAVES_ARTICULOS ca INNER JOIN ARTICULOS a ON a.ARTICULO_ID = ca.ARTICULO_ID WHERE UPPER(ca.CLAVE_ARTICULO) LIKE UPPER(?) OR UPPER(a.NOMBRE) LIKE UPPER(?) ORDER BY a.NOMBRE con parámetros: ["%1250%","%1250%"]
+[2025-09-26 16:08:05] [DEBUG] Consulta OK. Filas: 10
+[2025-09-26 16:08:05] [INFO] [qu4vzp0o] Búsqueda completada. Coincidencias: 10
+[2025-09-26 16:08:11] [INFO] [mtz0m9cw] Iniciando GET /api/articulos
+[2025-09-26 16:08:11] [DEBUG] [mtz0m9cw] q recibido: "12"
+[2025-09-26 16:08:11] [INFO] [mtz0m9cw] Solicitud sin token (endpoint público)
+[2025-09-26 16:08:11] [DEBUG] Ejecutando consulta: SELECT FIRST 10 ca.CLAVE_ARTICULO, a.NOMBRE FROM CLAVES_ARTICULOS ca INNER JOIN ARTICULOS a ON a.ARTICULO_ID = ca.ARTICULO_ID WHERE UPPER(ca.CLAVE_ARTICULO) LIKE UPPER(?) OR UPPER(a.NOMBRE) LIKE UPPER(?) ORDER BY a.NOMBRE con parámetros: ["%12%","%12%"]
+[2025-09-26 16:08:12] [ERROR] Error conectando a Firebird: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+[2025-09-26 16:08:12] [ERROR] [mtz0m9cw] Error en GET /api/articulos: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+[2025-09-26 16:08:12] [DEBUG] [mtz0m9cw] Stack: Error: Your user name and password are not defined. Ask your database
+administrator to set up a Firebird login
+
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:232:29)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 16:08:12] [INFO] [nruyz6dr] Iniciando GET /api/articulos
+[2025-09-26 16:08:12] [DEBUG] [nruyz6dr] q recibido: "12509"
+[2025-09-26 16:08:12] [INFO] [nruyz6dr] Solicitud sin token (endpoint público)
+[2025-09-26 16:08:12] [DEBUG] Ejecutando consulta: SELECT FIRST 10 ca.CLAVE_ARTICULO, a.NOMBRE FROM CLAVES_ARTICULOS ca INNER JOIN ARTICULOS a ON a.ARTICULO_ID = ca.ARTICULO_ID WHERE UPPER(ca.CLAVE_ARTICULO) LIKE UPPER(?) OR UPPER(a.NOMBRE) LIKE UPPER(?) ORDER BY a.NOMBRE con parámetros: ["%12509%","%12509%"]
+[2025-09-26 16:08:14] [DEBUG] Consulta OK. Filas: 9
+[2025-09-26 16:08:14] [INFO] [nruyz6dr] Búsqueda completada. Coincidencias: 9
+[2025-09-26 17:40:11] [INFO] [yj2qapde] GET /api/tamano_etiqueta
+[2025-09-26 17:40:11] [DEBUG] [yj2qapde] Listando todas las etiquetas
+[2025-09-26 17:40:11] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-09-26 17:40:13] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 17:40:13] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-09-26 17:40:13] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+[2025-09-26 17:40:21] [INFO] [kzuxd9l6] Iniciando GET /api/articulos
+[2025-09-26 17:40:21] [DEBUG] [kzuxd9l6] q recibido: "0010-010301 26"
+[2025-09-26 17:40:21] [INFO] [kzuxd9l6] Solicitud sin token (endpoint público)
+[2025-09-26 17:40:21] [DEBUG] Ejecutando consulta: SELECT FIRST 10 ca.CLAVE_ARTICULO, a.NOMBRE FROM CLAVES_ARTICULOS ca INNER JOIN ARTICULOS a ON a.ARTICULO_ID = ca.ARTICULO_ID WHERE UPPER(ca.CLAVE_ARTICULO) LIKE UPPER(?) OR UPPER(a.NOMBRE) LIKE UPPER(?) ORDER BY a.NOMBRE con parámetros: ["%0010-010301 26%","%0010-010301 26%"]
+[2025-09-26 17:40:23] [DEBUG] Consulta OK. Filas: 0
+[2025-09-26 17:40:23] [INFO] [kzuxd9l6] Búsqueda completada. Coincidencias: 0
