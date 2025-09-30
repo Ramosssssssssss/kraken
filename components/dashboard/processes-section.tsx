@@ -45,6 +45,14 @@ const handleReciboClick = () => {
 const handleEtiquetadorClick = () => {
     router.push("/acomodo")
   }
+  const handlePackingClick = () => {
+    router.push("/ordenes-packing")
+  }
+
+    const handlePickingClick = () => {
+    router.push("/picking")
+  }
+
 
 
   return (
@@ -74,12 +82,16 @@ const handleEtiquetadorClick = () => {
             description="Prepara los productos solicitados tomando la mercancía de su ubicación en almacén."
             icon={ScanBarcode}
             version="v2.1.0"
+                                    onClick={handlePickingClick}
+
           />
           <ModuleCard
             title="Packing"
             description="Empaca y consolida los productos seleccionados para el envío o entrega."
             icon={BoxIcon}
             version="v2.1.0"
+                        onClick={handlePackingClick}
+
           />
         </div>
       </div>

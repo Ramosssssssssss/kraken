@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { Eye, EyeOff, User, Lock, Loader2 } from "lucide-react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
@@ -9,7 +9,7 @@ import { useCompany } from "@/lib/company-context"
 
 function getTenantFromHost(hostname: string) {
   const parts = hostname.split(".")
-  return parts.length >= 3 ? (parts[0] || "").toLowerCase() : null // ej: fyttsa.krkn.mx → "fyttsa"
+  return parts.length >= 3 ? (parts[0] || "").toLowerCase() : null
 }
 
 export default function LoginPage() {
@@ -23,19 +23,13 @@ export default function LoginPage() {
 
   const { companyData, apiUrl: apiUrlFromCtx, isReady } = useCompany()
 
-  // Fallback: si el contexto aún no tiene apiUrl pero estamos en subdominio,
-  // puedes derivar un apiUrl determinístico. Ajusta a tu patrón real si aplica.
   const derivedApiUrl = useMemo(() => {
     if (apiUrlFromCtx) return apiUrlFromCtx
     if (typeof window === "undefined") return null
     const tenant = getTenantFromHost(window.location.hostname)
-    // ⚠️ Si NO tienes patrón fijo, deja null y confía en el provider que ya llama a check-cliente.
-    // Ejemplo determinístico (si tu backend lo usa):
-    // return tenant ? `http://api.${tenant}.krkn.mx` : null
     return null
   }, [apiUrlFromCtx])
 
-  // Partículas memorized (evita random en cada render → mismatch de hidratación)
   const particles = useMemo(
     () =>
       Array.from({ length: 20 }).map(() => ({
@@ -44,18 +38,15 @@ export default function LoginPage() {
         delay: `${Math.random() * 3}s`,
         duration: `${2 + Math.random() * 2}s`,
       })),
-    []
+    [],
   )
-
-  // IMPORTANTE: ya no redirigimos a "/" si no hay companyData.
-  // Dejamos que el provider resuelva; si al final no hay apiUrl, mostramos mensaje en el form.
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setIsLoading(true)
 
-    const apiUrl = derivedApiUrl // fuente de verdad para este submit
+    const apiUrl = derivedApiUrl
 
     if (!apiUrl) {
       setError("No se pudo obtener la URL de la API para este subdominio.")
@@ -70,10 +61,10 @@ export default function LoginPage() {
     }
 
     try {
-      console.log("[v0] Making login request to:", `${apiUrl}/login-krkn`)
+      console.log("[v0] Making login request to:", `${apiUrl}/login`)
       console.log("[v0] Company data:", companyData)
 
-      const response = await fetch(`${apiUrl}/login-krkn`, {
+      const response = await fetch(`${apiUrl}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user: email, password }),
@@ -101,7 +92,6 @@ export default function LoginPage() {
     }
   }
 
-  // Loader mientras el provider inicializa (evita parpadeos)
   if (!isReady) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -164,7 +154,9 @@ export default function LoginPage() {
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
-                  <label htmlFor="email" className="text-gray-300 text-sm font-medium">Usuario</label>
+                  <label htmlFor="email" className="text-gray-300 text-sm font-medium">
+                    Usuario
+                  </label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
                     <input
@@ -181,7 +173,9 @@ export default function LoginPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="password" className="text-gray-300 text-sm font-medium">Contraseña</label>
+                  <label htmlFor="password" className="text-gray-300 text-sm font-medium">
+                    Contraseña
+                  </label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
                     <input
@@ -231,9 +225,7 @@ export default function LoginPage() {
 
               {(apiUrlFromCtx || derivedApiUrl) && (
                 <div className="text-center">
-                  <p className="text-gray-600 text-xs">
-                    API: {apiUrlFromCtx || derivedApiUrl}
-                  </p>
+                  <p className="text-gray-600 text-xs">API: {apiUrlFromCtx || derivedApiUrl}</p>
                 </div>
               )}
             </div>

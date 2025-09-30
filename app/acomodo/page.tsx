@@ -17,7 +17,7 @@ const almacenes: Almacen[] = [
     id: "1",
     nombre: "ALMACÉN GENERAL",
     codigo: "ALM_GEN",
-    almacenId: 19,
+    almacenId: 384,
     descripcion: "Almacén principal con inventario general",
   },
   {

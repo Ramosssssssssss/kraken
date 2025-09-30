@@ -172,8 +172,7 @@ export default function UsersSection() {
         <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
           <h3 className="text-lg font-medium text-white/90 flex items-center gap-2">
             <Users className="w-5 h-5 text-white/70" />
-            Lista de Pickers
-          </h3>
+USUARIOS     </h3>
           <div className="flex items-center gap-3">
             <button className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/8 px-4 py-2 text-sm text-white/90 hover:bg-white/12 hover:border-white/20 transition-colors backdrop-blur-xl">
               <MailPlus className="w-4 h-4" />
@@ -228,10 +227,10 @@ export default function UsersSection() {
                       className={`rounded-lg px-2.5 py-1 text-xs border ${
                         piker.ESTATUS === "A"
                           ? "border-emerald-400/20 text-emerald-300 bg-emerald-400/10"
-                          : "border-red-400/20 text-red-300 bg-red-400/10"
+                          : "border-emerald-400/20 text-emerald-300 bg-emerald-400/10"
                       }`}
                     >
-                      {piker.ESTATUS === "A" ? "Activo" : "Inactivo"}
+                      {piker.ESTATUS === "A" ? "Activo" : "Activo"}
                     </span>
                     <button className="rounded-lg p-2 text-white/70 hover:text-white hover:bg-white/10 border border-transparent hover:border-white/10 transition-colors">
                       <Edit3 className="w-4 h-4" />

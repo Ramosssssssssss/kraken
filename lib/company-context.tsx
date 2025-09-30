@@ -1,4 +1,3 @@
-// lib/company-context.tsx
 "use client"
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
@@ -45,7 +44,10 @@ function safeSetLS(key: string, value: string | null) {
 
 function readCookie(name: string) {
   if (typeof document === "undefined") return null
-  const raw = document.cookie.split("; ").find((r) => r.startsWith(name + "="))?.split("=")[1]
+  const raw = document.cookie
+    .split("; ")
+    .find((r) => r.startsWith(name + "="))
+    ?.split("=")[1]
   if (!raw) return null
   try {
     return decodeURIComponent(raw)
@@ -75,7 +77,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
 
       // 2) subdominio → check-cliente
       if (!done && typeof window !== "undefined") {
-        const host = window.location.hostname // ej: fyttsa.krkn.mx
+        const host = window.location.hostname
         const parts = host.split(".")
         const sub = parts.length >= 3 ? (parts[0] || "").toLowerCase() : null
 
@@ -93,13 +95,11 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
               safeSetLS("companyData", JSON.stringify(data.cliente))
               done = true
             }
-          } catch {
-            // silencioso; seguimos a cookies
-          }
+          } catch {}
         }
       }
 
-      // 3) cookie de respaldo (dominio base .krkn.mx)
+      // 3) cookie de respaldo
       if (!done) {
         const codigo = readCookie("tenant")
         const apiUrl = readCookie("apiUrl")

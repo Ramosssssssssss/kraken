@@ -73,7 +73,7 @@ const ProductCard = ({
   onImagePress: () => void
 }) => {
   const getCurrentAlmacenInfo = (): AlmacenInfo => {
-    if (selectedAlmacen === "19") return product.almacenes.almacen_general
+    if (selectedAlmacen === "384") return product.almacenes.almacen_general
     if (selectedAlmacen === "3482") return product.almacenes.bodega1
     if (selectedAlmacen === "3483") return product.almacenes.bodega2
     if (selectedAlmacen === "3484") return product.almacenes.bodega3
@@ -405,7 +405,7 @@ const ProductCard = ({
         // Update product location
         const updatedProduct = { ...producto }
         const almacenesMap = {
-          "19": "almacen_general",
+          "384": "almacen_general",
           "3482": "bodega1",
           "3483": "bodega2",
           "3484": "bodega3",
@@ -446,7 +446,7 @@ const ProductCard = ({
     if (!producto) return
 
     const almacenesMap = {
-      "19": producto.almacenes.almacen_general?.ubicacion ?? "",
+      "384": producto.almacenes.almacen_general?.ubicacion ?? "",
       "3482": producto.almacenes.bodega1?.ubicacion ?? "",
       "3483": producto.almacenes.bodega2?.ubicacion ?? "",
       "3484": producto.almacenes.bodega3?.ubicacion ?? "",
