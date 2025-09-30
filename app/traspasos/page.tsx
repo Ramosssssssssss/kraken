@@ -116,9 +116,13 @@ export default function TraspasosPage() {
 
       // Navigate to picking screen with details
       const articulosEncoded = btoa(JSON.stringify(json.detalles))
-      router.push(
-        `/traspasosScreen?articulos=${encodeURIComponent(articulosEncoded)}&traspasoInId=${traspasoInId}&piker=${userData?.PIKER_ID}&nombre=${userData?.NOMBRE}&folio=${limpiarFolio(folio)}&ALMACEN=${almacen}`,
-      )
+     router.push(
+  `/traspasosScreen/${traspasoInId}?articulos=${encodeURIComponent(
+    articulosEncoded
+  )}&piker=${userData?.PIKER_ID}&nombre=${userData?.NOMBRE}&folio=${limpiarFolio(
+    folio
+  )}&ALMACEN=${almacen}`
+)
     } catch (err: any) {
       console.error("Error en el proceso:", err)
       setMensajeError(err?.message || "Este traspaso ya fue tomado o sigue en proceso.")
