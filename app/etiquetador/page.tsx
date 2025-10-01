@@ -721,7 +721,7 @@ ${bodyHtml}
       <div className="min-h-screen p-6">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="text-center mb-8">
+          {/* <div className="text-center mb-8">
             <h1 className="text-4xl font-bold text-white mb-2">
               Generador de <span className="text-purple-300">Etiquetas</span>
             </h1>
@@ -731,7 +731,7 @@ ${bodyHtml}
               <ArrowLeft className="w-4 h-4" />
               Volver
             </Link>
-          </div>
+          </div> */}
 
           {/* Grid principal: columnas de igual altura */}
           <div className="grid lg:grid-cols-2 gap-8 items-stretch min-h-0">

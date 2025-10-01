@@ -2,100 +2,136 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Package, Tags, DollarSign, ArrowRight } from "lucide-react";
+import { Package, Tags, DollarSign, ArrowLeft } from "lucide-react";
 
-// Si usas shadcn/ui
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/ui/tabs";
 
 const tiles = [
-  {
-    href: "/etiquetador",
-    title: "Generador de Etiquetas",
-    desc: "Crear y gestionar etiquetas estándar con código de barras y QR.",
-    icon: Tags,
-  },
-  {
-    href: "/etiquetador_precios",
-    title: "Etiquetador de Precios",
-    desc: "Etiquetas enfocadas en precio, promos y códigos.",
-    icon: DollarSign,
-  },
-  {
-    href: "/etiquetador_paquetes",
-    title: "Etiquetador de Paquetes",
-    desc: "Arma etiquetas para tus envíos.",
-    icon: Package,
-  },
+  { id: "etiquetador", href: "/etiquetador", title: "Generador de Etiquetas", desc: "Crear y gestionar etiquetas estándar con código de barras y QR.", icon: Tags },
+  { id: "etiquetador_precios", href: "/etiquetador_precios", title: "Etiquetador de Precios", desc: "Etiquetas enfocadas en punto de Venta.", icon: DollarSign },
+  { id: "etiquetador_paquetes", href: "/etiquetador_paquetes", title: "Etiquetador de Paquetes", desc: "Imprime una etiqueta por paquete con código de barras del folio.", icon: Package },
 ] as const;
+
+type TabId = typeof tiles[number]["id"];
 
 export default function EtiquetadorHub() {
   const router = useRouter();
+  const sp = useSearchParams();
 
-  // Atajos de teclado: 1,2,3 para entrar
+  // Lee ?tab=; por defecto el primero
+  const initialTab = (sp.get("tab") as TabId) || tiles[0].id;
+  const [active, setActive] = useState<TabId>(initialTab);
+
+  // Mantén la URL sincronizada (sin recargar)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("tab") !== active) {
+      params.set("tab", active);
+      router.replace(`?${params.toString()}`);
+    }
+  }, [active, router]);
+
+  // Atajos 1/2/3
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "1") router.push(tiles[0].href);
-      if (e.key === "2") router.push(tiles[1].href);
-      if (e.key === "3") router.push(tiles[2].href);
+      if (e.key === "1") setActive(tiles[0].id);
+      if (e.key === "2") setActive(tiles[1].id);
+      if (e.key === "3") setActive(tiles[2].id);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [router]);
+  }, []);
+
+  // Tile activo
+  const activeTile = useMemo(
+    () => tiles.find((t) => t.id === active),
+    [active]
+  );
+
+  const src = useMemo(
+    () => activeTile?.href ?? tiles[0].href,
+    [activeTile]
+  );
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-purple-900 text-white">
-      <section className="max-w-6xl mx-auto px-6 py-12">
-        <header className="mb-10 text-center">
+    <main className="h-screen flex flex-col bg-gradient-to-br from-gray-900 via-gray-800 to-purple-900 text-white">
+      {/* Header */}
+      <section className="w-full max-w-6xl mx-auto px-6 pt-6">
+        <header className="mb-4 text-center">
           <motion.h1
             className="text-3xl md:text-4xl font-bold"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25 }}
           >
-            Centro de Etiquetado
+            {activeTile?.title ?? "Centro de Etiquetado"}
           </motion.h1>
-          
+          {activeTile?.desc && (
+            <p className="text-gray-300 mt-1">{activeTile.desc}</p>
+          )}
         </header>
+      </section>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {tiles.map((t, i) => {
-            const Icon = t.icon;
-            return (
-              <motion.div
-                key={t.href}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25, delay: i * 0.05 }}
-              >
-                <Card className="bg-gray-800/70 border-gray-700 h-full hover:bg-gray-800 hover:border-purple-500/60 transition-colors">
-                  <CardHeader className="flex flex-row items-center gap-3">
-                    <div className="p-2 rounded-xl bg-purple-500/20">
-                      <Icon className="w-5 h-5 text-purple-300" />
-                    </div>
-                    <CardTitle className="text-lg">{t.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex flex-col justify-between h-full">
-                    <p className="text-gray-300 mb-4">{t.desc}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-400">
-                        Ir a <code className="text-gray-300">{t.href}</code>
-                      </span>
-                      <Button asChild className="bg-purple-600 hover:bg-purple-700">
-                        <Link href={t.href} className="flex items-center gap-2">
-                          Entrar <ArrowRight className="w-4 h-4" />
-                        </Link>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            );
-          })}
-        </div>
+   
+
+      {/* Contenido (Tabs + iframe) ocupa TODO lo que queda */}
+      <section className="w-full max-w-[100%] mx-auto px-6 pb-4 flex-1 flex min-h-0">
+        <Tabs
+          value={active}
+          onValueChange={(v) => setActive(v as TabId)}
+          className="flex-1 flex flex-col min-h-0 overflow-hidden"
+        >
+          <TabsList className="w-full bg-transparent flex items-center justify-between">
+            {/* Botón Volver a la izquierda */}
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-2 text-purple-300 hover:text-purple-200 px-4"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Volver
+            </Link>
+
+            {/* Accesos (tabs) a la derecha */}
+            <div className="flex space-x-2">
+              {tiles.map((t) => (
+                <TabsTrigger
+                  key={t.id}
+                  value={t.id}
+                  className="flex-none w-auto px-4 text-white data-[state=active]:bg-purple-600"
+                >
+                  {t.title}
+                </TabsTrigger>
+              ))}
+            </div>
+          </TabsList>
+
+
+          {tiles.map((t) => (
+            <TabsContent
+              key={t.id}
+              value={t.id}
+              className="mt-3 flex-1 min-h-0 flex flex-col "
+            >
+              <div className="flex-1 min-h-0 rounded-xl border border-gray-700 overflow-hidden">
+                <iframe
+                  key={src}
+                  src={t.id === active ? src : "about:blank"}
+                  title={t.title}
+                  className="w-full h-full block"
+                />
+              </div>
+            </TabsContent>
+          ))}
+        </Tabs>
       </section>
     </main>
   );

@@ -902,8 +902,8 @@ export default function EtiquetadorPaquetes() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-purple-900">
             <div className="min-h-screen p-6">
-                <div className="max-w-5xl mx-auto">
-                    <div className="flex items-center justify-between mb-6">
+                <div className="max-w-7xl mx-auto">
+                    {/* <div className="flex items-center justify-between mb-6">
                         <div>
                             <h1 className="text-3xl font-bold text-white">Etiquetador de <span className="text-purple-300">Paquetes</span></h1>
                             <p className="text-gray-300">Imprime una etiqueta por paquete con código de barras del folio.</p>
@@ -911,7 +911,7 @@ export default function EtiquetadorPaquetes() {
                         <Link href="/etiquetador_hub" className="flex items-center gap-2 text-purple-300 hover:text-purple-200">
                             <ArrowLeft className="w-4 h-4" /> Volver
                         </Link>
-                    </div>
+                    </div> */}
 
                     <div className="grid lg:grid-cols-2 gap-8 items-stretch min-h-0">
                         {/* Izquierda */}
