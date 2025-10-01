@@ -523,7 +523,7 @@ export default function LabelGenerator() {
             <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm h-full flex flex-col w-full">
               <CardHeader className="border-b border-gray-600 flex w-full justify-between">
                 <CardTitle className="flex items-center gap-2 text-white"><Settings className="w-5 h-5 text-purple-300" />Configuración</CardTitle>
-                <CardTitle className="flex items-center gap-2 text-white font-light text-xs">v2.2</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-white font-light text-xs">v2.2.1</CardTitle>
               </CardHeader>
               <CardContent className="p-6 space-y-6">
                 {/* Selector de plantilla */}
