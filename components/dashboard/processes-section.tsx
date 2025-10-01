@@ -52,6 +52,11 @@ const handleEtiquetadorClick = () => {
     const handlePickingClick = () => {
     router.push("/picking")
   }
+  
+    const handlesnMicroClick = () => {
+    router.push("/snMicro")
+  }
+
 
 
 
@@ -94,7 +99,23 @@ const handleEtiquetadorClick = () => {
 
           />
         </div>
+        
       </div>
+           <div className="bg-black border border-white/20 rounded-lg p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <ModuleCard
+            title="Recibo"
+            description="Registra la entrada de mercancía, validar contra órdenes de compra y asegurar cantidades correctas."
+            icon={Inbox}
+            version="v2.1.0"
+            onClick={handlesnMicroClick}
+          />
+       
+        </div>
+        
+      </div>
+      
     </div>
+    
   )
 }
