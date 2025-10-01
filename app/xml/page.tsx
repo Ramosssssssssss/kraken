@@ -14,35 +14,26 @@ export default function XmlClient() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // En React 19/Next 15, useSearchParams suspende hasta que existan los params
-    // Este efecto corre en el cliente, nunca en build.
+    // En Next 15/React 19, useSearchParams suspende hasta que hay params (por eso lo envolvemos con <Suspense> en page.tsx)
     try {
       const folioParam = searchParams.get("folio")
       const dataParam = searchParams.get("data")
 
       if (!folioParam || !dataParam) {
-        // Redirige sin alerts para evitar problemas de SSR/Build
         router.replace("/recibo/seleccion-tipo")
         return
       }
 
-      // data viene URL-encoded; decodeURIComponent + parse
-      let parsed: any
       try {
         const decoded = decodeURIComponent(dataParam)
-        parsed = JSON.parse(decoded)
-        if (!Array.isArray(parsed)) {
-          // Normaliza a array si te llega un objeto
-          parsed = [parsed]
-        }
+        const parsed = JSON.parse(decoded)
+        setXmlData(Array.isArray(parsed) ? parsed : [parsed])
+        setFolio(folioParam)
       } catch (err) {
-        console.error("[/xml] Error parsing `data` param:", err)
+        console.error("[/xml] Error parsing `data`:", err)
         router.replace("/recibo/seleccion-tipo")
         return
       }
-
-      setXmlData(parsed)
-      setFolio(folioParam)
     } finally {
       setIsLoading(false)
     }
