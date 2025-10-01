@@ -3,17 +3,12 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Package, Tags, DollarSign, ArrowLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 const tiles = [
   { id: "etiquetador", href: "/etiquetador", title: "Generador de Etiquetas", desc: "Crear y gestionar etiquetas estándar con código de barras y QR.", icon: Tags },
@@ -23,7 +18,21 @@ const tiles = [
 
 type TabId = typeof tiles[number]["id"];
 
-export default function EtiquetadorHub() {
+/**
+ * Envoltura de página: agrega Suspense required por Next para useSearchParams
+ */
+export default function EtiquetadorHubPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-white/80">Cargando…</div>}>
+      <EtiquetadorHubInner />
+    </Suspense>
+  );
+}
+
+/**
+ * Componente interno: aquí sí usamos useSearchParams
+ */
+function EtiquetadorHubInner() {
   const router = useRouter();
   const sp = useSearchParams();
 
@@ -51,16 +60,8 @@ export default function EtiquetadorHub() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Tile activo
-  const activeTile = useMemo(
-    () => tiles.find((t) => t.id === active),
-    [active]
-  );
-
-  const src = useMemo(
-    () => activeTile?.href ?? tiles[0].href,
-    [activeTile]
-  );
+  const activeTile = useMemo(() => tiles.find((t) => t.id === active), [active]);
+  const src = useMemo(() => activeTile?.href ?? tiles[0].href, [activeTile]);
 
   return (
     <main className="h-screen flex flex-col bg-gradient-to-br from-gray-900 via-gray-800 to-purple-900 text-white">
@@ -81,9 +82,7 @@ export default function EtiquetadorHub() {
         </header>
       </section>
 
-   
-
-      {/* Contenido (Tabs + iframe) ocupa TODO lo que queda */}
+      {/* Contenido (Tabs + iframe) */}
       <section className="w-full max-w-[100%] mx-auto px-6 pb-4 flex-1 flex min-h-0">
         <Tabs
           value={active}
@@ -114,16 +113,15 @@ export default function EtiquetadorHub() {
             </div>
           </TabsList>
 
-
           {tiles.map((t) => (
             <TabsContent
               key={t.id}
               value={t.id}
-              className="mt-3 flex-1 min-h-0 flex flex-col "
+              className="mt-3 flex-1 min-h-0 flex flex-col"
             >
               <div className="flex-1 min-h-0 rounded-xl border border-gray-700 overflow-hidden">
                 <iframe
-                  key={src}
+                  // Para evitar mounts innecesarios en tabs inactivos
                   src={t.id === active ? src : "about:blank"}
                   title={t.title}
                   className="w-full h-full block"
