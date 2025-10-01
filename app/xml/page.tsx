@@ -1,38 +1,52 @@
-// Import Suspense
-import { Suspense, useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import XmlReciboPremium from "@/components/xml-recibo-premium";
+// app/xml/XmlClient.tsx
+"use client"
 
-export default function XmlReciboPage() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const [xmlData, setXmlData] = useState<any[]>([]);
-  const [folio, setFolio] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+import { useEffect, useState } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
+import XmlReciboPremium from "@/components/xml-recibo-premium"
+
+export default function XmlClient() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+
+  const [xmlData, setXmlData] = useState<any[]>([])
+  const [folio, setFolio] = useState("")
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const folioParam = searchParams.get("folio");
-    const dataParam = searchParams.get("data");
-
-    if (!folioParam || !dataParam) {
-      alert("Faltan parámetros requeridos");
-      router.push("/recibo/seleccion-tipo");
-      return;
-    }
-
+    // En React 19/Next 15, useSearchParams suspende hasta que existan los params
+    // Este efecto corre en el cliente, nunca en build.
     try {
-      const parsedData = JSON.parse(decodeURIComponent(dataParam));
-      setXmlData(parsedData);
-      setFolio(folioParam);
-    } catch (error) {
-      console.error("[v0] Error parsing XML data:", error);
-      alert("Error al procesar los datos del XML");
-      router.push("/recibo/seleccion-tipo");
-      return;
+      const folioParam = searchParams.get("folio")
+      const dataParam = searchParams.get("data")
+
+      if (!folioParam || !dataParam) {
+        // Redirige sin alerts para evitar problemas de SSR/Build
+        router.replace("/recibo/seleccion-tipo")
+        return
+      }
+
+      // data viene URL-encoded; decodeURIComponent + parse
+      let parsed: any
+      try {
+        const decoded = decodeURIComponent(dataParam)
+        parsed = JSON.parse(decoded)
+        if (!Array.isArray(parsed)) {
+          // Normaliza a array si te llega un objeto
+          parsed = [parsed]
+        }
+      } catch (err) {
+        console.error("[/xml] Error parsing `data` param:", err)
+        router.replace("/recibo/seleccion-tipo")
+        return
+      }
+
+      setXmlData(parsed)
+      setFolio(folioParam)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  }, [searchParams, router]);
+  }, [searchParams, router])
 
   if (isLoading) {
     return (
@@ -42,18 +56,8 @@ export default function XmlReciboPage() {
           <p className="text-cyan-900 font-medium">Cargando datos del XML...</p>
         </div>
       </div>
-    );
+    )
   }
 
-  return <XmlReciboPremium xmlData={xmlData} folio={folio} />;
+  return <XmlReciboPremium xmlData={xmlData} folio={folio} />
 }
-
-// Wrap with Suspense in the parent or page component
-function SuspendedXmlReciboPage() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <XmlReciboPage />
-    </Suspense>
-  );
-}
-
