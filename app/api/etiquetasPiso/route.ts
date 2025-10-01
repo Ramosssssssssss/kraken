@@ -4,22 +4,22 @@ import * as fb from "node-firebird"
 import jwt from "jsonwebtoken"
 import * as fs from "fs"
 import * as path from "path"
-import iconv from "iconv-lite"   // 👈 necesario para decodificar
+import iconv from "iconv-lite"
 
 // Fuerza runtime Node y sin caché
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 export const revalidate = 0
 
-// ======== Config ========
+// ======== Config ======== CORREGIDO
 const fbConfig = {
   host: process.env.FIREBIRD_HOST || "85.215.109.213",
   port: Number(process.env.FIREBIRD_PORT || 3050),
   database: process.env.FB_DATABASE || "D:\\Microsip datos\\GUIMAR.FDB",
   user: process.env.FIREBIRD_USER || "SYSDBA",
   password: process.env.FIREBIRD_PASSWORD || "BlueMamut$23",
-  charset: "ISO8859_1",   // ⚠️ cámbialo a "UTF8" si tu DB ya está en UTF8
-}
+  encoding: 'WIN1252', // 👈 CAMBIO CRÍTICO: Windows-1252 para Microsip
+} as fb.Options;
 
 const JWT_SECRET = process.env.JWT_SECRET || "elyssia-secret-key"
 const LOGS_DIR = process.env.LOGS_DIR || "./logs"
@@ -83,22 +83,117 @@ async function queryFirebird(sql: string, params: any[] = []): Promise<any[]> {
   })
 }
 
-// ======== Decodificación ========
+// ======== DECODIFICACIÓN MEJORADA ========
 function decodeField(v: any): string {
   if (typeof v !== "string") return v == null ? "" : String(v)
+  
   try {
-    // decodifica suponiendo que viene en ISO8859_1/WIN1252
-    return iconv.decode(Buffer.from(v, "binary"), "utf8")
-  } catch {
-    return v
+    // 👇 PRIMERO: Intentar decodificar desde Windows-1252 (común en Microsip)
+    const decodedFromWin1252 = iconv.decode(Buffer.from(v, 'binary'), 'win1252');
+    
+    // Verificar si hay caracteres corruptos
+    if (!decodedFromWin1252.includes('�') && !tieneCaracteresRaros(decodedFromWin1252)) {
+      return decodedFromWin1252;
+    }
+    
+    // 👇 SEGUNDO: Si falla, probar Latin1
+    const decodedFromLatin1 = iconv.decode(Buffer.from(v, 'binary'), 'latin1');
+    if (!decodedFromLatin1.includes('�') && !tieneCaracteresRaros(decodedFromLatin1)) {
+      return decodedFromLatin1;
+    }
+    
+    // 👇 TERCERO: Si hay caracteres raros, aplicar corrección específica
+    return corregirCaracteresEspecificos(decodedFromWin1252);
+    
+  } catch (error) { 
+    writeLog(`Error decodificando campo: ${error}`, "DEBUG");
+    return v;
   }
+}
+
+// 👇 Función para detectar caracteres raros como "ý" en lugar de "í"
+function tieneCaracteresRaros(texto: string): boolean {
+  const caracteresRaros = ['ý', '´', '˜', 'ˆ', '¨', '`'];
+  return caracteresRaros.some(caracter => texto.includes(caracter));
+}
+
+// 👇 Corrección específica para caracteres mal decodificados
+function corregirCaracteresEspecificos(texto: string): string {
+  if (!texto) return texto;
+  
+  const mapeoCorreccion: { [key: string]: string } = {
+    // Correcciones para Windows-1252 mal interpretado
+    'ý': 'í',
+    '´a': 'á',
+    '´e': 'é',
+    '´i': 'í', 
+    '´o': 'ó',
+    '´u': 'ú',
+    '´A': 'Á',
+    '´E': 'É',
+    '´I': 'Í',
+    '´O': 'Ó',
+    '´U': 'Ú',
+    '˜n': 'ñ',
+    '˜N': 'Ñ',
+    'ˆa': 'â',
+    'ˆe': 'ê',
+    'ˆi': 'î',
+    'ˆo': 'ô',
+    'ˆu': 'û',
+    '¨a': 'ä',
+    '¨e': 'ë',
+    '¨i': 'ï',
+    '¨o': 'ö',
+    '¨u': 'ü',
+    '`a': 'à',
+    '`e': 'è',
+    '`i': 'ì',
+    '`o': 'ò',
+    '`u': 'ù',
+    
+    // Correcciones adicionales comunes
+    'Ã¡': 'á',
+    'Ã©': 'é',
+    'Ã­': 'í',
+    'Ã³': 'ó',
+    'Ãº': 'ú',
+    'Ã±': 'ñ',
+    'Ã‘': 'Ñ',
+    'Ã': 'Á',
+    'Ã‰': 'É',
+    'Ã': 'Í',
+    'Ã“': 'Ó',
+    'Ãš': 'Ú',
+    'Â¡': '¡',
+    'Â¿': '¿'
+  };
+
+  let textoCorregido = texto;
+  
+  // Primero reemplazar combinaciones de dos caracteres
+  Object.keys(mapeoCorreccion).forEach(caracterCorrupto => {
+    const regex = new RegExp(caracterCorrupto, 'g');
+    textoCorregido = textoCorregido.replace(regex, mapeoCorreccion[caracterCorrupto]);
+  });
+
+  return textoCorregido;
 }
 
 function mapRow(r: any) {
   const toNum = (v: any, d = 0) => (Number.isFinite(Number(v)) ? Number(v) : d)
+  
+  // Decodificar y loguear para debug
+  const descripcionOriginal = r.R_DESCRIPCION;
+  const descripcionDecodificada = decodeField(descripcionOriginal);
+  
+  if (descripcionOriginal !== descripcionDecodificada) {
+    writeLog(`Descripción decodificada: '${descripcionOriginal}' -> '${descripcionDecodificada}'`, "DEBUG");
+  }
+  
   return {
     codigo: decodeField(r.R_CODIGO),
-    descripcion: decodeField(r.R_DESCRIPCION),
+    descripcion: descripcionDecodificada,
     unidad_venta: decodeField(r.R_UNIDAD_VENTA),
     inventario_maximo: toNum(r.R_INVENTARIO_MAXIMO),
     precio_lista_iva: toNum(r.R_PRECIO_LIST_IVA),
@@ -165,6 +260,19 @@ export async function GET(req: NextRequest) {
     }
 
     const data = rows.map(mapRow)
+    
+    // Log adicional para verificar la decodificación
+    if (data.length > 0) {
+      const primerArticulo = data[0];
+      writeLog(`[${requestId}] Artículo encontrado: ${primerArticulo.codigo} - ${primerArticulo.descripcion}`, "INFO");
+      
+      // 👇 Debug detallado de caracteres
+      if (primerArticulo.descripcion.includes('ý') || primerArticulo.descripcion.includes('´')) {
+        writeLog(`[${requestId}] ⚠️  POSIBLE ERROR DE DECODIFICACIÓN DETECTADO`, "WARN");
+        writeLog(`[${requestId}] Texto original en bytes: ${Buffer.from(rows[0].R_DESCRIPCION, 'binary').toString('hex')}`, "DEBUG");
+      }
+    }
+    
     writeLog(`[${requestId}] Resultados: ${data.length}`, "INFO")
     return NextResponse.json({ ok: true, data }, { headers: { "Access-Control-Allow-Origin": "*" } })
   } catch (error: any) {
