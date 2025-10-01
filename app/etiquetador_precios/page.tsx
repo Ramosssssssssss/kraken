@@ -581,6 +581,50 @@ export default function LabelGenerator() {
                       ? `Importando ${importProgress.done}/${importProgress.total}`
                       : "Importar Excel"}
                   </Button>
+{/* Input oculto para subir Excel/CSV */}
+<input
+  ref={fileRef}
+  type="file"
+  className="hidden"
+  accept=".xlsx,.xls,.csv"
+  onChange={async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Opcional: validación rápida de tamaño (ej. 10 MB)
+    if (file.size > 10 * 1024 * 1024) {
+      new Noty({
+        type: "error",
+        layout: "topRight",
+        theme: "mint",
+        text: "El archivo es muy grande (máx 10 MB).",
+        timeout: 3000,
+      }).show();
+      e.currentTarget.value = "";
+      return;
+    }
+    try {
+      await importFromExcel(file);
+      new Noty({
+        type: "success",
+        layout: "topRight",
+        theme: "mint",
+        text: "Importación completada.",
+        timeout: 2500,
+      }).show();
+    } catch (err: any) {
+      new Noty({
+        type: "error",
+        layout: "topRight",
+        theme: "mint",
+        text: err?.message ?? "Error al importar el archivo.",
+        timeout: 3000,
+      }).show();
+    } finally {
+      // Permite re-seleccionar el mismo archivo después
+      e.currentTarget.value = "";
+    }
+  }}
+/>
 
                   <Button
                     onClick={handlePrint}
