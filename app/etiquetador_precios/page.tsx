@@ -247,7 +247,7 @@ const LABEL_TEMPLATES = [
     renderHTML: (a: ArticleItem) => `
     <div class="p">
       <div class="q1" style="display:grid;grid-template-columns:repeat(3,1fr);padding: 1mm; gap:.5mm;">
-        <div style="font-weigh;text-align:left;font-size:6px;grid-area:1/1/3/4; margin-top: 1mm; font-family: "Arial", sans-serif;">${escapeHTML(a.nombre)}</div>
+        <div style="font-weigh;text-align:left;font-size:4px;grid-area:1/1/3/4; margin-top: 1mm; font-family: "Arial", sans-serif;">${escapeHTML(a.nombre)}</div>
         <div style="font-weight:700;text-align:left;font-size:6px;grid-area:3/1/4/2; margin:0; padding:0; letter-spacing.5px;">${escapeHTML(a.codigo)}</div>
         <div style="font-weight:700;text-align:left;font-size:6px;grid-area:4/1/5/2; margin:0; padding:0;">${escapeHTML(a.unidad)}</div>
         <div style="font-weight:700;text-align:left;font-size:6px;grid-area:5/1/6/2; margin:0; padding:0;">${escapeHTML(a.estatus ?? "-")}</div>
@@ -288,7 +288,7 @@ const LABEL_TEMPLATES = [
     {
     id: "blanca-40x22",
     name: "Etiqueta blanca (40×22.4 )",
-    width: 40,
+    width: 60,
     height: 22.4,
     css: (w: number, h: number, pad: number) => `
       @page{size:${w}mm ${h}mm;margin:0}
