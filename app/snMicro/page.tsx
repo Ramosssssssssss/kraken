@@ -259,7 +259,10 @@ export default function SeleccionTipoPremium() {
         CANTIDAD: product.cantidad,
       }))
 
-      router.push(`/excel?folio=${folio}&data=${encodeURIComponent(JSON.stringify(excelData))}`)
+      sessionStorage.setItem("excelReciboData", JSON.stringify(excelData))
+      sessionStorage.setItem("excelReciboFolio", folio)
+
+      router.push(`/excel`)
     } else if (selectedType === "XML") {
       const xmlData = xmlProducts.map((product) => ({
         CLAVE: product.clave,
@@ -276,7 +279,7 @@ export default function SeleccionTipoPremium() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-black from-black-50 via-blue-50 to-indigo-50">
       {/* Header */}
       <div className="glass-dark sticky top-0 z-50 border-b border-white/20">
         <div className="container mx-auto px-4 py-4">
@@ -296,7 +299,7 @@ export default function SeleccionTipoPremium() {
               variant="ghost"
               size="sm"
               onClick={handleScannerToggle}
-              className={`text-white ${scannerActive ? "bg-cyan-500/30" : "hover:bg-white/10"}`}
+              className={`text-white ${scannerActive ? "bg-black-500/30" : "hover:bg-white/10"}`}
             >
               <Scan className="h-4 w-4 mr-2" />
               {scannerActive ? "ON" : "OFF"}
@@ -310,8 +313,8 @@ export default function SeleccionTipoPremium() {
         <div className="space-y-6">
           {/* Title */}
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-cyan-900 mb-2">Selecciona el Tipo de Procesamiento</h2>
-            <p className="text-cyan-700">Elige cómo deseas ingresar los datos</p>
+            <h2 className="text-2xl font-bold text-black-900 mb-2">Selecciona el Tipo de Procesamiento</h2>
+            <p className="text-black-700">Elige cómo deseas ingresar los datos</p>
           </div>
 
           {/* Type Selection Cards */}
@@ -320,27 +323,27 @@ export default function SeleccionTipoPremium() {
             <Card
               className={`cursor-pointer transition-all duration-300 hover:scale-105 ${
                 selectedType === "MANUAL"
-                  ? "glass-dark border-cyan-400 shadow-lg shadow-cyan-500/50"
-                  : "glass border-white/40 hover:border-cyan-300"
+                  ? "glass-dark border-black-400 shadow-lg shadow-black-500/50"
+                  : "glass border-white/40 hover:border-black-300"
               }`}
               onClick={() => handleTypeSelection("MANUAL")}
             >
               <div className="p-6 flex flex-col items-center text-center space-y-4">
-                <div className={`p-4 rounded-full ${selectedType === "MANUAL" ? "bg-cyan-500" : "bg-cyan-100"}`}>
-                  <Edit3 className={`h-8 w-8 ${selectedType === "MANUAL" ? "text-white" : "text-cyan-700"}`} />
+                <div className={`p-4 rounded-full ${selectedType === "MANUAL" ? "bg-black-500" : "bg-black-100"}`}>
+                  <Edit3 className={`h-8 w-8 ${selectedType === "MANUAL" ? "text-white" : "text-black-700"}`} />
                 </div>
                 <div>
                   <h3
-                    className={`text-xl font-bold mb-2 ${selectedType === "MANUAL" ? "text-white" : "text-cyan-900"}`}
+                    className={`text-xl font-bold mb-2 ${selectedType === "MANUAL" ? "text-white" : "text-black-900"}`}
                   >
                     MANUAL
                   </h3>
-                  <p className={`text-sm ${selectedType === "MANUAL" ? "text-cyan-100" : "text-cyan-700"}`}>
+                  <p className={`text-sm ${selectedType === "MANUAL" ? "text-black-100" : "text-black-700"}`}>
                     Ingreso manual de datos
                   </p>
                 </div>
                 {selectedType === "MANUAL" && (
-                  <div className="bg-cyan-400 text-cyan-900 px-3 py-1 rounded-full text-xs font-semibold">
+                  <div className="bg-black-400 text-black-900 px-3 py-1 rounded-full text-xs font-semibold">
                     SELECCIONADO
                   </div>
                 )}
@@ -351,25 +354,25 @@ export default function SeleccionTipoPremium() {
             <Card
               className={`cursor-pointer transition-all duration-300 hover:scale-105 ${
                 selectedType === "XML"
-                  ? "glass-dark border-cyan-400 shadow-lg shadow-cyan-500/50"
-                  : "glass border-white/40 hover:border-cyan-300"
+                  ? "glass-dark border-black-400 shadow-lg shadow-black-500/50"
+                  : "glass border-white/40 hover:border-black-300"
               }`}
               onClick={() => handleTypeSelection("XML")}
             >
               <div className="p-6 flex flex-col items-center text-center space-y-4">
-                <div className={`p-4 rounded-full ${selectedType === "XML" ? "bg-cyan-500" : "bg-cyan-100"}`}>
-                  <FileText className={`h-8 w-8 ${selectedType === "XML" ? "text-white" : "text-cyan-700"}`} />
+                <div className={`p-4 rounded-full ${selectedType === "XML" ? "bg-black-500" : "bg-black-100"}`}>
+                  <FileText className={`h-8 w-8 ${selectedType === "XML" ? "text-white" : "text-black-700"}`} />
                 </div>
                 <div>
-                  <h3 className={`text-xl font-bold mb-2 ${selectedType === "XML" ? "text-white" : "text-cyan-900"}`}>
+                  <h3 className={`text-xl font-bold mb-2 ${selectedType === "XML" ? "text-white" : "text-black-900"}`}>
                     XML
                   </h3>
-                  <p className={`text-sm ${selectedType === "XML" ? "text-cyan-100" : "text-cyan-700"}`}>
+                  <p className={`text-sm ${selectedType === "XML" ? "text-black-100" : "text-black-700"}`}>
                     Procesamiento de archivo XML
                   </p>
                 </div>
                 {selectedType === "XML" && (
-                  <div className="bg-cyan-400 text-cyan-900 px-3 py-1 rounded-full text-xs font-semibold">
+                  <div className="bg-black-400 text-black-900 px-3 py-1 rounded-full text-xs font-semibold">
                     SELECCIONADO
                   </div>
                 )}
@@ -380,25 +383,25 @@ export default function SeleccionTipoPremium() {
             <Card
               className={`cursor-pointer transition-all duration-300 hover:scale-105 ${
                 selectedType === "EXCEL"
-                  ? "glass-dark border-cyan-400 shadow-lg shadow-cyan-500/50"
-                  : "glass border-white/40 hover:border-cyan-300"
+                  ? "glass-dark border-black-400 shadow-lg shadow-black-500/50"
+                  : "glass border-white/40 hover:border-black-300"
               }`}
               onClick={() => handleTypeSelection("EXCEL")}
             >
               <div className="p-6 flex flex-col items-center text-center space-y-4">
-                <div className={`p-4 rounded-full ${selectedType === "EXCEL" ? "bg-cyan-500" : "bg-cyan-100"}`}>
-                  <FileSpreadsheet className={`h-8 w-8 ${selectedType === "EXCEL" ? "text-white" : "text-cyan-700"}`} />
+                <div className={`p-4 rounded-full ${selectedType === "EXCEL" ? "bg-black-500" : "bg-black-100"}`}>
+                  <FileSpreadsheet className={`h-8 w-8 ${selectedType === "EXCEL" ? "text-white" : "text-black-700"}`} />
                 </div>
                 <div>
-                  <h3 className={`text-xl font-bold mb-2 ${selectedType === "EXCEL" ? "text-white" : "text-cyan-900"}`}>
+                  <h3 className={`text-xl font-bold mb-2 ${selectedType === "EXCEL" ? "text-white" : "text-black-900"}`}>
                     EXCEL
                   </h3>
-                  <p className={`text-sm ${selectedType === "EXCEL" ? "text-cyan-100" : "text-cyan-700"}`}>
+                  <p className={`text-sm ${selectedType === "EXCEL" ? "text-black-100" : "text-black-700"}`}>
                     Procesamiento de archivo Excel
                   </p>
                 </div>
                 {selectedType === "EXCEL" && (
-                  <div className="bg-cyan-400 text-cyan-900 px-3 py-1 rounded-full text-xs font-semibold">
+                  <div className="bg-black-400 text-black-900 px-3 py-1 rounded-full text-xs font-semibold">
                     SELECCIONADO
                   </div>
                 )}
@@ -412,21 +415,21 @@ export default function SeleccionTipoPremium() {
               <div className="p-6 space-y-4">
                 <div className="flex items-center gap-3">
                   {xmlProducts.length > 0 ? (
-                    <CheckCircle2 className="h-6 w-6 text-cyan-500" />
+                    <CheckCircle2 className="h-6 w-6 text-black-500" />
                   ) : (
                     <FileText className="h-6 w-6 text-gray-400" />
                   )}
-                  <h3 className="text-lg font-semibold text-cyan-900">Archivo XML</h3>
+                  <h3 className="text-lg font-semibold text-black-900">Archivo XML</h3>
                 </div>
 
                 {xmlProducts.length > 0 ? (
                   <div className="space-y-3">
-                    <p className="text-cyan-600 font-medium">✓ {xmlProducts.length} conceptos encontrados</p>
+                    <p className="text-black-600 font-medium">✓ {xmlProducts.length} conceptos encontrados</p>
                     <p className="text-sm text-gray-600">{xmlFileName}</p>
                     <Button
                       variant="outline"
                       onClick={() => xmlInputRef.current?.click()}
-                      className="w-full border-cyan-300 text-cyan-700 hover:bg-cyan-50"
+                      className="w-full border-black-300 text-black-700 hover:bg-black-50"
                     >
                       <Upload className="h-4 w-4 mr-2" />
                       Seleccionar otro archivo
@@ -438,7 +441,7 @@ export default function SeleccionTipoPremium() {
                     <Button
                       onClick={() => xmlInputRef.current?.click()}
                       disabled={isProcessingXml}
-                      className="w-full bg-cyan-600 hover:bg-cyan-700 text-white"
+                      className="w-full bg-black-600 hover:bg-black-700 text-white"
                     >
                       <Upload className="h-4 w-4 mr-2" />
                       {isProcessingXml ? "Procesando..." : "Seleccionar Archivo XML"}
@@ -455,21 +458,21 @@ export default function SeleccionTipoPremium() {
               <div className="p-6 space-y-4">
                 <div className="flex items-center gap-3">
                   {excelProducts.length > 0 ? (
-                    <CheckCircle2 className="h-6 w-6 text-cyan-500" />
+                    <CheckCircle2 className="h-6 w-6 text-black-500" />
                   ) : (
                     <FileSpreadsheet className="h-6 w-6 text-gray-400" />
                   )}
-                  <h3 className="text-lg font-semibold text-cyan-900">Archivo Excel</h3>
+                  <h3 className="text-lg font-semibold text-black-900">Archivo Excel</h3>
                 </div>
 
                 {excelProducts.length > 0 ? (
                   <div className="space-y-3">
-                    <p className="text-cyan-600 font-medium">✓ {excelProducts.length} productos encontrados</p>
+                    <p className="text-black-600 font-medium">✓ {excelProducts.length} productos encontrados</p>
                     <p className="text-sm text-gray-600">{excelFileName}</p>
                     <Button
                       variant="outline"
                       onClick={() => excelInputRef.current?.click()}
-                      className="w-full border-cyan-300 text-cyan-700 hover:bg-cyan-50"
+                      className="w-full border-black-300 text-black-700 hover:bg-black-50"
                     >
                       <Upload className="h-4 w-4 mr-2" />
                       Seleccionar otro archivo
@@ -481,7 +484,7 @@ export default function SeleccionTipoPremium() {
                     <Button
                       onClick={() => excelInputRef.current?.click()}
                       disabled={isProcessingExcel}
-                      className="w-full bg-cyan-600 hover:bg-cyan-700 text-white"
+                      className="w-full bg-black-600 hover:bg-black-700 text-white"
                     >
                       <Upload className="h-4 w-4 mr-2" />
                       {isProcessingExcel ? "Procesando..." : "Seleccionar Archivo Excel"}
@@ -494,33 +497,33 @@ export default function SeleccionTipoPremium() {
 
           {/* Financial Summary for XML */}
           {selectedType === "XML" && xmlProducts.length > 0 && (
-            <Card className="glass border-cyan-300">
+            <Card className="glass border-black-300">
               <div className="p-6 space-y-4">
                 <div className="flex items-center gap-3">
-                  <DollarSign className="h-6 w-6 text-cyan-600" />
-                  <h3 className="text-lg font-semibold text-cyan-900">Resumen Financiero XML</h3>
+                  <DollarSign className="h-6 w-6 text-black-600" />
+                  <h3 className="text-lg font-semibold text-black-900">Resumen Financiero XML</h3>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <p className="text-sm text-gray-600">Conceptos</p>
-                    <p className="text-xl font-bold text-cyan-700">{xmlProducts.length}</p>
+                    <p className="text-xl font-bold text-black-700">{xmlProducts.length}</p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm text-gray-600">Total Cantidad</p>
-                    <p className="text-xl font-bold text-cyan-700">
+                    <p className="text-xl font-bold text-black-700">
                       {xmlProducts.reduce((sum, p) => sum + p.cantidad, 0)} pzs
                     </p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm text-gray-600">Total Importe</p>
-                    <p className="text-xl font-bold text-cyan-700">
+                    <p className="text-xl font-bold text-black-700">
                       ${xmlProducts.reduce((sum, p) => sum + p.importe, 0).toFixed(2)}
                     </p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm text-gray-600">Precio Promedio</p>
-                    <p className="text-xl font-bold text-cyan-700">
+                    <p className="text-xl font-bold text-black-700">
                       ${(xmlProducts.reduce((sum, p) => sum + p.valorUnitario, 0) / xmlProducts.length).toFixed(2)}
                     </p>
                   </div>
@@ -533,13 +536,13 @@ export default function SeleccionTipoPremium() {
           {selectedType && (
             <Card className="glass border-white/40">
               <div className="p-6 space-y-4">
-                <h3 className="text-lg font-semibold text-cyan-900">Ingresa el Folio</h3>
+                <h3 className="text-lg font-semibold text-black-900">Ingresa el Folio</h3>
 
                 <Input
                   value={folio}
                   onChange={(e) => setFolio(e.target.value)}
                   placeholder="Folio del documento"
-                  className="border-cyan-300 focus:border-cyan-500 focus:ring-cyan-500"
+                  className="border-black-300 focus:border-black-500 focus:ring-black-500"
                 />
 
                 <Button
@@ -550,7 +553,7 @@ export default function SeleccionTipoPremium() {
                     (selectedType === "EXCEL" && excelProducts.length === 0) ||
                     (selectedType === "XML" && xmlProducts.length === 0)
                   }
-                  className="w-full bg-cyan-600 hover:bg-cyan-700 text-white disabled:bg-gray-300 disabled:text-gray-500"
+                  className="w-full bg-black-600 hover:bg-black-700 text-white disabled:bg-gray-300 disabled:text-gray-500"
                 >
                   Continuar
                 </Button>
