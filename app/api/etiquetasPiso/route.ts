@@ -11,12 +11,8 @@ export const dynamic = "force-dynamic"
 export const revalidate = 0
 
 // ================= Config ==========================
-// Usa WIN1252 si tus datos históricos son CP1252/Latin1 (Microsip clásico).
-// Usa UTF8 si tu base/tablas/cliente realmente están en UTF8.
 const FB_ENCODING = (process.env.FB_ENCODING || "WIN1252").toUpperCase() as "WIN1252" | "UTF8"
-
-// Activa el doble CAST (OCTETS -> WIN1252 -> UTF8) para columnas texto con datos CP1252 guardados en NONE.
-const FIX_SQL = (process.env.FIX_SQL || "0") === "1"
+const FIX_SQL = (process.env.FIX_SQL || "1") === "1"
 
 const fbConfig: fb.Options = {
   host: process.env.FIREBIRD_HOST || "85.215.109.213",
@@ -24,11 +20,21 @@ const fbConfig: fb.Options = {
   database: process.env.FB_DATABASE || "D:\\Microsip datos\\GUIMAR.FDB",
   user: process.env.FIREBIRD_USER || "SYSDBA",
   password: process.env.FIREBIRD_PASSWORD || "BlueMamut$23",
-  encoding: FB_ENCODING, // 👈 esta es la única “decodificación” que necesitamos
+  encoding: "UTF8",
 }
 
 const JWT_SECRET = process.env.JWT_SECRET || "elyssia-secret-key"
 const LOGS_DIR = process.env.LOGS_DIR || "./logs"
+
+// ======== Config de redondeo de precios ============
+type RoundMode = "ROUND" | "CEIL" | "FLOOR"
+const PRICE_ROUND_MODE = (process.env.PRICE_ROUND_MODE as RoundMode) || "ROUND"
+
+const _DEC_STR = process.env.PRICE_DECIMALS
+const PRICE_DECIMALS = _DEC_STR === undefined ? 0 : Number(_DEC_STR)
+if (!Number.isFinite(PRICE_DECIMALS) || PRICE_DECIMALS < 0) {
+  throw new Error("PRICE_DECIMALS inválido (use entero >= 0)")
+}
 
 // ================= Logs ============================
 if (!fs.existsSync(LOGS_DIR)) fs.mkdirSync(LOGS_DIR, { recursive: true })
@@ -57,13 +63,6 @@ function log(msg: string, level: "INFO" | "ERROR" | "DEBUG" | "WARN" = "INFO") {
   else console.log(line)
 }
 
-// ================= Auth opcional ===================
-function verifyToken(token?: string) {
-  if (!token) return null
-  try { return jwt.verify(token, JWT_SECRET) }
-  catch (e) { log(`JWT inválido: ${e}`, "WARN"); return null }
-}
-
 // ================= Utils ===========================
 type Row = {
   R_CODIGO: string
@@ -90,54 +89,63 @@ const toNum = (v: any, d = 0) => {
   return Number.isFinite(n) ? n : d
 }
 
-const mapRow = (r: Row): ApiRow => ({
-  // ⚠️ NO decodifiques de nuevo. Ya vienen bien por 'encoding' de la conexión.
-  codigo: r.R_CODIGO ?? "",
-  descripcion: r.R_DESCRIPCION ?? "",
-  unidad_venta: r.R_UNIDAD_VENTA ?? "",
-  inventario_maximo: toNum(r.R_INVENTARIO_MAXIMO),
-  precio_lista_iva: toNum(r.R_PRECIO_LIST_IVA),
-  precio_mayor_iva: toNum(r.R_PRECIO_MAYOR_IVA),
-  estatus: r.R_ESTATUS == null ? null : r.R_ESTATUS,
-})
+function roundPrice(v: any, decimals = PRICE_DECIMALS, mode: RoundMode = PRICE_ROUND_MODE): number {
+  const n = toNum(v, 0)
+  if (!Number.isFinite(n)) return 0
+  const factor = Math.pow(10, decimals)
+  const scaled = Number((n * factor).toFixed(8))
+  let roundedScaled: number
+  switch (mode) {
+    case "CEIL": roundedScaled = Math.ceil(scaled); break
+    case "FLOOR": roundedScaled = Math.floor(scaled); break
+    default: roundedScaled = Math.round(scaled)
+  }
+  const out = roundedScaled / factor
+  return Number(out.toFixed(decimals))
+}
+
+// Mapeo con logs de entrada/salida
+const mapRow = (r: Row, rid: string): ApiRow => {
+  console.log(`[${rid}] Valores crudos Firebird:`, {
+    R_CODIGO: r.R_CODIGO,
+    R_DESCRIPCION: r.R_DESCRIPCION,
+    R_UNIDAD_VENTA: r.R_UNIDAD_VENTA,
+    R_INVENTARIO_MAXIMO: r.R_INVENTARIO_MAXIMO,
+    R_PRECIO_LIST_IVA: r.R_PRECIO_LIST_IVA,
+    R_PRECIO_MAYOR_IVA: r.R_PRECIO_MAYOR_IVA,
+    R_ESTATUS: r.R_ESTATUS
+  })
+
+  const mapped: ApiRow = {
+    codigo: r.R_CODIGO ?? "",
+    descripcion: r.R_DESCRIPCION ?? "",
+    unidad_venta: r.R_UNIDAD_VENTA ?? "",
+    inventario_maximo: toNum(r.R_INVENTARIO_MAXIMO),
+    precio_lista_iva: roundPrice(r.R_PRECIO_LIST_IVA),
+    precio_mayor_iva: roundPrice(r.R_PRECIO_MAYOR_IVA),
+    estatus: r.R_ESTATUS ?? null,
+  }
+
+  console.log(`[${rid}] Mapeado/redondeado:`, mapped)
+  return mapped
+}
 
 // ================= DB helper =======================
 function queryFirebird<T = any>(sql: string, params: any[] = []): Promise<T[]> {
-  log(`SQL: ${sql.replace(/\s+/g, " ").trim()} | params: ${JSON.stringify(params)}`, "DEBUG")
   return new Promise((resolve, reject) => {
     fb.attach(fbConfig, (err, db) => {
-      if (err || !db) {
-        log(`Error conectando a Firebird: ${err?.message || err}`, "ERROR")
-        return reject(err)
-      }
+      if (err || !db) return reject(err)
       db.query(sql, params, (qErr: any, rows: any[]) => {
         try { db.detach(() => {}) } catch {}
-        if (qErr) {
-          log(`Error en consulta Firebird: ${qErr?.message}`, "ERROR")
-          return reject(qErr)
-        }
+        if (qErr) return reject(qErr)
         resolve(rows || [])
       })
     })
   })
 }
 
-// ================= SQL (doble CAST opcional) =========
-// NONE/CP1252 -> UTF8: OCTETS -> WIN1252 -> UTF8
-function buildSQL(useFix: boolean) {
-  if (!useFix) {
-    return `
-      SELECT
-        R_CODIGO,
-        R_DESCRIPCION,
-        R_UNIDAD_VENTA,
-        R_INVENTARIO_MAXIMO,
-        R_PRECIO_LIST_IVA,
-        R_PRECIO_MAYOR_IVA,
-        R_ESTATUS
-      FROM DET_ART_ETIQUETAS(?, ?)
-    `
-  }
+// ================= SQL (con FIX) ===================
+function buildSQL() {
   const fix = (col: string, len = 200) => `
     CAST(
       CAST(
@@ -160,75 +168,26 @@ function buildSQL(useFix: boolean) {
 }
 
 // ================= RUTA =============================
-// GET /api/buscarArticulo?codigo=XXXXX&almacen=19
 export async function GET(req: NextRequest) {
   const rid = Math.random().toString(36).slice(2, 10)
   try {
-    log(`[${rid}] GET /api/buscarArticulo (FB_ENCODING=${FB_ENCODING}, FIX_SQL=${FIX_SQL})`)
-
-    const authHeader = req.headers.get("authorization")
-    if (authHeader?.startsWith("Bearer ")) verifyToken(authHeader.slice(7))
-
     const { searchParams } = new URL(req.url)
     const codigo = (searchParams.get("codigo") || req.headers.get("x-codigo") || "").trim()
     const almacenStr = (searchParams.get("almacen") || req.headers.get("x-almacen") || "").trim()
-
-    if (!codigo) {
-      return NextResponse.json(
-        { ok: false, error: "Falta el parámetro 'codigo'." },
-        { status: 400, headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json; charset=utf-8" } }
-      )
-    }
-    if (!almacenStr || !/^-?\d+$/.test(almacenStr)) {
-      return NextResponse.json(
-        { ok: false, error: "Falta o es inválido el parámetro 'almacen'." },
-        { status: 400, headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json; charset=utf-8" } }
-      )
-    }
     const almacen = Number(almacenStr)
 
-    const sql = buildSQL(FIX_SQL)
-    log(`[${rid}] Ejecutando DET_ART_ETIQUETAS(codigo='${codigo}', almacen=${almacen}) | fixCast=${FIX_SQL}`, "DEBUG")
-
+    const sql = buildSQL()
     const rows = await queryFirebird<Row>(sql, [codigo, almacen])
 
     if (rows.length === 0) {
-      log(`[${rid}] Sin resultados para codigo=${codigo} en almacen=${almacen}`, "WARN")
-      return NextResponse.json(
-        { ok: false, error: "Artículo no encontrado para el almacén seleccionado." },
-        { status: 404, headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json; charset=utf-8" } }
-      )
+      return NextResponse.json({ ok: false, error: "Artículo no encontrado" }, { status: 404 })
     }
 
-    const data = rows.map(mapRow)
-    log(`[${rid}] Resultados: ${data.length} | muestra='${data[0]?.descripcion}'`, "INFO")
+    const data = rows.map(r => mapRow(r, rid))
 
-    return NextResponse.json(
-      { ok: true, data },
-      { headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json; charset=utf-8" } }
-    )
+    return NextResponse.json({ ok: true, data })
   } catch (error: any) {
-    log(`[${rid}] ERROR: ${error?.message}`, "ERROR")
-    log(`[${rid}] STACK: ${error?.stack}`, "DEBUG")
-    return NextResponse.json(
-      { ok: false, error: "Error interno del servidor", message: String(error?.message || error) },
-      { status: 500, headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json; charset=utf-8" } }
-    )
+    console.error(`[${rid}] ERROR:`, error)
+    return NextResponse.json({ ok: false, error: "Error interno" }, { status: 500 })
   }
-}
-
-// ================= OPTIONS (CORS) ===================
-export async function OPTIONS() {
-  log("OPTIONS /api/buscarArticulo")
-  return NextResponse.json(
-    {},
-    {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization, x-codigo, x-almacen",
-        "Content-Type": "application/json; charset=utf-8",
-      },
-    }
-  )
 }
