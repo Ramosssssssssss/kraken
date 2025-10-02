@@ -329,7 +329,7 @@ const LABEL_TEMPLATES = [
   },
     {
     id: "Chica-50x25",
-    name: "Chica (50×25.4 )",
+    name: "Chica Totolcingo (50×25.4 )",
     width: 49,
     height: 25.4,
     css: (w: number, h: number, pad: number) => `
