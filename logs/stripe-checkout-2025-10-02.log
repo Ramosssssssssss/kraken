@@ -1,0 +1,12 @@
+[02/10/2025, 10:00:18 a. m.] [INFO] [r4zkd7ngo0j] Iniciando POST /api/stripe/checkout
+[02/10/2025, 10:00:19 a. m.] [DEBUG] [r4zkd7ngo0j] CustomerID=cus_T9noRDUR5uGhGK para email=jajonese@fyttsa.com
+[02/10/2025, 10:00:19 a. m.] [INFO] [r4zkd7ngo0j] Checkout creado -> cs_test_b1Vjrm4HjHGbHypTprxan5El0ZZMUonEj1ruUP8svmnKh3DFhfxirrQ3aL
+[02/10/2025, 10:35:25 a. m.] [INFO] [myl4kblf4j] Iniciando POST /api/stripe/checkout
+[02/10/2025, 10:35:26 a. m.] [DEBUG] [myl4kblf4j] CustomerID=cus_T9noRDUR5uGhGK para email=jajonese@fyttsa.com
+[02/10/2025, 10:35:27 a. m.] [INFO] [myl4kblf4j] Checkout creado -> cs_test_b10cv9WyQzqv6YilcYLrHWwF2alvEypAPQzcZtq56Qjw7nXT7laM4TJSgf
+[02/10/2025, 10:37:58 a. m.] [INFO] [zuvuiri2838] Iniciando POST /api/stripe/checkout
+[02/10/2025, 10:37:59 a. m.] [DEBUG] [zuvuiri2838] CustomerID=cus_T9noRDUR5uGhGK para email=jajonese@fyttsa.com
+[02/10/2025, 10:37:59 a. m.] [INFO] [zuvuiri2838] Checkout creado -> cs_test_b1uXpEZZgH5h4TMNl2ktXBc3vg7tBhB3NaaOeYzLXm2k6rMg3UrFzAmowf
+[02/10/2025, 10:44:11 a. m.] [INFO] [mz6hpr7juyq] Iniciando POST /api/stripe/checkout
+[02/10/2025, 10:44:12 a. m.] [DEBUG] [mz6hpr7juyq] CustomerID=cus_T9noRDUR5uGhGK para email=jajonese@fyttsa.com
+[02/10/2025, 10:44:12 a. m.] [INFO] [mz6hpr7juyq] Checkout creado -> cs_test_b1n63coKHmH2zGx1QaCxOs6w14RIX5zYe83dUUWBerPuQryHKrHoZjgeRJ

@@ -1,3 +1,4 @@
+// lib/company-context.tsx
 "use client"
 
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react"

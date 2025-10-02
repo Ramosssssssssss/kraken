@@ -1,11 +1,14 @@
-"use client"
+"use client";
 
-import { User, Crown, Clock, Zap } from "lucide-react"
+import { User, Crown, Clock, Zap } from "lucide-react";
+import Link from "next/link";
 
 export default function AccountSection() {
   return (
     <div className="space-y-6">
-      <h2 className="text-3xl font-bold text-white">CONFIGURACIÓN DE TU CUENTA</h2>
+      <h2 className="text-3xl font-bold text-white">
+        CONFIGURACIÓN DE TU CUENTA
+      </h2>
 
       {/* Información del Usuario */}
       <div className="bg-black border border-white/20 rounded-lg p-6 space-y-4">
@@ -45,7 +48,9 @@ export default function AccountSection() {
               <span className="text-gray-400">Tiempo Restante</span>
             </div>
             <p className="text-2xl font-bold text-green-400">23 días</p>
-            <p className="text-sm text-gray-500">Próxima facturación: 15 Ene 2025</p>
+            <p className="text-sm text-gray-500">
+              Próxima facturación: 15 Ene 2025
+            </p>
           </div>
 
           <div className="bg-black border border-white/10 rounded-lg p-4">
@@ -62,15 +67,19 @@ export default function AccountSection() {
           <button className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
             Actualizar Plan
           </button>
-          <button className="border border-white/30 text-white px-4 py-2 rounded-lg hover:bg-white/10 transition-colors">
-            Ver Facturación
-          </button>
+          <Link href="/planes">
+            <button className="border border-white/30 text-white px-4 py-2 rounded-lg hover:bg-white/10 transition-colors">
+              Ver Facturación
+            </button>
+          </Link>
         </div>
       </div>
 
       {/* Estadísticas de Uso */}
       <div className="bg-black border border-white/20 rounded-lg p-6">
-        <h3 className="text-xl font-semibold text-white mb-4">Estadísticas de Uso</h3>
+        <h3 className="text-xl font-semibold text-white mb-4">
+          Estadísticas de Uso
+        </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center">
             <div className="text-2xl font-bold text-blue-400">156</div>
@@ -91,5 +100,5 @@ export default function AccountSection() {
         </div>
       </div>
     </div>
-  )
+  );
 }
