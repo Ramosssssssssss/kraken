@@ -109,7 +109,7 @@ const LABEL_TEMPLATES = [
         <div class="pl">Distribuidor: ${escapeHTML(money(a.distribuidor))}</div>
       </div></div></div>`,
     preview: (a: ArticleItem) => (
-      <div className="w-full h-full grid" style={{ gridTemplateColumns: "repeat(3, 1fr)", gridTemplateRows: "repeat(6, minmax(0, auto))", gap: "3px 8px", fontSize: 12, lineHeight: 1.05 }}>
+      <div className="w-full h-full grid bg-[#d2c600]" style={{ gridTemplateColumns: "repeat(3, 1fr)", gridTemplateRows: "repeat(6, minmax(0, auto))", gap: "3px 8px", fontSize: 12, lineHeight: 1.05 }}>
         <div className="col-[1/4] row-[1/3] font-bold flex items-center">{a.nombre}</div>
         <div className="col-[1/2] row-[3/4]"><span className="font-semibold">G - {Number.isFinite(a.inventarioMaximo) ? a.inventarioMaximo : 0}</span></div>
         <div className="col-[1/2] row-[4/5]"><span className="font-semibold">{a.estatus ?? "-"}</span></div>
@@ -124,8 +124,8 @@ const LABEL_TEMPLATES = [
   {
     id: "25x25",
     name: "Pequeñas (25×25 mm)",
-    width: 25,
-    height: 25,
+    width: 25.4,
+    height: 25.4,
     css: (w: number, h: number) => `
       @page{size:${w}mm ${h}mm;margin:0}
       *{box-sizing:border-box;margin:0;padding:0}
@@ -134,13 +134,12 @@ const LABEL_TEMPLATES = [
       .p:last-child{page-break-after:auto}
       .l{width:${w}mm;height:${h}mm;padding:1mm;display:flex; flex: 1;}
 
-      .g{width:${w}mm;height:${h}mm;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(6, 0fr));font-size:7px;font-weight: bold;}
+      .g{width:${w}mm;height:${h}mm;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(6, 0fr));gap:0px;font-size:7px;font-weight: bold; padding: 1mm;}
 
       .desc{grid-area: 1/1/2/4;
-     font-weight: bold;
+  font-weight: bold;
   text-align: left;
   font-size: 8px;
-  margin-top: 1.5mm;
   line-height: 1.2;
   display: -webkit-box;      
   -webkit-line-clamp: 1;         
@@ -167,16 +166,16 @@ const LABEL_TEMPLATES = [
         <div class="co"><span class="b">${escapeHTML(a.codigo)}</span></div>
         <div class="fe"><span class="b">${escapeHTML(a.fecha)}</span></div>
         <div class="pm">${escapeHTML(money(a.precio))}</div>
-        <div class="pl">Dist: ${escapeHTML(money(a.distribuidor))}</div>
+        <div class="pl">Dis: ${escapeHTML(money(a.distribuidor))}</div>
       </div></div></div>`,
     preview: (a: ArticleItem) => (
-      <div className="w-full h-full grid" style={{ gridTemplateColumns: "repeat(3, 1fr)", gridTemplateRows: "repeat(6, minmax(0, auto))", gap: "3px 8px", lineHeight: 1.05 }}>
-        <div className="col-[1/4] row-[1/3] font-bold flex items-center text-[6px]">{a.nombre}</div>
-        <div className="col-[1/2] row-[3/4]"><span className="font-semibold text-[6px]">G - {Number.isFinite(a.inventarioMaximo) ? a.inventarioMaximo : 0}</span></div>
-        <div className="col-[1/2] row-[4/5]"><span className="font-semibold text-[6px]">{a.estatus ?? "-"}</span></div>
-        <div className="col-[1/2] row-[5/6]"><span className="font-semibold text-[6px]">{a.unidad}</span></div>
-        <div className="col-[1/2] row-[6/7]"><span className="font-semibold text-[6px]">{a.codigo}</span></div>
-        <div className="col-[2/4] row-[3/4] text-right"><span className="font-semibold text-[6px]">{a.fecha}</span></div>
+      <div className="w-full h-full grid bg-[#d2c600]" style={{ gridTemplateColumns: "repeat(3, 1fr)", gridTemplateRows: "repeat(6, minmax(0, auto))", gap: "3px 8px", lineHeight: 1.05 }}>
+        <div className="col-[1/4] row-[1/3] font-bold flex items-center text-[5px]">{a.nombre}</div>
+        <div className="col-[1/2] row-[3/4]"><span className="font-semibold text-[5px]">G - {Number.isFinite(a.inventarioMaximo) ? a.inventarioMaximo : 0}</span></div>
+        <div className="col-[1/2] row-[4/5]"><span className="font-semibold text-[5px]">{a.estatus ?? "-"}</span></div>
+        <div className="col-[1/2] row-[5/6]"><span className="font-semibold text-[5px]">{a.unidad}</span></div>
+        <div className="col-[1/2] row-[6/7]"><span className="font-semibold text-[5px]">{a.codigo}</span></div>
+        <div className="col-[2/4] row-[3/4] text-right"><span className="font-semibold text-[5px]">{a.fecha}</span></div>
         <div className="col-[2/4] row-[4/6] flex items-center justify-end font-extrabold text-[15px]">{money(a.precio)}</div>
         <div className="col-[2/4] row-[6/7] text-right font-semibold text-[6px]">Distribuidor: {money(a.distribuidor)}</div>
       </div>
@@ -285,10 +284,10 @@ const LABEL_TEMPLATES = [
       </div>
     )
   },
-    {
+  {
     id: "blanca-40x22",
     name: "Etiqueta blanca (40×22.4 )",
-    width: 60,
+    width: 40,
     height: 22.4,
     css: (w: number, h: number, pad: number) => `
       @page{size:${w}mm ${h}mm;margin:0}
@@ -297,10 +296,13 @@ const LABEL_TEMPLATES = [
       .p{width:${w}mm;height:${h}mm;page-break-after:always;display:flex;align-items:center;justify-content:center}
       .p:last-child{page-break-after:auto}
       .l{width:${w}mm;height:${h}mm;padding:${pad}mm;display:flex}
-      .g{width:100%;height:100%;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(6,minmax(0,auto));gap:3px 8px;font-size:11px;line-height:1.05}
-      .desc{grid-area:1/1/3/4;font-weight:700;text-align:left;font-size:12px;line-height:1.2;white-space:normal;overflow-wrap:break-word;display:flex;align-items:center}
+      .g{width:100%;height:100%;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(6,minmax(0,auto));gap:3px;font-size:8px;line-height:1.05; padding:1mm;}
+
+      .desc{grid-area:1/1/3/4;font-weight:700;text-align:left;font-size:9px;line-height:1.2;white-space:normal;overflow-wrap:break-word;display:flex;align-items:center}
+
       .im{grid-area:3/1/4/2}.es{grid-area:4/1/5/2}.un{grid-area:5/1/6/2}.co{grid-area:6/1/7/2}.fe{grid-area:3/2/4/4;text-align:right}
-      .pm{grid-area:4/2/6/4;display:flex;align-items:center;justify-content:flex-end;font-weight:700;font-size:35px}
+
+      .pm{grid-area:4/2/6/4;display:flex;align-items:center;justify-content:flex-end;font-weight:700;font-size:25px}
       .pl{grid-area:6/2/7/4;text-align:right;font-weight:600}.b{font-weight:600}
     `,
     renderHTML: (a: ArticleItem) => `
@@ -315,19 +317,19 @@ const LABEL_TEMPLATES = [
         <div class="pl">Distribuidor: ${escapeHTML(money(a.distribuidor))}</div>
       </div></div></div>`,
     preview: (a: ArticleItem) => (
-      <div className="w-full h-full grid" style={{ gridTemplateColumns: "repeat(3, 1fr)", gridTemplateRows: "repeat(6, minmax(0, auto))", gap: "3px 8px", fontSize: 12, lineHeight: 1.05 }}>
+      <div className="w-full h-full grid" style={{ gridTemplateColumns: "repeat(3, 1fr)", gridTemplateRows: "repeat(6, minmax(0, auto))", gap: "3px 8px", fontSize: 8, lineHeight: 1.05 }}>
         <div className="col-[1/4] row-[1/3] font-bold flex items-center">{a.nombre}</div>
         <div className="col-[1/2] row-[3/4]"><span className="font-semibold">G - {Number.isFinite(a.inventarioMaximo) ? a.inventarioMaximo : 0}</span></div>
         <div className="col-[1/2] row-[4/5]"><span className="font-semibold">{a.estatus ?? "-"}</span></div>
         <div className="col-[1/2] row-[5/6]"><span className="font-semibold">{a.unidad}</span></div>
         <div className="col-[1/2] row-[6/7]"><span className="font-semibold">{a.codigo}</span></div>
         <div className="col-[2/4] row-[3/4] text-right"><span className="font-semibold">{a.fecha}</span></div>
-        <div className="col-[2/4] row-[4/6] flex items-center justify-end font-extrabold text-[35px]">{money(a.precio)}</div>
+        <div className="col-[2/4] row-[4/6] flex items-center justify-end font-extrabold text-[25px]">{money(a.precio)}</div>
         <div className="col-[2/4] row-[6/7] text-right font-semibold">Distribuidor: {money(a.distribuidor)}</div>
       </div>
     )
   },
-    {
+  {
     id: "Chica-50x25",
     name: "Chica Totolcingo (50×25.4 )",
     width: 49,
@@ -362,14 +364,14 @@ const LABEL_TEMPLATES = [
         <div class="pl">Distribuidor: ${escapeHTML(money(a.distribuidor))}</div>
       </div></div></div>`,
     preview: (a: ArticleItem) => (
-      <div className="w-full h-full grid" style={{ gridTemplateColumns: "repeat(3, 1fr)", gridTemplateRows: "repeat(6, minmax(0, auto))", gap: "3px 8px", fontSize: 12, lineHeight: 1.05 }}>
+      <div className="w-full h-full grid bg-[#d2c600]" style={{ gridTemplateColumns: "repeat(3, 1fr)", gridTemplateRows: "repeat(6, minmax(0, auto))", gap: "1px", fontSize: 9, lineHeight: 1.05 }}>
         <div className="col-[1/4] row-[1/3] font-bold flex items-center">{a.nombre}</div>
         <div className="col-[1/2] row-[3/4]"><span className="font-semibold">G - {Number.isFinite(a.inventarioMaximo) ? a.inventarioMaximo : 0}</span></div>
         <div className="col-[1/2] row-[4/5]"><span className="font-semibold">{a.estatus ?? "-"}</span></div>
         <div className="col-[1/2] row-[5/6]"><span className="font-semibold">{a.unidad}</span></div>
         <div className="col-[1/2] row-[6/7]"><span className="font-semibold">{a.codigo}</span></div>
         <div className="col-[2/4] row-[3/4] text-right"><span className="font-semibold">{a.fecha}</span></div>
-        <div className="col-[2/4] row-[4/6] flex items-center justify-end font-extrabold text-[30px]">{money(a.precio)}</div>
+        <div className="col-[2/4] row-[4/6] flex items-center justify-end font-extrabold text-[25px]">{money(a.precio)}</div>
         <div className="col-[2/4] row-[6/7] text-right font-semibold">Distribuidor: {money(a.distribuidor)}</div>
       </div>
     )
@@ -612,7 +614,7 @@ export default function LabelGenerator() {
             <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm h-full flex flex-col w-full">
               <CardHeader className="border-b border-gray-600 flex w-full justify-between">
                 <CardTitle className="flex items-center gap-2 text-white"><Settings className="w-5 h-5 text-purple-300" />Configuración</CardTitle>
-                <CardTitle className="flex items-center gap-2 text-white font-light text-xs">v2.2.5</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-white font-light text-xs">v2.2.6</CardTitle>
               </CardHeader>
               <CardContent className="p-6 space-y-6">
                 {/* Selector de plantilla */}
@@ -670,50 +672,50 @@ export default function LabelGenerator() {
                       ? `Importando ${importProgress.done}/${importProgress.total}`
                       : "Importar Excel"}
                   </Button>
-{/* Input oculto para subir Excel/CSV */}
-<input
-  ref={fileRef}
-  type="file"
-  className="hidden"
-  accept=".xlsx,.xls,.csv"
-  onChange={async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    // Opcional: validación rápida de tamaño (ej. 10 MB)
-    if (file.size > 10 * 1024 * 1024) {
-      new Noty({
-        type: "error",
-        layout: "topRight",
-        theme: "mint",
-        text: "El archivo es muy grande (máx 10 MB).",
-        timeout: 3000,
-      }).show();
-      e.currentTarget.value = "";
-      return;
-    }
-    try {
-      await importFromExcel(file);
-      new Noty({
-        type: "success",
-        layout: "topRight",
-        theme: "mint",
-        text: "Importación completada.",
-        timeout: 2500,
-      }).show();
-    } catch (err: any) {
-      new Noty({
-        type: "error",
-        layout: "topRight",
-        theme: "mint",
-        text: err?.message ?? "Error al importar el archivo.",
-        timeout: 3000,
-      }).show();
-    } finally {
-      // Permite re-seleccionar el mismo archivo después
-      e.currentTarget.value = "";
-    }
-  }}
-/>
+                  {/* Input oculto para subir Excel/CSV */}
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    className="hidden"
+                    accept=".xlsx,.xls,.csv"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      // Opcional: validación rápida de tamaño (ej. 10 MB)
+                      if (file.size > 10 * 1024 * 1024) {
+                        new Noty({
+                          type: "error",
+                          layout: "topRight",
+                          theme: "mint",
+                          text: "El archivo es muy grande (máx 10 MB).",
+                          timeout: 3000,
+                        }).show();
+                        e.currentTarget.value = "";
+                        return;
+                      }
+                      try {
+                        await importFromExcel(file);
+                        new Noty({
+                          type: "success",
+                          layout: "topRight",
+                          theme: "mint",
+                          text: "Importación completada.",
+                          timeout: 2500,
+                        }).show();
+                      } catch (err: any) {
+                        new Noty({
+                          type: "error",
+                          layout: "topRight",
+                          theme: "mint",
+                          text: err?.message ?? "Error al importar el archivo.",
+                          timeout: 3000,
+                        }).show();
+                      } finally {
+                        // Permite re-seleccionar el mismo archivo después
+                        e.currentTarget.value = "";
+                      }
+                    }}
+                  />
 
                   <Button
                     onClick={handlePrint}
@@ -723,7 +725,7 @@ export default function LabelGenerator() {
                     <Printer className="w-4 h-4 mr-2" />
                     Imprimir ({totalLabels})
                   </Button>
-                   {/* <Button type="button" variant="outline" className="border-gray-600 text-white" >
+                  {/* <Button type="button" variant="outline" className="border-gray-600 text-white" >
                     <Search className="w-4 h-4 mr-2" />
                     Buscar por ubicación
                   </Button> */}
@@ -751,20 +753,20 @@ export default function LabelGenerator() {
                 <CardHeader className="border-b border-gray-600 shrink-0">
                   <div className="flex items-center justify-between gap-3">
                     <CardTitle className="text-white">Artículos ({articles.length})</CardTitle>
-                   <div className="flex items-center">
-                     <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={resetArticles}
-                      disabled={articles.length === 0}
-                      title="Eliminar todos los artículos"
-                      className="text-red-400 hover:text-red-300 hover:bg-red-900/20 disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                    </Button>
+                    <div className="flex items-center">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={resetArticles}
+                        disabled={articles.length === 0}
+                        title="Eliminar todos los artículos"
+                        className="text-red-400 hover:text-red-300 hover:bg-red-900/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                      </Button>
 
-                    <span className="text-sm text-purple-300">Total: {totalLabels} etiquetas</span></div>
-                   </div>
+                      <span className="text-sm text-purple-300">Total: {totalLabels} etiquetas</span></div>
+                  </div>
                 </CardHeader>
 
                 <CardContent className="p-6 flex-1 flex flex-col min-h-0">
