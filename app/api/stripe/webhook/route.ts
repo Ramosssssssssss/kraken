@@ -23,7 +23,7 @@ const webhookSecret = required("STRIPE_WEBHOOK_SECRET_BS");
 const fbConfig: fb.Options = {
   host: "localhost",
   port: 3050,
-  database: "C:\\ELYSSIA\\ELYSSIA.FDB",
+  database: "C:\\BS\\BLACKSHEEP.FDB",
   user: "SYSDBA",
   password: "BlueMamut$23",
   lowercase_keys: false,

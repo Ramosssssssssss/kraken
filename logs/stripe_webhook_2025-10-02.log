@@ -1,0 +1,6 @@
+[2025-10-02T18:06:17.409Z] ✅ Processed: evt_1SDqtQ4eLk2TL6PZqfdCWn7r (customer.subscription.created)
+[2025-10-02T18:06:17.552Z] ℹ️ Unhandled event: payment_intent.succeeded
+[2025-10-02T18:06:17.553Z] ✅ Processed: evt_3SDqtM4eLk2TL6PZ0vXtEZ9s (payment_intent.succeeded)
+[2025-10-02T18:06:17.609Z] ✅ Processed: evt_1SDqtQ4eLk2TL6PZ2q6ChlDT (invoice.paid)
+[2025-10-02T18:06:17.681Z] ✅ Processed: evt_1SDqtR4eLk2TL6PZagOAcCQ1 (checkout.session.completed)
+[2025-10-02T18:07:48.573Z] ✅ Processed: evt_1SDquu4eLk2TL6PZZVxpwXCt (customer.subscription.deleted)

@@ -1,32 +1,62 @@
-// app/api/stripe/checkout/verify/route.ts
+// /app/api/stripe/checkout/verify/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-08-27.basil",
-});
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-export async function GET(req: NextRequest) {
+// Lazy init: no crear Stripe en el top-level
+let _stripe: Stripe | null = null;
+function stripe() {
+  if (!_stripe) {
+    const key = process.env.STRIPE_SECRET_KEY_BS;
+    if (!key) {
+      // Esto solo se evalúa cuando se invoca la ruta, no en build
+      throw new Error("Missing env STRIPE_SECRET_KEY_BS");
+    }
+    _stripe = new Stripe(key, { apiVersion: "2025-09-30.clover" });
+  }
+  return _stripe!;
+}
+
+export async function POST(req: NextRequest) {
   try {
-    const cs =
-      req.nextUrl.searchParams.get("session_id") ||
-      req.nextUrl.searchParams.get("cs");
-    if (!cs)
-      return NextResponse.json({ error: "Falta session_id" }, { status: 400 });
+    const { sessionId } = await req.json();
+    if (!sessionId) {
+      return NextResponse.json({ error: "Missing sessionId" }, { status: 400 });
+    }
 
-    const session = await stripe.checkout.sessions.retrieve(cs, {
-      expand: ["payment_intent"],
+    // Puedes expandir lo que necesites
+    const s = await stripe().checkout.sessions.retrieve(sessionId, {
+      expand: ["subscription", "payment_intent", "customer"],
     });
 
-    // Para pago único (mode: payment) considerar paid/complete
-    const paid =
-      session.mode === "payment"
-        ? session.payment_status === "paid" || session.status === "complete"
-        : session.payment_status === "paid" || session.status === "complete";
+    // Lógica de verificación: ajusta a tu caso
+    const isPaid = s.payment_status === "paid";
+    const hasActiveSub =
+      typeof s.subscription === "object" &&
+      s.subscription &&
+      s.subscription.status === "active";
 
-    const email = session.customer_details?.email ?? null;
-    return NextResponse.json({ paid, email, mode: session.mode });
+    return NextResponse.json({
+      ok: isPaid || hasActiveSub,
+      payment_status: s.payment_status,
+      subscription_id:
+        typeof s.subscription === "string"
+          ? s.subscription
+          : s.subscription?.id ?? null,
+      customer_id:
+        typeof s.customer === "string" ? s.customer : s.customer?.id ?? null,
+    });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json(
+      { error: e?.message || "Error" },
+      { status: 500 }
+    );
   }
+}
+
+// (Opcional) Si expones GET para debug:
+export async function GET() {
+  return NextResponse.json({ ok: true });
 }
