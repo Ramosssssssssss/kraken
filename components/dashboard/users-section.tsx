@@ -366,7 +366,7 @@ const handleDelete = async (p: Piker) => {
       <h2 className="text-3xl font-semibold text-white/90 tracking-tight">Gestión de Usuarios</h2>
 
       <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_10px_30px_rgba(0,0,0,0.35)] overflow-hidden">
-        {/* Header */}
+        {/* Header */}               
         <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
           <h3 className="text-lg font-medium text-white/90 flex items-center gap-2">
             <Users className="w-5 h-5 text-white/70" />

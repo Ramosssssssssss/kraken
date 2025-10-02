@@ -289,7 +289,7 @@ export default function ExcelReciboPremium({ excelData }: ExcelReciboProps) {
 
       const payload = {
         P_SISTEMA: "IN",
-        P_CONCEPTO_ID: 21,
+        P_CONCEPTO_ID: 27,
         P_SUCURSAL_ID: 384,
         P_ALMACEN_ID: 19,
         P_DESCRIPCION: "ENTRADA DE GOUMAM",
