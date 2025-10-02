@@ -1,3 +1,4 @@
+// components/dashboard/account-section.tsx
 "use client";
 
 import { User, Crown, Clock, Zap } from "lucide-react";

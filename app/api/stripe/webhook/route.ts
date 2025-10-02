@@ -19,7 +19,7 @@ const stripe = new Stripe(required("STRIPE_SECRET_KEY_BS"), {
 });
 const webhookSecret = required("STRIPE_WEBHOOK_SECRET_BS");
 
-/* ========= Firebird config (ajusta si aplica) ========= */
+/* ========= Firebird config ========= */
 const fbConfig: fb.Options = {
   host: "localhost",
   port: 3050,
