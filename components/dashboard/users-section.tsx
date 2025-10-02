@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Users, User, Edit3, UserPlus, MailPlus, X, ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react"
+import { Users, User, Edit3, UserPlus, MailPlus, X, ChevronLeft, ChevronRight, Eye, EyeOff, Trash2} from "lucide-react"
 import { useCompany } from "@/lib/company-context"
 
 type Estatus = "A" | "I"
@@ -48,6 +48,204 @@ export default function UsersSection() {
   const [showPass, setShowPass] = useState(false)
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState("")
+// Modal editar
+const [openEdit, setOpenEdit] = useState(false)
+const [editForm, setEditForm] = useState({
+  PIKER_ID: 0,
+  NOMBRE: "",
+  USUARIO: "",
+  PASS: "",
+  ROL: "PICKER" as RolString,
+  ESTATUS: "A" as Estatus,
+  IMAGEN_COLAB_BASE64: undefined as string | undefined, // undefined = no tocar; "" = limpiar; "...." = actualizar
+  IMAGEN_COLAB_MIME: undefined as string | undefined,
+})
+const [savingEdit, setSavingEdit] = useState(false)
+const [editError, setEditError] = useState("")
+
+// Eliminar
+const [deletingId, setDeletingId] = useState<number | null>(null)
+const [deleteError, setDeleteError] = useState("")
+const openEditWith = (p: Piker) => {
+  setEditError("")
+  setEditForm({
+    PIKER_ID: p.PIKER_ID,
+    NOMBRE: p.NOMBRE || "",
+    USUARIO: p.USUARIO || "",
+    PASS: "", // vacío = no cambiar
+    ROL: normalizeRoleForView(p.ROL),
+    ESTATUS: (p.ESTATUS || "A") as Estatus,
+    IMAGEN_COLAB_BASE64: undefined, // no tocar por default
+    IMAGEN_COLAB_MIME: undefined,
+  })
+  setOpenEdit(true)
+}
+
+const onEditFileChange = (file?: File | null) => {
+  if (!file) {
+    // el usuario quiere limpiar explícitamente la imagen
+    setEditForm(f => ({ ...f, IMAGEN_COLAB_BASE64: "", IMAGEN_COLAB_MIME: undefined }))
+    return
+  }
+  const reader = new FileReader()
+  reader.onload = () => {
+    const result = reader.result as string
+    const [, meta, base64] = result.match(/^data:(.*?);base64,(.*)$/) || []
+    setEditForm(f => ({
+      ...f,
+      IMAGEN_COLAB_BASE64: base64 || "",
+      IMAGEN_COLAB_MIME: meta || file.type || "image/jpeg",
+    }))
+  }
+  reader.readAsDataURL(file)
+}
+const handleUpdate = async (e: React.FormEvent) => {
+  e.preventDefault()
+  setEditError("")
+  if (!apiUrl) return setEditError("No hay API disponible")
+  if (!editForm.NOMBRE.trim()) return setEditError("Nombre es requerido")
+
+  const payload: any = {
+    PIKER_ID: editForm.PIKER_ID,
+    NOMBRE: editForm.NOMBRE.trim(),
+    USUARIO: editForm.USUARIO.trim() || null,
+    ROL: ROLE_TO_INT[editForm.ROL] ?? 1,
+    ESTATUS: editForm.ESTATUS,
+  }
+
+  // Solo enviar PASS si el usuario escribió algo (máx 20)
+  if (editForm.PASS) payload.PASS = (editForm.PASS || "").slice(0, 20)
+
+  // Imagen: undefined = no tocar; "" = limpiar; base64 = actualizar
+  if (typeof editForm.IMAGEN_COLAB_BASE64 === "string") {
+    payload.IMAGEN_COLAB_BASE64 = editForm.IMAGEN_COLAB_BASE64
+    if (editForm.IMAGEN_COLAB_BASE64) {
+      payload.IMAGEN_COLAB_MIME = editForm.IMAGEN_COLAB_MIME || "image/jpeg"
+    }
+  }
+
+  try {
+    setSavingEdit(true)
+    const res = await fetch(`${apiUrl}/editar-piker`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+    const data = await res.json()
+    if (!res.ok || !data?.ok) {
+      return setEditError(data?.message || "No se pudo actualizar el usuario")
+    }
+
+    // Actualiza en memoria
+    setAll(prev =>
+      prev.map(p => {
+        if (p.PIKER_ID !== editForm.PIKER_ID) return p
+        const updated: Piker = { ...p }
+        updated.NOMBRE = payload.NOMBRE
+        updated.USUARIO = payload.USUARIO
+        updated.ROL = payload.ROL
+        updated.ESTATUS = payload.ESTATUS
+        if (typeof editForm.IMAGEN_COLAB_BASE64 === "string") {
+          // si limpiaron -> null, si actualizaron -> nuevo base64
+          if (editForm.IMAGEN_COLAB_BASE64 === "") {
+            updated.IMAGEN_COLAB = null
+            updated.IMAGEN_COLAB_MIME = null
+          } else {
+            updated.IMAGEN_COLAB = editForm.IMAGEN_COLAB_BASE64
+            updated.IMAGEN_COLAB_MIME = editForm.IMAGEN_COLAB_MIME || "image/jpeg"
+          }
+        }
+        return updated
+      })
+    )
+    setOpenEdit(false)
+  } catch (e) {
+    console.error(e)
+    setEditError("Error de conexión al actualizar")
+  } finally {
+    setSavingEdit(false)
+  }
+}
+const handleDelete = async (p: Piker) => {
+  if (!apiUrl) return
+  if (!confirm(`¿Eliminar a ${p.NOMBRE}? Esta acción no se puede deshacer.`)) return
+
+  // Normaliza esquema: si tu app está en https y apiUrl comienza con http:, fuerza https
+  const normalizedApi =
+    typeof window !== "undefined" && window.location.protocol === "https:" && apiUrl.startsWith("http:")
+      ? apiUrl.replace(/^http:/, "https:")
+      : apiUrl
+
+  const tryDelete = async () => {
+    // 1) Intento con DELETE (maneja también errores de red)
+    try {
+      const res = await fetch(`${normalizedApi}/eliminar-piker/${p.PIKER_ID}`, {
+        method: "DELETE",
+        mode: "cors",
+        // credentials: "include", // <-- descomenta si usas cookies/sesión
+      })
+      let data: any = null
+      try { data = await res.json() } catch {}
+      if (res.ok && data?.ok) return true
+
+      // Si el server responde pero no ok, probamos fallback POST
+      // (405/404/400 típico de proxies)
+      if (!res.ok) {
+        const res2 = await fetch(`${normalizedApi}/eliminar-piker`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          mode: "cors",
+          body: JSON.stringify({ id: p.PIKER_ID }),
+        })
+        const data2 = await res2.json().catch(() => ({}))
+        if (res2.ok && data2?.ok) return true
+        throw new Error(data2?.message || "No se pudo eliminar (POST fallback)")
+      }
+
+      throw new Error(data?.message || "No se pudo eliminar")
+    } catch (err) {
+      // Network error (TypeError: Failed to fetch) -> reintenta con POST fallback
+      try {
+        const res2 = await fetch(`${normalizedApi}/eliminar-piker`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          mode: "cors",
+          body: JSON.stringify({ id: p.PIKER_ID }),
+        })
+        const data2 = await res2.json().catch(() => ({}))
+        if (res2.ok && data2?.ok) return true
+        throw new Error(data2?.message || "No se pudo eliminar (POST fallback)")
+      } catch (e2) {
+        throw e2
+      }
+    }
+  }
+
+  try {
+    setDeleteError("")
+    setDeletingId(p.PIKER_ID)
+
+    const ok = await tryDelete()
+    if (!ok) throw new Error("No se pudo eliminar")
+
+    // Actualiza UI + corrige paginación con longitud previa real
+    setAll(prev => {
+      const next = prev.filter(x => x.PIKER_ID !== p.PIKER_ID)
+      setPage(pg => {
+        const newTotal = prev.length - 1
+        const newPages = Math.max(Math.ceil(newTotal / pageSize), 1)
+        return Math.min(pg, newPages)
+      })
+      return next
+    })
+  } catch (e: any) {
+    console.error(e)
+    setDeleteError(e?.message || "Error de conexión al eliminar")
+  } finally {
+    setDeletingId(null)
+  }
+}
+
 
   // Cargar una sola vez (sin paginación en server)
   useEffect(() => {
@@ -221,24 +419,151 @@ USUARIOS     </h3>
                       </p>
                     </div>
                   </div>
+<div className="flex items-center gap-3">
+  <span
+    className={`rounded-lg px-2.5 py-1 text-xs border ${
+      piker.ESTATUS === "A"
+        ? "border-emerald-400/20 text-emerald-300 bg-emerald-400/10"
+        : "border-emerald-400/20 text-emerald-300 bg-emerald-400/10"
+    }`}
+  >
+    {piker.ESTATUS === "A" ? "Activo" : "ACTIVO"}
+  </span>
 
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`rounded-lg px-2.5 py-1 text-xs border ${
-                        piker.ESTATUS === "A"
-                          ? "border-emerald-400/20 text-emerald-300 bg-emerald-400/10"
-                          : "border-emerald-400/20 text-emerald-300 bg-emerald-400/10"
-                      }`}
-                    >
-                      {piker.ESTATUS === "A" ? "Activo" : "Activo"}
-                    </span>
-                    <button className="rounded-lg p-2 text-white/70 hover:text-white hover:bg-white/10 border border-transparent hover:border-white/10 transition-colors">
-                      <Edit3 className="w-4 h-4" />
-                    </button>
-                  </div>
+  <button
+    onClick={() => openEditWith(piker)}
+    className="rounded-lg p-2 text-white/70 hover:text-white hover:bg-white/10 border border-transparent hover:border-white/10 transition-colors"
+    title="Editar"
+  >
+    <Edit3 className="w-4 h-4" />
+  </button>
+
+  <button
+    onClick={() => handleDelete(piker)}
+    disabled={deletingId === piker.PIKER_ID}
+    className="rounded-lg p-2 text-white/70 hover:text-white hover:bg-white/10 border border-transparent hover:border-white/10 transition-colors disabled:opacity-50"
+    title="Eliminar"
+  >
+    <Trash2 className="w-4 h-4" />
+  </button>
+</div>
+
                 </div>
               )
             })}
+{openEdit && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => !savingEdit && setOpenEdit(false)} />
+    <div className="relative w-full max-w-md mx-4 rounded-2xl border border-white/10 bg-white/10 backdrop-blur-2xl p-6 shadow-2xl">
+      <button className="absolute right-3 top-3 p-2 rounded-lg hover:bg-white/10 text-white/80" onClick={() => !savingEdit && setOpenEdit(false)}>
+        <X className="w-4 h-4" />
+      </button>
+
+      <h4 className="text-white/90 text-lg font-semibold mb-4">EDITAR USUARIO</h4>
+
+      <form onSubmit={handleUpdate} className="space-y-4">
+        <div>
+          <label className="block text-sm text-white/70 mb-1">Nombre *</label>
+          <input
+            className="w-full rounded-xl bg-white/10 border border-white/15 px-3 py-2 text-white placeholder-white/40 focus:outline-none focus:border-white/30"
+            value={editForm.NOMBRE}
+            onChange={(e) => setEditForm(f => ({ ...f, NOMBRE: e.target.value }))}
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm text-white/70 mb-1">Usuario</label>
+          <input
+            className="w-full rounded-xl bg-white/10 border border-white/15 px-3 py-2 text-white placeholder-white/40 focus:outline-none focus:border-white/30"
+            value={editForm.USUARIO}
+            onChange={(e) => setEditForm(f => ({ ...f, USUARIO: e.target.value }))}
+            placeholder="jperez"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm text-white/70 mb-1">Contraseña (dejar vacío para no cambiar)</label>
+          <input
+            type="password"
+            className="w-full rounded-xl bg-white/10 border border-white/15 px-3 py-2 text-white placeholder-white/40 focus:outline-none focus:border-white/30"
+            value={editForm.PASS}
+            onChange={(e) => setEditForm(f => ({ ...f, PASS: e.target.value }))}
+            placeholder="máx. 20 caracteres"
+            maxLength={20}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm text-white/70 mb-1">Rol</label>
+            <select
+              className="w-full rounded-xl bg-white/10 border border-white/15 px-3 py-2 text-white focus:outline-none focus:border-white/30"
+              value={editForm.ROL}
+              onChange={(e) => setEditForm(f => ({ ...f, ROL: e.target.value as RolString }))}
+            >
+              <option value="PICKER">PICKER</option>
+              <option value="EDITOR">EDITOR</option>
+              <option value="ADMIN">ADMIN</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm text-white/70 mb-1">Estatus</label>
+            <select
+              className="w-full rounded-xl bg-white/10 border border-white/15 px-3 py-2 text-white focus:outline-none focus:border-white/30"
+              value={editForm.ESTATUS}
+              onChange={(e) => setEditForm(f => ({ ...f, ESTATUS: e.target.value as Estatus }))}
+            >
+              <option value="A">Activo</option>
+              <option value="I">Inactivo</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm text-white/70 mb-1">Foto</label>
+          <div className="space-y-2">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => onEditFileChange(e.target.files?.[0])}
+              className="block w-full text-sm text-white/70 file:mr-4 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-white hover:file:bg-white/15"
+            />
+            <div className="flex items-center gap-2">
+              <input
+                id="clear-photo"
+                type="checkbox"
+                className="accent-white/80"
+                checked={editForm.IMAGEN_COLAB_BASE64 === ""}
+                onChange={(e) => setEditForm(f => ({ ...f, IMAGEN_COLAB_BASE64: e.target.checked ? "" : undefined, IMAGEN_COLAB_MIME: undefined }))}
+              />
+              <label htmlFor="clear-photo" className="text-xs text-white/70">Quitar foto actual</label>
+            </div>
+          </div>
+        </div>
+
+        {editError && <p className="text-red-400 text-sm">{editError}</p>}
+
+        <div className="pt-2 flex items-center justify-end gap-3">
+          <button
+            type="button"
+            className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-white/90 hover:bg-white/10 transition-colors"
+            onClick={() => !savingEdit && setOpenEdit(false)}
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={savingEdit}
+            className="rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-white font-medium hover:bg-white/15 hover:border-white/20 transition-colors"
+          >
+            {savingEdit ? "Guardando..." : "Guardar cambios"}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+)}
 
           {/* Paginación (cliente, 7 por página) */}
           {!loading && !error && total > 0 && (
@@ -278,11 +603,11 @@ USUARIOS     </h3>
               <X className="w-4 h-4" />
             </button>
 
-            <h4 className="text-white/90 text-lg font-semibold mb-4">Crear usuario</h4>
+            <h4 className="text-white/90 text-lg font-semibold mb-4">CREAR USUARIO</h4>
 
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
-                <label className="block text-sm text-white/70 mb-1">Nombre</label>
+                <label className="block text-sm text-white/70 mb-1">Nombre *</label>
                 <input
                   className="w-full rounded-xl bg-white/10 border border-white/15 px-3 py-2 text-white placeholder-white/40 focus:outline-none focus:border-white/30"
                   value={form.NOMBRE}
@@ -292,7 +617,7 @@ USUARIOS     </h3>
               </div>
 
               <div>
-                <label className="block text-sm text-white/70 mb-1">Usuario (opcional)</label>
+                <label className="block text-sm text-white/70 mb-1">Usuario *</label>
                 <input
                   className="w-full rounded-xl bg-white/10 border border-white/15 px-3 py-2 text-white placeholder-white/40 focus:outline-none focus:border-white/30"
                   value={form.USUARIO}
@@ -302,7 +627,7 @@ USUARIOS     </h3>
               </div>
 
               <div>
-                <label className="block text-sm text-white/70 mb-1">Contraseña (opcional)</label>
+                <label className="block text-sm text-white/70 mb-1">Contraseña *</label>
                 <div className="relative">
                   <input
                     type={showPass ? "text" : "password"}
@@ -321,7 +646,14 @@ USUARIOS     </h3>
                   </button>
                 </div>
               </div>
+     <div>
+                <label className="block text-sm text-white/70 mb-1">Correo (opcional)</label>
+                <input
+                  className="w-full rounded-xl bg-white/10 border border-white/15 px-3 py-2 text-white placeholder-white/40 focus:outline-none focus:border-white/30"
 
+                  placeholder="email@krkn.mx"
+                />
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm text-white/70 mb-1">Rol</label>
@@ -336,17 +668,6 @@ USUARIOS     </h3>
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-sm text-white/70 mb-1">Estatus</label>
-                  <select
-                    className="w-full rounded-xl bg-white/10 border border-white/15 px-3 py-2 text-white focus:outline-none focus:border-white/30"
-                    value={form.ESTATUS}
-                    onChange={(e) => setForm((f) => ({ ...f, ESTATUS: e.target.value as Estatus }))}
-                  >
-                    <option value="A">Activo</option>
-                    <option value="I">Inactivo</option>
-                  </select>
-                </div>
               </div>
 
               <div>
@@ -360,6 +681,7 @@ USUARIOS     </h3>
               </div>
 
               {createError && <p className="text-red-400 text-sm">{createError}</p>}
+                              <label className="block text-[11px] text-white/70 mb-1">* Campos Obligatorios</label>
 
               <div className="pt-2 flex items-center justify-end gap-3">
                 <button
@@ -376,7 +698,9 @@ USUARIOS     </h3>
                 >
                   {creating ? "Creando..." : "Crear usuario"}
                 </button>
+                
               </div>
+
             </form>
           </div>
         </div>

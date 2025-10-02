@@ -48,7 +48,6 @@ export default function LoginPage() {
       }
 
       const brandingUrl = `${derivedApiUrl}/get-branding/${companyData.codigo}`
-      console.log("[v0] Fetching branding from:", brandingUrl)
 
       try {
         const response = await fetch(brandingUrl)
