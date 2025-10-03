@@ -1022,7 +1022,44 @@ export default function LabelGenerator() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+
+
+                  {/* Input oculto para subir Excel/CSV */}
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    className="hidden"
+                    accept=".xlsx,.xls,.csv"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      if (file.size > 10 * 1024 * 1024) {
+                        new Noty({ type: "error", layout: "topRight", theme: "mint", text: "El archivo es muy grande (máx 10 MB).", timeout: 3000 }).show()
+                        e.currentTarget.value = ""
+                        return
+                      }
+                      try {
+                        await importFromExcel(file)
+                        new Noty({ type: "success", layout: "topRight", theme: "mint", text: "Importación completada.", timeout: 2500 }).show()
+                      } catch (err: any) {
+                        new Noty({ type: "error", layout: "topRight", theme: "mint", text: err?.message ?? "Error al importar el archivo.", timeout: 3000 }).show()
+                      } finally {
+                        e.currentTarget.value = ""
+                      }
+                    }}
+                  />
+
+                  <Button
+                    onClick={handlePrint}
+                    className="col-span-full w-full justify-center h-11 bg-gray-600 hover:bg-gray-700 text-white border-0"
+                    disabled={!sucursalId || articles.length === 0}
+                    title="Imprimir etiquetas"
+                  >
+                    <Printer className="w-4 h-4 mr-2" />
+                    Imprimir ({totalLabels})
+                  </Button>
+
                   <Button
                     type="button"
                     variant="outline"
@@ -1052,42 +1089,6 @@ export default function LabelGenerator() {
                         : "Importar Excel"}
                     </span>
                   </Button>
-
-                  {/* Input oculto para subir Excel/CSV */}
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    className="hidden"
-                    accept=".xlsx,.xls,.csv"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0]
-                      if (!file) return
-                      if (file.size > 10 * 1024 * 1024) {
-                        new Noty({ type: "error", layout: "topRight", theme: "mint", text: "El archivo es muy grande (máx 10 MB).", timeout: 3000 }).show()
-                        e.currentTarget.value = ""
-                        return
-                      }
-                      try {
-                        await importFromExcel(file)
-                        new Noty({ type: "success", layout: "topRight", theme: "mint", text: "Importación completada.", timeout: 2500 }).show()
-                      } catch (err: any) {
-                        new Noty({ type: "error", layout: "topRight", theme: "mint", text: err?.message ?? "Error al importar el archivo.", timeout: 3000 }).show()
-                      } finally {
-                        e.currentTarget.value = ""
-                      }
-                    }}
-                  />
-
-                  <Button
-                    onClick={handlePrint}
-                    className="w-full justify-center h-10 sm:h-11 bg-gray-600 hover:bg-gray-700 text-white border-0"
-                    disabled={!sucursalId || articles.length === 0}
-                    title="Imprimir etiquetas"
-                  >
-                    <Printer className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                    <span>Imprimir ({totalLabels})</span>
-                  </Button>
-
                   <Button
                     type="button"
                     variant="outline"
