@@ -479,8 +479,8 @@ export default function LabelGenerator() {
   const downloadTemplate = () => {
     const wb = XLSX.utils.book_new()
     const ws = XLSX.utils.aoa_to_sheet([["CODIGO", "CANTIDAD"], ["12500", 2], ["12501", 1]])
-    // @ts-ignore
-    ; (ws as any)["!cols"] = [{ wch: 12 }, { wch: 10 }]
+      // @ts-ignore
+      ; (ws as any)["!cols"] = [{ wch: 12 }, { wch: 10 }]
     XLSX.utils.book_append_sheet(wb, ws, "Plantilla")
     XLSX.writeFile(wb, "plantilla_etiquetas_codigos.xlsx")
   }
@@ -509,6 +509,92 @@ export default function LabelGenerator() {
     } catch (e: any) {
       setImportErrors([e?.message || "No se pudo leer el archivo"])
     } finally { setImporting(false) }
+  }
+  const exportArticlesExcel = async () => {
+    if (articles.length === 0) {
+      new Noty({
+        type: "warning",
+        layout: "topRight",
+        theme: "mint",
+        text: "No hay artículos para exportar.",
+        timeout: 2000,
+      }).show()
+      return
+    }
+
+    // Construir datos [ [CODIGO, CANTIDAD], ... ]
+    const data = [
+      ["CODIGO", "CANTIDAD"],
+      ...articles.map(a => [a.codigo, a.quantity]),
+    ]
+
+    const wb = XLSX.utils.book_new()
+    const ws = XLSX.utils.aoa_to_sheet(data)
+    // Ancho de columnas
+    // @ts-ignore
+    ws["!cols"] = [{ wch: 16 }, { wch: 10 }]
+    XLSX.utils.book_append_sheet(wb, ws, "Articulos")
+
+    // Nombre de archivo
+    const suc = (sucursalActual?.nombre || "sucursal").replace(/[^\w\-]+/g, "_")
+    const fecha = new Date().toISOString().slice(0, 10)
+    const filename = `articulos_codigos_${suc}_${fecha}.xlsx`
+
+    try {
+      // Intentar compartir (Web Share API con archivos)
+      const ab = XLSX.write(wb, { bookType: "xlsx", type: "array" })
+      const blob = new Blob([ab], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })
+      const file = new File([blob], filename, { type: blob.type })
+
+      // @ts-ignore
+      if (navigator?.canShare && navigator.canShare({ files: [file] })) {
+        // @ts-ignore
+        await navigator.share({
+          files: [file],
+          title: "Artículos (CODIGO, CANTIDAD)",
+          text: `Exportado ${articles.length} artículo(s) desde ${suc}.`
+        })
+        new Noty({
+          type: "success",
+          layout: "topRight",
+          theme: "mint",
+          text: "Archivo compartido correctamente.",
+          timeout: 2000,
+        }).show()
+      } else {
+        // Fallback: descarga directa
+        XLSX.writeFile(wb, filename)
+        new Noty({
+          type: "success",
+          layout: "topRight",
+          theme: "mint",
+          text: "Excel descargado.",
+          timeout: 2000,
+        }).show()
+      }
+    } catch (err: any) {
+      // Si el usuario cancela compartir, no mostramos error ruidoso; si es otro error, hacemos fallback a descarga
+      if (err?.name !== "AbortError") {
+        try {
+          XLSX.writeFile(wb, filename)
+          new Noty({
+            type: "success",
+            layout: "topRight",
+            theme: "mint",
+            text: "Excel descargado.",
+            timeout: 2000,
+          }).show()
+        } catch (e) {
+          new Noty({
+            type: "error",
+            layout: "topRight",
+            theme: "mint",
+            text: "No se pudo exportar el Excel.",
+            timeout: 2500,
+          }).show()
+        }
+      }
+    }
   }
 
   // ====== Print (usa la plantilla seleccionada) ======
@@ -590,7 +676,7 @@ export default function LabelGenerator() {
 
     const cleanup = () => { try { document.body.removeChild(f) } catch { } }
     setTimeout(cleanup, 10000)
-    ; (f.contentWindow as any)?.addEventListener?.("afterprint", cleanup)
+      ; (f.contentWindow as any)?.addEventListener?.("afterprint", cleanup)
   }
 
   const naturalW = mmToPx(template.width), naturalH = mmToPx(template.height)
@@ -642,7 +728,7 @@ export default function LabelGenerator() {
       if ("BarcodeDetector" in window) {
         // @ts-ignore
         detectorRef.current = new window.BarcodeDetector({
-          formats: ["code_128","code_39","ean_13","ean_8","upc_a","upc_e","qr_code"]
+          formats: ["code_128", "code_39", "ean_13", "ean_8", "upc_a", "upc_e", "qr_code"]
         })
       } else {
         detectorRef.current = null
@@ -664,7 +750,7 @@ export default function LabelGenerator() {
               const val = (codes[0].rawValue || "").trim()
               if (val) {
                 setUbicacion(val)
-                try { navigator.vibrate?.(100) } catch {}
+                try { navigator.vibrate?.(100) } catch { }
                 stopCamera()
                 setUbicTab("manual")
                 new Noty({
@@ -1059,6 +1145,24 @@ export default function LabelGenerator() {
                   <div className="flex items-center justify-between gap-3">
                     <CardTitle className="text-white">Artículos ({articles.length})</CardTitle>
                     <div className="flex items-center">
+                      <Button
+                        type="button"
+                        className="bg-gray-700 hover:bg-gray-600 text-white border-0"
+                        disabled={articles.length === 0}
+                        onClick={exportArticlesExcel}
+                        title="Exportar artículos cargados (CODIGO, CANTIDAD) para compartir"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Exportar Excel
+                      </Button>
+
+                      <input
+                        ref={fileRef}
+                        type="file"
+                        className="hidden"
+                        accept=".xlsx,.xls,.csv"
+                        onChange={async (e) => { /* ... tu handler actual ... */ }}
+                      />
                       <Button
                         size="sm"
                         variant="ghost"
