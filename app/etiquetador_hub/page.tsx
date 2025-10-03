@@ -5,10 +5,17 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Package, Tags, DollarSign, ArrowLeft } from "lucide-react";
+import { Package, Tags, DollarSign, ArrowLeft, Menu } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 const tiles = [
   { id: "etiquetador", href: "/etiquetador", title: "Generador de Etiquetas", desc: "Crear y gestionar etiquetas estándar con código de barras y QR.", icon: Tags },
@@ -18,9 +25,6 @@ const tiles = [
 
 type TabId = typeof tiles[number]["id"];
 
-/**
- * Envoltura de página: agrega Suspense required por Next para useSearchParams
- */
 export default function EtiquetadorHubPage() {
   return (
     <Suspense fallback={<div className="p-6 text-white/80">Cargando…</div>}>
@@ -29,18 +33,14 @@ export default function EtiquetadorHubPage() {
   );
 }
 
-/**
- * Componente interno: aquí sí usamos useSearchParams
- */
 function EtiquetadorHubInner() {
   const router = useRouter();
   const sp = useSearchParams();
 
-  // Lee ?tab=; por defecto el primero
   const initialTab = (sp.get("tab") as TabId) || tiles[0].id;
   const [active, setActive] = useState<TabId>(initialTab);
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  // Mantén la URL sincronizada (sin recargar)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("tab") !== active) {
@@ -49,7 +49,6 @@ function EtiquetadorHubInner() {
     }
   }, [active, router]);
 
-  // Atajos 1/2/3
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "1") setActive(tiles[0].id);
@@ -89,18 +88,19 @@ function EtiquetadorHubInner() {
           onValueChange={(v) => setActive(v as TabId)}
           className="flex-1 flex flex-col min-h-0 overflow-hidden"
         >
+          {/* Barra superior: back + tabs (desktop) / back + hamburguesa (mobile) */}
           <TabsList className="w-full bg-transparent flex items-center justify-between">
-            {/* Botón Volver a la izquierda */}
+            {/* Volver */}
             <Link
               href="/dashboard"
-              className="flex items-center gap-2 text-purple-300 hover:text-purple-200 px-4"
+              className="flex items-center gap-2 text-purple-300 hover:text-purple-200 px-2 md:px-4"
             >
               <ArrowLeft className="w-4 h-4" />
-              Volver
+              <span className="hidden sm:inline">Volver</span>
             </Link>
 
-            {/* Accesos (tabs) a la derecha */}
-            <div className="flex space-x-2">
+            {/* Accesos (versión escritorio) */}
+            <div className="hidden md:flex space-x-2">
               {tiles.map((t) => (
                 <TabsTrigger
                   key={t.id}
@@ -110,6 +110,55 @@ function EtiquetadorHubInner() {
                   {t.title}
                 </TabsTrigger>
               ))}
+            </div>
+
+            {/* Hamburguesa (versión móvil/tablet) */}
+            <div className="md:hidden">
+              <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Abrir menú"
+                    className="text-white"
+                  >
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent
+                  side="bottom"
+                  className="bg-gray-900 text-white border-t border-gray-700 rounded-t-2xl"
+                >
+                  <SheetHeader>
+                    <SheetTitle className="text-white">Atajos</SheetTitle>
+                  </SheetHeader>
+                  <nav className="mt-4 grid gap-2">
+                    {tiles.map((t) => {
+                      const Icon = t.icon;
+                      const isActive = t.id === active;
+                      return (
+                        <Button
+                          key={t.id}
+                          variant={isActive ? "default" : "secondary"}
+                          className={
+                            isActive
+                              ? "bg-purple-600 hover:bg-purple-600"
+                              : "bg-gray-800 hover:bg-gray-700"
+                          }
+                          onClick={() => {
+                            setActive(t.id);
+                            setMenuOpen(false);
+                          }}
+                        >
+                          <Icon className="w-4 h-4 mr-2" />
+                          {t.title}
+                        </Button>
+                      );
+                    })}
+                  </nav>
+                </SheetContent>
+              </Sheet>
+
             </div>
           </TabsList>
 
@@ -121,7 +170,6 @@ function EtiquetadorHubInner() {
             >
               <div className="flex-1 min-h-0 rounded-xl border border-gray-700 overflow-hidden">
                 <iframe
-                  // Para evitar mounts innecesarios en tabs inactivos
                   src={t.id === active ? src : "about:blank"}
                   title={t.title}
                   className="w-full h-full block"

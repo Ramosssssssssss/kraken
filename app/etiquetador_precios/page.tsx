@@ -1022,33 +1022,35 @@ export default function LabelGenerator() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                   <Button
                     type="button"
                     variant="outline"
-                    className="border-gray-600 text-white"
+                    className="w-full justify-center h-10 sm:h-11 border-gray-600 text-white"
                     onClick={downloadTemplate}
                     title="Descargar plantilla con solo CODIGO y CANTIDAD"
                   >
-                    <Download className="w-4 h-4 mr-2" />
-                    Descargar plantilla
+                    <Download className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                    <span>Descargar plantilla</span>
                   </Button>
 
                   <Button
                     type="button"
-                    className="bg-purple-600 hover:bg-purple-700 text-white border-0"
+                    className="w-full justify-center h-10 sm:h-11 bg-purple-600 hover:bg-purple-700 text-white border-0"
                     disabled={!sucursalId || importing}
                     onClick={() => fileRef.current?.click()}
                     title="Importar desde Excel o CSV"
                   >
                     {importing ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 animate-spin" />
                     ) : (
-                      <Upload className="w-4 h-4 mr-2" />
+                      <Upload className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                     )}
-                    {importing
-                      ? `Importando ${importProgress.done}/${importProgress.total}`
-                      : "Importar Excel"}
+                    <span className="text-center">
+                      {importing
+                        ? `Importando ${importProgress.done}/${importProgress.total}`
+                        : "Importar Excel"}
+                    </span>
                   </Button>
 
                   {/* Input oculto para subir Excel/CSV */}
@@ -1061,33 +1063,15 @@ export default function LabelGenerator() {
                       const file = e.target.files?.[0]
                       if (!file) return
                       if (file.size > 10 * 1024 * 1024) {
-                        new Noty({
-                          type: "error",
-                          layout: "topRight",
-                          theme: "mint",
-                          text: "El archivo es muy grande (máx 10 MB).",
-                          timeout: 3000,
-                        }).show()
+                        new Noty({ type: "error", layout: "topRight", theme: "mint", text: "El archivo es muy grande (máx 10 MB).", timeout: 3000 }).show()
                         e.currentTarget.value = ""
                         return
                       }
                       try {
                         await importFromExcel(file)
-                        new Noty({
-                          type: "success",
-                          layout: "topRight",
-                          theme: "mint",
-                          text: "Importación completada.",
-                          timeout: 2500,
-                        }).show()
+                        new Noty({ type: "success", layout: "topRight", theme: "mint", text: "Importación completada.", timeout: 2500 }).show()
                       } catch (err: any) {
-                        new Noty({
-                          type: "error",
-                          layout: "topRight",
-                          theme: "mint",
-                          text: err?.message ?? "Error al importar el archivo.",
-                          timeout: 3000,
-                        }).show()
+                        new Noty({ type: "error", layout: "topRight", theme: "mint", text: err?.message ?? "Error al importar el archivo.", timeout: 3000 }).show()
                       } finally {
                         e.currentTarget.value = ""
                       }
@@ -1096,23 +1080,26 @@ export default function LabelGenerator() {
 
                   <Button
                     onClick={handlePrint}
-                    className="bg-gray-600 hover:bg-gray-700 text-white border-0"
+                    className="w-full justify-center h-10 sm:h-11 bg-gray-600 hover:bg-gray-700 text-white border-0"
                     disabled={!sucursalId || articles.length === 0}
+                    title="Imprimir etiquetas"
                   >
-                    <Printer className="w-4 h-4 mr-2" />
-                    Imprimir ({totalLabels})
+                    <Printer className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                    <span>Imprimir ({totalLabels})</span>
                   </Button>
 
                   <Button
                     type="button"
                     variant="outline"
-                    className="border-gray-600 text-white"
+                    className="w-full justify-center h-10 sm:h-11 border-gray-600 text-white"
                     onClick={() => setUbicModalOpen(true)}
+                    title="Buscar por ubicación"
                   >
-                    <Search className="w-4 h-4 mr-2" />
-                    Buscar por ubicación
+                    <Search className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                    <span>Buscar por ubicación</span>
                   </Button>
                 </div>
+
 
                 {(importing || importErrors.length > 0) && (
                   <div className="mt-3 space-y-2">
