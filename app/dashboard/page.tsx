@@ -15,7 +15,7 @@ import ProcessesSection from "@/components/dashboard/processes-section"
 import InventorySection from "@/components/dashboard/inventory-sections"
 import EmbarquesSection from "@/components/dashboard/embarques-section"
 import IntegrationsSection from "@/components/dashboard/integrations-section"
-
+import ConfigurationSection from "@/components/dashboard/configuration-section"
 interface UserData {
   PIKER_ID: number
   NOMBRE: string
@@ -92,6 +92,8 @@ export default function DashboardPage() {
         return <EmbarquesSection />
       case "INTEGRACIONES":
         return <IntegrationsSection />
+         case "CONFIGURATION":
+        return <ConfigurationSection />
       default:
         return <AccountSection />
     }
@@ -118,21 +120,25 @@ export default function DashboardPage() {
     )
   }
 
-  return (
-    <div className="min-h-screen bg-black flex">
-      <Sidebar
-        activeSection={activeSection}
-        onSectionChange={handleSectionChange}
-        onLogout={handleLogout}
-        // 👇 props que pedía SidebarProps
-        sidebarOpen={sidebarOpen}
-        onToggleSidebar={onToggleSidebar}
-      />
+return (
+  <div className="h-dvh w-screen bg-black flex overflow-hidden">
+    <Sidebar
+      activeSection={activeSection}
+      onSectionChange={handleSectionChange}
+      onLogout={handleLogout}
+      sidebarOpen={sidebarOpen}
+      onToggleSidebar={onToggleSidebar}
+    />
 
-      <div className="flex-1 flex flex-col">
+    <div className="flex-1 flex min-h-0 flex-col">
+      <div className="shrink-0">
         <DashboardHeader activeSection={activeSection} />
-        <main className="flex-1 p-6 overflow-auto">{renderContent()}</main>
       </div>
+      <main className="flex-1 overflow-y-auto p-6">
+        {renderContent()}
+      </main>
     </div>
-  )
+  </div>
+)
+
 }

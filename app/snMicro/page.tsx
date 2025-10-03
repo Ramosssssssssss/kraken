@@ -287,7 +287,7 @@ export default function SeleccionTipoPremium() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => router.push("/modulos")}
+              onClick={() => router.push("/dashboard")}
               className="text-white hover:bg-white/10"
             >
               <ArrowLeft className="h-5 w-5" />

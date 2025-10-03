@@ -5,7 +5,6 @@ import { useCompany } from "@/lib/company-context"
 import { useRouter } from "next/navigation"
 import {
   Scan,
-  Zap,
   Plus,
   Minus,
   CheckCircle,
@@ -17,7 +16,6 @@ import {
   BarChart3,
   CheckCircle2,
   Loader2,
-  TrendingUp,
   Target,
   List,
   Clock,
@@ -26,7 +24,7 @@ import {
   X,
   XCircle,
 } from "lucide-react"
-
+import IncidentManager from "./incidentManager"
 interface Detalle {
   CLAVE_ARTICULO?: string
   NOMBRE?: string
@@ -51,7 +49,7 @@ interface Detalle {
   R_ARTICULO_ID?: number
 }
 
-type IncidentType = "extra" | "changed" | "missing"
+type IncidentType = "extra" | "changed" | "missing" | "return"
 
 interface Incident {
   id: string
@@ -152,6 +150,8 @@ export default function ReciboScreenPremium() {
   } | null>(null)
   const [receptionComplete, setReceptionComplete] = useState(false)
   const [showMissingModal, setShowMissingModal] = useState(false)
+
+  const [showIncidentManager, setShowIncidentManager] = useState(false)
 
   const [timerStarted, setTimerStarted] = useState(false)
   const [startTime, setStartTime] = useState<number | null>(null)
@@ -277,8 +277,8 @@ export default function ReciboScreenPremium() {
     DOCTO_CM_ID: Number(getField(row, ["DOCTO_CM_ID"], 0)) || null,
   })
 
-  const normalizeDetalle = (rows: any[]): Detalle[] =>
-    (rows || []).map((r, idx) => {
+  const normalizeDetalle = (rows: any[]): Detalle[] => {
+    const normalized = (rows || []).map((r, idx) => {
       const clave = getField<string>(
         r,
         ["CLAVE_ARTICULO", "R_CLAVE_ARTICULO", "CLAVE", "CODIGO", "R_CODIGO"],
@@ -335,6 +335,24 @@ export default function ReciboScreenPremium() {
         R_ARTICULO_ID: articuloId,
       }
     })
+
+    const grouped: Detalle[] = []
+    normalized.forEach((product) => {
+      const existing = grouped.find((p) => p.CLAVE_ARTICULO === product.CLAVE_ARTICULO)
+      if (existing) {
+        // Sum quantities for duplicate products
+        existing.UNIDADES = (existing.UNIDADES || 0) + (product.UNIDADES || 0)
+        existing.CANTIDAD_REQUERIDA = (existing.CANTIDAD_REQUERIDA || 0) + (product.CANTIDAD_REQUERIDA || 0)
+      } else {
+        grouped.push({ ...product })
+      }
+    })
+
+    return grouped.map((item, idx) => ({
+      ...item,
+      _key: `det-${idx}`,
+    }))
+  }
 
   const fetchOrdenCombinada = useCallback(
     async (fol: string) => {
@@ -724,7 +742,66 @@ export default function ReciboScreenPremium() {
 
     try {
       setLoading(true)
+
       await updateQuantitiesForIncidents()
+
+      const returnIncidents = incidents.filter((inc) => inc.type === "return")
+
+      if (returnIncidents.length > 0) {
+        console.log("[v0] Processing return incidents:", returnIncidents)
+
+        for (const incident of returnIncidents) {
+          try {
+            // Get ARTICULO_ID for the product
+            const articuloResponse = await fetch(`${baseURL}/recibo/obtener-articulo-id`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ claveArticulo: incident.productKey }),
+            })
+
+            const articuloData = await articuloResponse.json()
+
+            if (!articuloData.ok || !articuloData.articuloId) {
+              throw new Error(`No se pudo obtener ARTICULO_ID para ${incident.productKey}`)
+            }
+
+            console.log("[v0] Got ARTICULO_ID:", articuloData.articuloId, "for", incident.productKey)
+
+            // Insert into ART_ADEV_TEMP
+            const insertResponse = await fetch(`${baseURL}/recibo/dev/add-temp`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                doctoCmId: caratula.DOCTO_CM_ID,
+                articuloId: articuloData.articuloId,
+                claveArticulo: incident.productKey,
+                unidadesDev: incident.quantity,
+              }),
+            })
+
+            const insertData = await insertResponse.json()
+
+            if (!insertData.ok) {
+              throw new Error(`Error al insertar artículo a devolver: ${incident.productKey}`)
+            }
+
+            console.log("[v0] Inserted return item into temp table:", incident.productKey, incident.quantity)
+          } catch (error) {
+            console.error("[v0] Error processing return incident:", error)
+            // Rollback temp table on error
+            await fetch(`${baseURL}/recibo/dev/rollback?doctoCmId=${caratula.DOCTO_CM_ID}`, {
+              method: "DELETE",
+            })
+            throw error
+          }
+        }
+
+        showToast(`Preparando devolución de ${returnIncidents.length} artículo(s)...`, "success", false)
+      }
 
       while (intentos < MAX_RETRIES) {
         try {
@@ -733,6 +810,28 @@ export default function ReciboScreenPremium() {
           const data = await response.json()
 
           if (data.ok) {
+            console.log("[v0] Reception completed successfully")
+
+            if (returnIncidents.length > 0) {
+              console.log("[v0] Executing automatic return...")
+
+              try {
+                const devolucionUrl = `${baseURL}/recibo/devolucion?doctoCmId=${caratula.DOCTO_CM_ID}`
+                const devolucionResponse = await fetch(devolucionUrl)
+                const devolucionData = await devolucionResponse.json()
+
+                if (!devolucionData.ok) {
+                  throw new Error(devolucionData.error || "Error en la devolución automática")
+                }
+
+                console.log("[v0] Automatic return completed:", devolucionData.respuesta)
+                showToast(`Devolución completada: ${returnIncidents.length} artículo(s) devuelto(s)`, "success", false)
+              } catch (devError) {
+                console.error("[v0] Error in automatic return:", devError)
+                showToast("La recepción se completó pero hubo un error en la devolución automática", "error", false)
+              }
+            }
+
             setTimerStarted(false)
             setFinalTime(elapsedSeconds)
 
@@ -747,7 +846,13 @@ export default function ReciboScreenPremium() {
                 .map(
                   (inc) =>
                     `${
-                      inc.type === "missing" ? "De menos" : inc.type === "extra" ? "De más" : "Dañado"
+                      inc.type === "missing"
+                        ? "De menos"
+                        : inc.type === "extra"
+                          ? "De más"
+                          : inc.type === "return"
+                            ? "Devolución"
+                            : "Cambiado"
                     }: ${inc.notes || inc.productName}${inc.quantity ? ` (${inc.quantity})` : ""}`,
                 )
                 .join("\n")
@@ -768,6 +873,11 @@ export default function ReciboScreenPremium() {
         } catch (err) {
           intentos++
           if (intentos >= MAX_RETRIES) {
+            if (returnIncidents.length > 0) {
+              await fetch(`${baseURL}/recibo/dev/rollback?doctoCmId=${caratula.DOCTO_CM_ID}`, {
+                method: "DELETE",
+              })
+            }
             showToast("No se pudo completar la recepción después de varios intentos.")
             return
           }
@@ -775,6 +885,7 @@ export default function ReciboScreenPremium() {
         }
       }
     } catch (error) {
+      console.error("[v0] Error in handleRecepcionar:", error)
       showToast("Error al procesar la recepción: " + String(error))
     } finally {
       setLoading(false)
@@ -817,7 +928,7 @@ export default function ReciboScreenPremium() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 font-sans">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 font-sans overflow-x-hidden">
       <div className="fixed top-4 right-4 z-[100] space-y-2">
         {toasts.map((toast) => (
           <div
@@ -851,7 +962,7 @@ export default function ReciboScreenPremium() {
           </div>
         ))}
       </div>
-{/* TIEMPO Modal  */} 
+      {/* TIEMPO Modal  */}
       {completionModal.show && (
         <div className="fixed  inset-0 bg-black/60 backdrop-blur-md z-[90] flex items-center justify-center p-4 animate-fade-in">
           <div className="glass rounded-3xl bg-white/80 p-8 max-w-lg w-full border border-white/20 shadow-2xl animate-scale-in">
@@ -909,14 +1020,14 @@ export default function ReciboScreenPremium() {
             </div>
 
             <div className="flex items-center gap-3 ">
-               {missingItems.length > 0 && (
-                    <button
-                      onClick={() => setShowMissingModal(true)}
-                      className="text-md bg-orange-100 text-orange-700 px-2 py-1 rounded-md hover:bg-orange-200 transition-colors"
-                    >
-                      Ver Faltantes ({missingItems.length})
-                    </button>
-                  )}
+              {missingItems.length > 0 && (
+                <button
+                  onClick={() => setShowMissingModal(true)}
+                  className="text-md bg-orange-100 text-orange-700 px-2 py-1 rounded-md hover:bg-orange-200 transition-colors"
+                >
+                  Ver Faltantes ({missingItems.length})
+                </button>
+              )}
               {timerStarted && !receptionComplete && (
                 <div className="glass rounded-xl px-8 py-4 border border-white/20 flex items-center gap-2 animate-fade-in ">
                   <Clock className="w-8 h-8 text-slate-600" />
@@ -926,7 +1037,6 @@ export default function ReciboScreenPremium() {
                       {formatTime(elapsedSeconds)}
                     </div>
                   </div>
-                  
                 </div>
               )}
 
@@ -943,8 +1053,6 @@ export default function ReciboScreenPremium() {
               >
                 <Scan className="w-4 h-4" />
               </button>
-
-         
             </div>
           </div>
         </div>
@@ -1050,7 +1158,6 @@ export default function ReciboScreenPremium() {
             )}
 
             {/* Order Header */}
-           
 
             {/* Incidents Indicator */}
             {incidents.length > 0 && !receptionComplete && (
@@ -1064,7 +1171,6 @@ export default function ReciboScreenPremium() {
             )}
 
             {/* Progress Bar */}
-         
 
             {/* Products List */}
             {detalles.length > 0 && !receptionComplete && (
@@ -1240,7 +1346,6 @@ export default function ReciboScreenPremium() {
           <div className="w-1/4 border-l border-white/20 bg-gradient-to-b from-slate-50/80 to-white/80 backdrop-blur-sm">
             <div className="p-6 h-full flex flex-col">
               {/* Sidebar Header */}
-          
 
               {/* Overall Progress */}
               {detalles.length > 0 && (
@@ -1265,7 +1370,6 @@ export default function ReciboScreenPremium() {
                     <span>{totalHechas} completadas</span>
                     <span>{totalRequeridas} total</span>
                   </div>
-                  
                 </div>
               )}
 
@@ -1347,26 +1451,26 @@ export default function ReciboScreenPremium() {
               )}
 
               {/* Quick Stats */}
-           {caratula && !receptionComplete && (
-              <div className="glass rounded-2xl p-6 mb-6 border border-white/20">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-xl font-bold text-slate-900 mb-1">Orden: {caratula.FOLIO || "—"}</h2>
-                    <p className="text-slate-600">
-                      {caratula.PROVEEDOR && `Proveedor: ${caratula.PROVEEDOR}`}
-                      {caratula.ALMACEN && ` • Almacén: ${caratula.ALMACEN}`}
-                    </p>
+              {caratula && !receptionComplete && (
+                <div className="glass rounded-2xl p-6 mb-6 border border-white/20">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-xl font-bold text-slate-900 mb-1">Orden: {caratula.FOLIO || "—"}</h2>
+                      <p className="text-slate-600">
+                        {caratula.PROVEEDOR && `Proveedor: ${caratula.PROVEEDOR}`}
+                        {caratula.ALMACEN && ` • Almacén: ${caratula.ALMACEN}`}
+                      </p>
+                    </div>
+                    <button
+                      onClick={onRefresh}
+                      disabled={refreshing}
+                      className="p-2 text-slate-600 hover:text-slate-900 hover:bg-white/50 rounded-lg transition-all duration-200"
+                    >
+                      <BarChart3 className={`w-5 h-5 ${refreshing ? "animate-spin" : ""}`} />
+                    </button>
                   </div>
-                  <button
-                    onClick={onRefresh}
-                    disabled={refreshing}
-                    className="p-2 text-slate-600 hover:text-slate-900 hover:bg-white/50 rounded-lg transition-all duration-200"
-                  >
-                    <BarChart3 className={`w-5 h-5 ${refreshing ? "animate-spin" : ""}`} />
-                  </button>
                 </div>
-              </div>
-            )}
+              )}
             </div>
           </div>
         )}
@@ -1374,7 +1478,7 @@ export default function ReciboScreenPremium() {
 
       {/* Missing Items Modal */}
       {showMissingModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0  z-50 flex items-center justify-center p-4">
           <div className="glass rounded-2xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto border border-white/20">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
@@ -1452,7 +1556,7 @@ export default function ReciboScreenPremium() {
               showToast("Primero debes cargar un folio de recepción")
               return
             }
-            setTimeout(focusScanner, 100)
+            setShowIncidentManager(true)
           }}
         >
           <AlertTriangle className="w-7 h-7 text-white" />
@@ -1462,6 +1566,34 @@ export default function ReciboScreenPremium() {
             </div>
           )}
         </button>
+      )}
+
+      {showIncidentManager && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <button
+            onClick={() => {
+              setShowIncidentManager(false)
+              setTimeout(focusScanner, 100)
+            }}
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow-lg transition-all z-10"
+          >
+            <X className="w-5 h-5 text-slate-700" />
+          </button>
+
+          <IncidentManager
+            incidents={incidents}
+            setIncidents={setIncidents}
+            detalles={detalles}
+            setDetalles={setDetalles}
+            setScannedProducts={setScannedProducts}
+            caratula={caratula}
+            autoOpen={true}
+            onClose={() => {
+              setShowIncidentManager(false)
+              setTimeout(focusScanner, 100)
+            }}
+          />
+        </div>
       )}
     </div>
   )

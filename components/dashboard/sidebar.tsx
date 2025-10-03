@@ -20,7 +20,7 @@ import {
   UserCircle,
   MoreVertical,
 } from "lucide-react"
-
+import { useRouter } from "next/navigation"
 interface SidebarProps {
   activeSection: string
   onSectionChange: (section: string) => void
@@ -44,6 +44,7 @@ export default function Sidebar({
 }: SidebarProps) {
   const [expandedSections, setExpandedSections] = useState<string[]>(["Social Media"])
   const [showCollapsedMenu, setShowCollapsedMenu] = useState(false)
+  const router = useRouter()
 
 const menuItems: MenuItem[] = [
     { name: "CUENTA", icon: LayoutDashboard },
@@ -64,6 +65,8 @@ const menuItems: MenuItem[] = [
     // },
     { name: "PROCESOS", icon: DollarSign },
     { name: "INVENTARIO", icon: MoreHorizontal },
+        { name: "CONFIGURATION", icon: MoreHorizontal },
+
   ]
 
   const toggleSection = (sectionName: string) => {
@@ -178,8 +181,7 @@ const menuItems: MenuItem[] = [
 
                 <button
                   onClick={() => {
-                    onSectionChange("Configuración")
-                    setShowCollapsedMenu(false)
+onSectionChange("CONFIGURATION")
                   }}
                   className="w-full px-4 py-2.5 text-left text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200 flex items-center gap-3"
                 >
@@ -208,7 +210,7 @@ const menuItems: MenuItem[] = [
   }
 
   return (
-    <div className="w-72 relative transition-all duration-300 ease-out flex flex-col h-screen bg-[#0a0a0a] border-r border-white/5">
+<div className="w-72 flex-none flex flex-col h-dvh bg-[#0a0a0a] border-r border-white/5">
       {/* Header */}
       <div className="p-4 border-b border-white/5 flex items-center justify-between">
         <div className="flex items-center space-x-3">
@@ -230,7 +232,7 @@ const menuItems: MenuItem[] = [
       </div>
 
       {/* Menu Items */}
-      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
+  <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
         {menuItems.map((item) => {
           const Icon = item.icon
           const hasChildren = item.children && item.children.length > 0
@@ -294,7 +296,7 @@ const menuItems: MenuItem[] = [
           </button>
 
           <button
-            onClick={() => onSectionChange("Configuración")}
+            onClick={() => onSectionChange("CONFIGURATION")}
             className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-all duration-200 flex items-center justify-center group relative"
             title="Configuración"
           >
