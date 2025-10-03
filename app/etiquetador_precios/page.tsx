@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Eye, Settings, Printer, Plus, Trash2, Minus, Loader2, AlertCircle, Upload, Download, LayoutTemplate, RotateCcw, Search } from "lucide-react"
+import { Eye, Settings, Printer, Plus, Trash2, Minus, Loader2, AlertCircle, Upload, Download, LayoutTemplate, RotateCcw, Search, Camera, Keyboard } from "lucide-react"
 import * as XLSX from "xlsx"
 import pLimit from "p-limit"
 import Noty from "noty"
@@ -193,7 +193,7 @@ const LABEL_TEMPLATES = [
 
     html,body{}
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family: "Arial", sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    body{font-family: "Arial";-webkit-print-color-adjust:exact;print-color-adjust:exact}
 
     .p{
       width:${w}mm;height:${h}mm;
@@ -235,7 +235,13 @@ const LABEL_TEMPLATES = [
       align-items:center;
       justify-content:center;
     }
+.desc{
 
+text-align:left;
+grid-area:1/1/3/4; 
+font-size:7px;
+margin-top:0mm; 
+}
     /* SVG ocupa todo el contenedor */
     .bc{
       display:flex;
@@ -248,10 +254,13 @@ const LABEL_TEMPLATES = [
     renderHTML: (a: ArticleItem) => `
     <div class="p">
       <div class="q1" style="display:grid;grid-template-columns:repeat(3,1fr);padding: 1mm; gap:.5mm;">
-        <div style="font-weigh;text-align:left;font-size:4px;grid-area:1/1/3/4; margin-top: 1mm; font-family: "Arial", sans-serif;">${escapeHTML(a.nombre)}</div>
-        <div style="font-weight:700;text-align:left;font-size:6px;grid-area:3/1/4/2; margin:0; padding:0; letter-spacing.5px;">${escapeHTML(a.codigo)}</div>
+        <div class="desc">${escapeHTML(a.nombre)}</div>
+
+        <div style="font-weight:bold;text-align:left;font-size:6px;grid-area:3/1/4/2; margin:0; padding:0; letter-spacing.5px;">${escapeHTML(a.codigo)}</div>
+
         <div style="font-weight:700;text-align:left;font-size:6px;grid-area:4/1/5/2; margin:0; padding:0;">${escapeHTML(a.unidad)}</div>
-        <div style="font-weight:700;text-align:left;font-size:6px;grid-area:5/1/6/2; margin:0; padding:0;">${escapeHTML(a.estatus ?? "-")}</div>
+
+        <div style="font-weight:800;text-align:left;font-size:6px;grid-area:5/1/6/2; margin:0; padding:0;">${escapeHTML(a.estatus ?? "-")}</div>
 
         <div style="font-weight:700;text-align:right;font-size:6px;grid-area:3/2/4/4; margin:0; padding:0;">${escapeHTML(a.fecha)}</div>
         <div style="font-weight:800;text-align:center;grid-area:4/2/5/4; margin:0; padding:0;">${escapeHTML(money(a.precio))}</div>
@@ -494,6 +503,9 @@ export default function LabelGenerator() {
 <head>
   <meta charset="utf-8"/>
   <title>Etiquetas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet">
 
   <!-- CSS de la plantilla -->
   <style>
@@ -502,7 +514,11 @@ export default function LabelGenerator() {
     @media print {
       .p{ break-after: page; }
       .p:last-of-type{ break-after: auto; }
-
+      *{
+  font-family: "DM Sans", sans-serif;
+      font-weight: 700;
+      font-style: normal;
+      }
     }
   </style>
 
@@ -544,6 +560,8 @@ export default function LabelGenerator() {
       setTimeout(function () { window.print(); }, 0);
     });
   </script>
+
+
 </head>
 <body>
   ${labelsHTML}
@@ -616,7 +634,7 @@ export default function LabelGenerator() {
             <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm h-full flex flex-col w-full">
               <CardHeader className="border-b border-gray-600 flex w-full justify-between">
                 <CardTitle className="flex items-center gap-2 text-white"><Settings className="w-5 h-5 text-purple-300" />Configuración</CardTitle>
-                <CardTitle className="flex items-center gap-2 text-white font-light text-xs">v2.2.7</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-white font-light text-xs">v2.2.9</CardTitle>
               </CardHeader>
               <CardContent className="p-6 space-y-6">
                 {/* Selector de plantilla */}
