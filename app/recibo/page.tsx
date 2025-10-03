@@ -1001,7 +1001,7 @@ export default function ReciboScreenPremium() {
               <button
                 className="w-10 h-10 rounded-xl bg-white/80 backdrop-blur-sm border border-white/20 flex items-center justify-center shadow-sm hover:bg-white/90 transition-all duration-200"
                 onClick={() => {
-                  router.replace("/RECIBO/home")
+                  router.replace("/dashboard")
                   setTimeout(focusScanner, 100)
                 }}
               >
@@ -1569,7 +1569,7 @@ export default function ReciboScreenPremium() {
       )}
 
       {showIncidentManager && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0  z-[100] flex items-center justify-center p-4">
           <button
             onClick={() => {
               setShowIncidentManager(false)

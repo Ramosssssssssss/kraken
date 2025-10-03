@@ -141,7 +141,10 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     if (!isReady) return
     if (!companyData?.apiUrl || !companyData?.codigo) return
     // si ya hay branding, no vuelvas a pedir
-    if (companyData.branding && (companyData.branding.logo !== undefined || companyData.branding.background !== undefined)) {
+    if (
+      companyData.branding &&
+      (companyData.branding.logo !== undefined || companyData.branding.background !== undefined)
+    ) {
       return
     }
     // evita requests duplicados
@@ -153,7 +156,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         brandingInFlight.current = true
         const url = `${companyData.apiUrl}/get-branding/${companyData.codigo}?_=${Date.now()}`
         const res = await fetch(url, { cache: "no-store", signal: controller.signal })
-        const json = await res.json().catch(() => ({} as any))
+        const json = await res.json().catch(() => ({}) as any)
         const branding: Branding | null = json?.branding || null
 
         // actualiza companyData con el branding
@@ -173,8 +176,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
 
     loadBranding()
     return () => controller.abort()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isReady, companyData?.apiUrl, companyData?.codigo]) // dependemos de apiUrl/codigo
+  }, [isReady, companyData]) // dependemos de apiUrl/codigo
 
   return (
     <CompanyContext.Provider
