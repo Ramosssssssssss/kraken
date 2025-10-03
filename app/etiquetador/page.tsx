@@ -709,45 +709,34 @@ ${bodyHtml}
   const cellW = naturalW
   const cellH = naturalH
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-purple-900">
-      {/* Oculta spinners nativos en inputs numéricos */}
-      <style jsx global>{`
-        input.no-spin::-webkit-outer-spin-button,
-        input.no-spin::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-        input.no-spin { -moz-appearance: textfield; }
-      `}</style>
+return (
+  <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-purple-900">
+    {/* Oculta spinners nativos en inputs numéricos + mejora iOS */}
+    <style jsx global>{`
+      input.no-spin::-webkit-outer-spin-button,
+      input.no-spin::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+      input.no-spin { -moz-appearance: textfield; }
+      @supports (-webkit-touch-callout: none) {
+        input, select, textarea, button { font-size: 16px; }
+      }
+    `}</style>
 
-      <div className="min-h-screen p-6">
-        <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          {/* <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-white mb-2">
-              Generador de <span className="text-purple-300">Etiquetas</span>
-            </h1>
-            <p className="text-gray-200 text-lg">Crea e imprime etiquetas personalizadas con códigos de barras</p>
-
-            <Link href="/etiquetador_hub" className="flex items-center gap-2 text-purple-300 hover:text-purple-200">
-              <ArrowLeft className="w-4 h-4" />
-              Volver
-            </Link>
-          </div> */}
-
-          {/* Grid principal: columnas de igual altura */}
-          <div className="grid lg:grid-cols-2 gap-8 items-stretch min-h-0">
-            {/* Panel de Configuración (izquierda) */}
-            <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm h-full flex flex-col w-full">
-
-              <CardHeader className="border-b border-gray-600 flex items-center w-full justify-between">
-                <CardTitle className="flex items-center gap-2 text-white">
+    {/* Padding adaptativo */}
+    <div className="min-h-screen p-4 sm:p-6">
+      <div className="max-w-[1200px] mx-auto">
+        {/* Grid principal: 1 columna en móvil, 2 en ≥lg */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-stretch min-h-0">
+          {/* Panel de Configuración (izquierda) */}
+          <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm h-full flex flex-col w-full">
+            <CardHeader className="border-b border-gray-600 w-full">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <CardTitle className="flex items-center gap-2 text-white text-lg sm:text-xl">
                   <Settings className="w-5 h-5 text-purple-300" />
-                  Configuración
+                  <span>Configuración</span>
                 </CardTitle>
 
-                <div className="flex items-center gap-2 text-white font-light text-xs">
-                  v1.2.1
-
-                  {/* Enlace a historial de actualizaciones */}
+                <div className="flex items-center gap-2 text-white font-light text-xs sm:text-sm">
+                  <span className="shrink-0">v1.2.1</span>
                   <Link
                     href="/actualizaciones"
                     className="text-purple-300 hover:text-purple-200"
@@ -756,413 +745,419 @@ ${bodyHtml}
                     <Info className="w-4 h-4" />
                   </Link>
                 </div>
-              </CardHeader>
+              </div>
+            </CardHeader>
 
-              <CardContent className="p-6 space-y-6">
-
-                {/* Campo de artículo con búsqueda */}
-                <div className="space-y-2 relative">
-                  <Label className="text-gray-100 font-medium">Artículo (clave)</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      type="text"
-                      placeholder="Busca por clave o nombre…"
-                      value={labelConfig.text}
-                      onChange={(e) => handleConfigChange("text", e.target.value)}
-                      onKeyDown={onArticleKeyDown}
-                      className="bg-gray-700 border-gray-500 text-white placeholder-gray-300 flex-1"
-                    />
-                    <Button
-                      onClick={() => {
-                        if (searchResults.length > 0) addArticle(searchResults[0].claveArticulo)
-                        else if (labelConfig.text.trim()) addArticle()
-                      }}
-                      className="bg-purple-600 hover:bg-purple-700 text-white border-0"
-                      disabled={!labelConfig.text.trim()}
-                      title="Agregar artículo"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </Button>
-                  </div>
-
-                  {(isSearching || searchError || searchResults.length > 0) && (
-                    <div className="absolute z-20 mt-1 w-full rounded-md border border-gray-600 bg-gray-800 shadow-lg">
-                      {isSearching && (
-                        <div className="px-3 py-2 text-sm text-gray-300 flex items-center gap-2">
-                          <Loader2 className="w-4 h-4 animate-spin" /> Buscando…
-                        </div>
-                      )}
-                      {searchError && (
-                        <div className="px-3 py-2 text-sm text-red-300 flex items-center gap-2">
-                          <AlertCircle className="w-4 h-4" /> {searchError}
-                        </div>
-                      )}
-                      {!isSearching && !searchError && searchResults.length === 0 && labelConfig.text.trim().length >= 2 && (
-                        <div className="px-3 py-2 text-sm text-gray-400">Sin resultados</div>
-                      )}
-                      {!isSearching && !searchError && searchResults.length > 0 && (
-                        <ul className="max-h-56 overflow-y-auto">
-                          {searchResults.map((item, idx) => (
-                            <li
-                              key={`${item.claveArticulo}-${idx}`}
-                              className="px-3 py-2 text-sm text-gray-100 hover:bg-gray-700 cursor-pointer flex justify-between"
-                              onClick={() => {
-                                setLabelConfig(prev => ({ ...prev, text: item.claveArticulo }))
-                                addArticle(item.claveArticulo)
-                              }}
-                            >
-                              <span className="truncate">{item.nombre}</span>
-                              <span className="text-purple-300 ml-2 shrink-0">{item.claveArticulo}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-
-                {/* Tamaño guardado (BD) */}
-                <div className="space-y-2">
-                  <Label className="text-gray-100 font-medium">Tamaño de etiqueta</Label>
-                  <Select
-                    value={selectedTamanoId}
-                    onValueChange={(value) => {
-                      setSelectedTamanoId(value)
-                      const t = tamanos.find(x => String(x.id) === value)
-                      if (t) aplicarTamanoBD(t)
+            <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+              {/* Campo de artículo con búsqueda */}
+              <div className="space-y-2 relative">
+                <Label className="text-gray-100 font-medium text-sm sm:text-base">Artículo (clave)</Label>
+                <div className="flex gap-2 flex-col sm:flex-row">
+                  <Input
+                    type="text"
+                    placeholder="Busca por clave o nombre…"
+                    value={labelConfig.text}
+                    onChange={(e) => handleConfigChange("text", e.target.value)}
+                    onKeyDown={onArticleKeyDown}
+                    className="bg-gray-700 border-gray-500 text-white placeholder-gray-300 flex-1 w-full"
+                  />
+                  <Button
+                    onClick={() => {
+                      if (searchResults.length > 0) addArticle(searchResults[0].claveArticulo)
+                      else if (labelConfig.text.trim()) addArticle()
                     }}
+                    className="bg-purple-600 hover:bg-purple-700 text-white border-0 w-full sm:w-auto"
+                    disabled={!labelConfig.text.trim()}
+                    title="Agregar artículo"
                   >
-                    <SelectTrigger className="bg-gray-700 border-gray-500 text-white w-full">
-                      <SelectValue placeholder={isLoadingTamanos ? "Cargando..." : "Selecciona un tamaño"} />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-700 border-gray-500">
-                      {isLoadingTamanos && (
-                        <div className="px-3 py-2 text-sm text-gray-300 flex items-center gap-2">
-                          <Loader2 className="w-4 h-4 animate-spin" /> Cargando…
-                        </div>
-                      )}
-                      {tamanosError && (
-                        <div className="px-3 py-2 text-sm text-red-300 flex items-center gap-2">
-                          <AlertCircle className="w-4 h-4" /> {tamanosError}
-                        </div>
-                      )}
-                      {!isLoadingTamanos && !tamanosError && tamanos.length === 0 && (
-                        <div className="px-3 py-2 text-sm text-gray-300">No hay tamaños guardados</div>
-                      )}
-                      {tamanos.map(t => (
-                        <SelectItem key={t.id} value={String(t.id)} className="text-white">
-                          {t.nombre} — {t.width}×{t.height}mm (margen {t.margen}mm)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <Plus className="w-4 h-4 mr-1" />
+                    <span className="sm:hidden">Agregar</span>
+                  </Button>
                 </div>
 
-                {/* Formato de código de barras */}
+                {(isSearching || searchError || searchResults.length > 0) && (
+                  <div className="absolute z-20 mt-1 w-full rounded-md border border-gray-600 bg-gray-800 shadow-lg max-h-60 overflow-y-auto">
+                    {isSearching && (
+                      <div className="px-3 py-2 text-sm text-gray-300 flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" /> Buscando…
+                      </div>
+                    )}
+                    {searchError && (
+                      <div className="px-3 py-2 text-sm text-red-300 flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4" /> {searchError}
+                      </div>
+                    )}
+                    {!isSearching && !searchError && searchResults.length === 0 && labelConfig.text.trim().length >= 2 && (
+                      <div className="px-3 py-2 text-sm text-gray-400">Sin resultados</div>
+                    )}
+                    {!isSearching && !searchError && searchResults.length > 0 && (
+                      <ul className="divide-y divide-gray-700">
+                        {searchResults.map((item, idx) => (
+                          <li
+                            key={`${item.claveArticulo}-${idx}`}
+                            className="px-3 py-2 text-sm text-gray-100 hover:bg-gray-700 cursor-pointer flex items-center justify-between gap-2"
+                            onClick={() => {
+                              setLabelConfig(prev => ({ ...prev, text: item.claveArticulo }))
+                              addArticle(item.claveArticulo)
+                            }}
+                          >
+                            <span className="truncate max-w-[60%] sm:max-w-none">{item.nombre}</span>
+                            <span className="text-purple-300 ml-2 shrink-0">{item.claveArticulo}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Tamaño guardado (BD) */}
+              <div className="space-y-2">
+                <Label className="text-gray-100 font-medium text-sm sm:text-base">Tamaño de etiqueta</Label>
+                <Select
+                  value={selectedTamanoId}
+                  onValueChange={(value) => {
+                    setSelectedTamanoId(value)
+                    const t = tamanos.find(x => String(x.id) === value)
+                    if (t) aplicarTamanoBD(t)
+                  }}
+                >
+                  <SelectTrigger className="bg-gray-700 border-gray-500 text-white w-full">
+                    <SelectValue placeholder={isLoadingTamanos ? "Cargando..." : "Selecciona un tamaño"} />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-700 border-gray-500 max-h-64 overflow-y-auto">
+                    {isLoadingTamanos && (
+                      <div className="px-3 py-2 text-sm text-gray-300 flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" /> Cargando…
+                      </div>
+                    )}
+                    {tamanosError && (
+                      <div className="px-3 py-2 text-sm text-red-300 flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4" /> {tamanosError}
+                      </div>
+                    )}
+                    {!isLoadingTamanos && !tamanosError && tamanos.length === 0 && (
+                      <div className="px-3 py-2 text-sm text-gray-300">No hay tamaños guardados</div>
+                    )}
+                    {tamanos.map(t => (
+                      <SelectItem key={t.id} value={String(t.id)} className="text-white">
+                        {t.nombre} — {t.width}×{t.height}mm (margen {t.margen}mm)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Formato de código de barras */}
+              <div className="space-y-2">
+                <Label className="text-gray-100 font-medium text-sm sm:text-base">Formato de código de barras</Label>
+                <Select value={barcodeFormat} onValueChange={(v: "CODE128" | "CODE128B" | "QR") => setBarcodeFormat(v)}>
+                  <SelectTrigger className="bg-gray-700 border-gray-500 text-white w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-700 border-gray-500">
+                    <SelectItem value="CODE128" className="text-white">CODE128</SelectItem>
+                    <SelectItem value="CODE128B" className="text-white">CODE128B</SelectItem>
+                    <SelectItem value="QR" className="text-white">Código QR</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Plantillas locales */}
+              <div className="flex justify-between items-center gap-3 flex-wrap">
+                <Label className="text-gray-100 font-medium text-base">Configurar etiqueta manual</Label>
+                <Dialog open={isTemplateModalOpen} onOpenChange={setIsTemplateModalOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-purple-600 hover:bg-purple-700 text-white border-0 w-full sm:w-auto">
+                      <BookOpen className="w-4 h-4 mr-2" />
+                      Guardar Plantilla
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-gray-800 border-gray-600 text-white w-full max-w-[95vw] sm:max-w-lg">
+                    <DialogHeader>
+                      <DialogTitle className="text-white">Crear Nueva Plantilla</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-gray-200">Nombre de la plantilla</Label>
+                        <Input
+                          type="text"
+                          placeholder="Ej: Etiquetas pequeñas, Productos grandes..."
+                          value={templateName}
+                          onChange={(e) => setTemplateName(e.target.value)}
+                          className="bg-gray-700 border-gray-500 text-white placeholder-gray-300"
+                        />
+                      </div>
+                      <div className="bg-gray-700/50 p-4 rounded-lg text-sm">
+                        <Label className="text-gray-200 text-sm">Configuración actual:</Label>
+                        <div className="mt-2 space-y-1 text-gray-300">
+                          <p>Tamaño: {labelConfig.width}mm × {labelConfig.height}mm</p>
+                          <p>Margen: {labelConfig.margin}mm</p>
+                          <p>Fuente: {labelConfig.font}, {labelConfig.fontSize}px</p>
+                          <p>Alto barras: {labelConfig.barHeightMm}mm</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 flex-col sm:flex-row justify-end">
+                        <Button variant="ghost" onClick={() => setIsTemplateModalOpen(false)} className="text-gray-300 hover:text-white w-full sm:w-auto">
+                          Cancelar
+                        </Button>
+                        <Button onClick={saveTemplate} disabled={!templateName.trim()} className="bg-purple-600 hover:bg-purple-700 text-white w-full sm:w-auto">
+                          <Save className="w-4 h-4 mr-2" />
+                          Guardar
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              {/* Etiqueta */}
+              <div className="space-y-2">
+                <Label className="text-gray-100 font-medium">Margen interno (mm)</Label>
+                <NumberField
+                  value={labelConfig.margin}
+                  onChange={(v) => handleConfigChange("margin", v)}
+                  min={3}
+                  step={0.5}
+                  ariaLabel="Margen interno en milímetros"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-gray-100 font-medium">Formato de código de barras</Label>
-                  <Select value={barcodeFormat} onValueChange={(v: "CODE128" | "CODE128B" | "QR") => setBarcodeFormat(v)}>
+                  <Label className="text-gray-100 font-medium">Ancho (mm)</Label>
+                  <NumberField
+                    value={labelConfig.width}
+                    onChange={(v) => handleConfigChange("width", v)}
+                    min={1}
+                    max={135}
+                    step={1}
+                    ariaLabel="Ancho en milímetros"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-gray-100 font-medium">Alto (mm)</Label>
+                  <NumberField
+                    value={labelConfig.height}
+                    onChange={(v) => handleConfigChange("height", v)}
+                    min={1}
+                    max={300}
+                    step={1}
+                    ariaLabel="Alto en milímetros"
+                  />
+                </div>
+              </div>
+
+              {/* Alto de barras */}
+              <div className="space-y-2">
+                <Label className="text-gray-100 font-medium">Alto barras (mm)</Label>
+                <NumberField
+                  value={labelConfig.barHeightMm}
+                  onChange={(v) => handleConfigChange("barHeightMm", v)}
+                  min={4}
+                  step={1}
+                  ariaLabel="Alto de las barras en milímetros"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-gray-100 font-medium">Número de impresiones</Label>
+                <NumberField
+                  value={labelConfig.quantity}
+                  onChange={(v) => handleConfigChange("quantity", v)}
+                  min={1}
+                  step={1}
+                  ariaLabel="Número de impresiones"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-gray-100 font-medium">Tamaño fuente (px)</Label>
+                  <NumberField
+                    value={labelConfig.fontSize}
+                    onChange={(v) => handleConfigChange("fontSize", v)}
+                    min={6}
+                    step={1}
+                    ariaLabel="Tamaño de fuente en píxeles"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-gray-100 font-medium">Fuente</Label>
+                  <Select value={labelConfig.font} onValueChange={(value) => handleConfigChange("font", value)}>
                     <SelectTrigger className="bg-gray-700 border-gray-500 text-white w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-gray-700 border-gray-500">
-                      <SelectItem value="CODE128" className="text-white">CODE128</SelectItem>
-                      <SelectItem value="CODE128B" className="text-white">CODE128B</SelectItem>
-                      <SelectItem value="QR" className="text-white">Código QR</SelectItem>
+                      <SelectItem value="Arial" className="text-white">Arial</SelectItem>
+                      <SelectItem value="Helvetica" className="text-white">Helvetica</SelectItem>
+                      <SelectItem value="Times" className="text-white">Times</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
 
-                {/* Plantillas locales */}
-                <div className="flex justify-between items-center">
-                  <Label className="text-gray-100 font-medium text-base">Configurar etiqueta manual</Label>
-                  <Dialog open={isTemplateModalOpen} onOpenChange={setIsTemplateModalOpen}>
-                    <DialogTrigger asChild>
-                      <Button className="bg-purple-600 hover:bg-purple-700 text-white border-0">
-                        <BookOpen className="w-4 h-4 mr-2" />
-                        Guardar Plantilla
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="bg-gray-800 border-gray-600 text-white">
-                      <DialogHeader>
-                        <DialogTitle className="text-white">Crear Nueva Plantilla</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label className="text-gray-200">Nombre de la plantilla</Label>
-                          <Input
-                            type="text"
-                            placeholder="Ej: Etiquetas pequeñas, Productos grandes..."
-                            value={templateName}
-                            onChange={(e) => setTemplateName(e.target.value)}
-                            className="bg-gray-700 border-gray-500 text-white placeholder-gray-300"
-                          />
+              <div className="flex gap-3 pt-2 sm:pt-4 flex-col sm:flex-row">
+                <Button onClick={handlePrint} className="bg-gray-600 hover:bg-gray-700 text-white border-0 w-full sm:flex-1" disabled={articles.length === 0}>
+                  <Printer className="w-4 h-4 mr-2" />
+                  Imprimir
+                </Button>
+              </div>
+              <div className="flex gap-3 pt-2 sm:pt-4 flex-col sm:flex-row">
+                <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white border-0 w-full sm:w-auto" onClick={onPickExcelClick} title="Importar desde Excel/CSV">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Importar Excel
+                </Button>
+                <Button size="sm" variant="ghost" className="text-gray-300 hover:text-white w-full sm:w-auto" onClick={downloadTemplate} title="Descargar plantilla CSV">
+                  Descargar plantilla
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Derecha: Tabla + Preview, misma altura que izquierda */}
+          <div className="flex flex-col gap-4 sm:gap-6 h-full min-h-0">
+            {/* Tabla de artículos */}
+            <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm flex-1 flex min-h-0">
+              <CardHeader className="border-b border-gray-600 shrink-0">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <CardTitle className="text-white text-lg sm:text-xl">
+                    Artículos ({articles.length})
+                  </CardTitle>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={onExcelInputChange} className="hidden" />
+
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={resetArticles}
+                      disabled={articles.length === 0}
+                      title="Eliminar todos los artículos"
+                      className="text-red-400 hover:text-red-300 hover:bg-red-900/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                      aria-label="Eliminar todos los artículos"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                    </Button>
+
+                    <span className="text-sm text-purple-300"> Total: {totalLabels} etiquetas </span>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-6 flex-1 flex flex-col min-h-0">
+                {articles.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    <p>No hay artículos agregados</p>
+                    <p className="text-sm">Busca, importa o agrega un artículo para comenzar</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 flex-1 overflow-y-auto min-h-0">
+                    {articles.map((a) => (
+                      <div key={a.id} className="flex items-center justify-between gap-3 bg-gray-700/50 p-3 rounded-lg">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white font-medium truncate">{a.text}</p>
+                          <p className="text-gray-300 text-sm truncate">Código: {a.barcode}</p>
                         </div>
-                        <div className="bg-gray-700/50 p-4 rounded-lg">
-                          <Label className="text-gray-200 text-sm">Configuración actual:</Label>
-                          <div className="mt-2 space-y-1 text-sm text-gray-300">
-                            <p>Tamaño: {labelConfig.width}mm × {labelConfig.height}mm</p>
-                            <p>Margen: {labelConfig.margin}mm</p>
-                            <p>Fuente: {labelConfig.font}, {labelConfig.fontSize}px</p>
-                            <p>Alto barras: {labelConfig.barHeightMm}mm</p>
-                          </div>
-                        </div>
-                        <div className="flex gap-2 justify-end">
-                          <Button variant="ghost" onClick={() => setIsTemplateModalOpen(false)} className="text-gray-300 hover:text-white">
-                            Cancelar
-                          </Button>
-                          <Button onClick={saveTemplate} disabled={!templateName.trim()} className="bg-purple-600 hover:bg-purple-700 text-white">
-                            <Save className="w-4 h-4 mr-2" />
-                            Guardar
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="text-purple-300 font-medium">{a.quantity}x</span>
+                          <Button size="sm" variant="ghost" onClick={() => removeArticle(a.id)} className="text-red-400 hover:text-red-300 hover:bg-red-900/20">
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                       </div>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-
-                {/* Etiqueta */}
-                <div className="space-y-2">
-                  <Label className="text-gray-100 font-medium">Margen interno (mm)</Label>
-                  <NumberField
-                    value={labelConfig.margin}
-                    onChange={(v) => handleConfigChange("margin", v)}
-                    min={3}
-                    step={0.5}
-                    ariaLabel="Margen interno en milímetros"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-gray-100 font-medium">Ancho (mm)</Label>
-                    <NumberField
-                      value={labelConfig.width}
-                      onChange={(v) => handleConfigChange("width", v)}
-                      min={1}
-                      max={135}
-                      step={1}
-                      ariaLabel="Ancho en milímetros"
-                    />
+                    ))}
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-gray-100 font-medium">Alto (mm)</Label>
-                    <NumberField
-                      value={labelConfig.height}
-                      onChange={(v) => handleConfigChange("height", v)}
-                      min={1}
-                      max={300}
-                      step={1}
-                      ariaLabel="Alto en milímetros"
-                    />
-                  </div>
-                </div>
-
-                {/* Alto de barras */}
-                <div className="space-y-2">
-                  <Label className="text-gray-100 font-medium">Alto barras (mm)</Label>
-                  <NumberField
-                    value={labelConfig.barHeightMm}
-                    onChange={(v) => handleConfigChange("barHeightMm", v)}
-                    min={4}
-                    step={1}
-                    ariaLabel="Alto de las barras en milímetros"
-                  />
-                </div>
-
-
-                <div className="space-y-2">
-                  <Label className="text-gray-100 font-medium">Número de impresiones</Label>
-                  <NumberField
-                    value={labelConfig.quantity}
-                    onChange={(v) => handleConfigChange("quantity", v)}
-                    min={1}
-                    step={1}
-                    ariaLabel="Número de impresiones"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-gray-100 font-medium">Tamaño fuente (px)</Label>
-                    <NumberField
-                      value={labelConfig.fontSize}
-                      onChange={(v) => handleConfigChange("fontSize", v)}
-                      min={6}
-                      step={1}
-                      ariaLabel="Tamaño de fuente en píxeles"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-gray-100 font-medium">Fuente</Label>
-                    <Select value={labelConfig.font} onValueChange={(value) => handleConfigChange("font", value)}>
-                      <SelectTrigger className="bg-gray-700 border-gray-500 text-white w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-gray-700 border-gray-500">
-                        <SelectItem value="Arial" className="text-white">Arial</SelectItem>
-                        <SelectItem value="Helvetica" className="text-white">Helvetica</SelectItem>
-                        <SelectItem value="Times" className="text-white">Times</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <Button onClick={handlePrint} className="flex-1 bg-gray-600 hover:bg-gray-700 text-white border-0" disabled={articles.length === 0}>
-                    <Printer className="w-4 h-4 mr-2" />
-                    Imprimir
-                  </Button>
-                </div>
-                <div className="flex gap-3 pt-4">
-                  <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white border-0" onClick={onPickExcelClick} title="Importar desde Excel/CSV">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Importar Excel
-                  </Button>
-                  <Button size="sm" variant="ghost" className="text-gray-300 hover:text-white" onClick={downloadTemplate} title="Descargar plantilla CSV">
-                    Descargar plantilla
-                  </Button>
-                </div>
+                )}
               </CardContent>
             </Card>
 
-            {/* Derecha: Tabla + Preview, misma altura que izquierda */}
-            <div className="flex flex-col gap-6 h-full min-h-0">
-              {/* Tabla de artículos */}
-              <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm flex-1 flex min-h-0">
-                <CardHeader className="border-b border-gray-600 shrink-0">
-                  <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <CardTitle className="text-white">
-                      Artículos ({articles.length})
-                    </CardTitle>
-
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={onExcelInputChange} className="hidden" />
-
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={resetArticles}
-                        disabled={articles.length === 0}
-                        title="Eliminar todos los artículos"
-                        className="text-red-400 hover:text-red-300 hover:bg-red-900/20 disabled:opacity-40 disabled:cursor-not-allowed"
-                        aria-label="Eliminar todos los artículos"
-                      >
-                        <RotateCcw className="w-4 h-4" />
-                      </Button>
-
-                      <span className="text-sm text-purple-300"> Total: {totalLabels} etiquetas </span>
-                    </div>
+            {/* Vista previa (con escalado para no desbordar) */}
+            <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm flex-1 flex min-h-0">
+              <CardHeader className="border-b border-gray-600 shrink-0">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <Eye className="w-5 h-5 text-purple-300" />
+                    <CardTitle className="text-white text-lg sm:text-xl">Vista Previa</CardTitle>
                   </div>
-                </CardHeader>
-                <CardContent className="p-6 flex-1 flex flex-col min-h-0">
+                  <p className="text-gray-300 text-xs sm:text-sm">
+                    Dimensiones: {labelConfig.width}mm × {labelConfig.height}mm — Alto barras: {labelConfig.barHeightMm}mm — Formato: {barcodeFormat}
+                  </p>
+                </div>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-6 flex-1 flex flex-col min-h-0">
+                <div className="bg-gray-900/60 rounded-lg p-4 sm:p-8 min-h-[220px] sm:min-h-[300px] flex-1 flex items-center justify-center relative overflow-auto min-h-0">
                   {articles.length === 0 ? (
-                    <div className="text-center py-8 text-gray-400">
-                      <p>No hay artículos agregados</p>
-                      <p className="text-sm">Busca, importa o agrega un artículo para comenzar</p>
+                    <div className="text-center text-gray-400">
+                      <p>Agrega artículos para ver la vista previa</p>
                     </div>
                   ) : (
-                    <div className="space-y-2 flex-1 overflow-y-auto ">
-                      {articles.map((a) => (
-                        <div key={a.id} className="flex items-center justify-between bg-gray-700/50 p-3 rounded-lg">
-                          <div className="flex-1">
-                            <p className="text-white font-medium">{a.text}</p>
-                            <p className="text-gray-300 text-sm">Código: {a.barcode}</p>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <span className="text-purple-300 font-medium">{a.quantity}x</span>
-                            <Button size="sm" variant="ghost" onClick={() => removeArticle(a.id)} className="text-red-400 hover:text-red-300 hover:bg-red-900/20">
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                    <div
+                      className="grid gap-3 sm:gap-4 justify-center w-full"
+                      style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${cellW}px, 1fr))` }}
+                    >
+                      {articles.slice(0, 1).map((a) => (
+                        <div
+                          key={a.id}
+                          className="flex items-center justify-center"
+                          style={{ width: `${cellW}px`, height: `${cellH}px`, overflow: "hidden" }}
+                        >
+                          {/* Etiqueta "real" escalada para caber siempre */}
+                          <div
+                            className="bg-white rounded-md shadow-lg border-2 border-gray-300 flex flex-col items-center justify-center relative"
+                            style={{
+                              width: `${naturalW}px`,
+                              height: `${naturalH}px`,
+                              transform: `scale(${previewScale})`,
+                              transformOrigin: "top left",
+                              padding: `${previewPad}px`,
+                            }}
+                          >
+                            {/* 1) Código de barras */}
+                            {barcodeFormat === "QR" ? (
+                              <QRCodeSVG
+                                value={a.barcode}
+                                sizePx={mmToPx(parseFloat(labelConfig.qrSizeMm))}
+                              />
+                            ) : (
+                              <BarcodeSVG
+                                value={a.barcode}
+                                format={barcodeFormat as "CODE128" | "CODE128B"}
+                                heightPx={previewBarHeightPx}
+                                fontFamily={labelConfig.font}
+                                fontSizePx={parseFloat(labelConfig.fontSize)}
+                              />
+                            )}
+
+                            {/* 2) Texto debajo */}
+                            <div
+                              className="text-black text-center font-medium"
+                              style={{
+                                fontSize: `${Math.max(10, Number.parseInt(labelConfig.fontSize) * 0.8)}px`,
+                                marginTop: "6px",
+                                maxWidth: "100%",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                              }}
+                              title={a.text}
+                            >
+                              {a.text}
+                            </div>
                           </div>
                         </div>
                       ))}
                     </div>
                   )}
-                </CardContent>
-              </Card>
-
-              {/* Vista previa (con escalado para no desbordar) */}
-              <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm flex-1 flex min-h-0">
-                <CardHeader className="border-b border-gray-600 shrink-0">
-                  <CardTitle className="flex items-center gap-2 text-white">
-                    <Eye className="w-5 h-5 text-purple-300" />
-                    Vista Previa
-                  </CardTitle>
-                  <p className="text-gray-300 text-sm">
-                    Dimensiones: {labelConfig.width}mm × {labelConfig.height}mm — Alto barras: {labelConfig.barHeightMm}mm — Formato: {barcodeFormat}
-                  </p>
-                </CardHeader>
-                <CardContent className="p-6 flex-1 flex flex-col min-h-0">
-                  <div className="bg-gray-900/60 rounded-lg p-8 min-h-[300px] flex-1 flex items-center justify-center relative overflow-auto min-h-0">
-                    {articles.length === 0 ? (
-                      <div className="text-center text-gray-400">
-                        <p>Agrega artículos para ver la vista previa</p>
-                      </div>
-                    ) : (
-                      <div
-                        className="grid gap-4 justify-center"
-                        style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${cellW}px, 1fr))` }}
-                      >
-                        {articles.slice(0, 1).map((a) => (
-                          <div
-                            key={a.id}
-                            className="flex items-center justify-center"
-                            style={{ width: `${cellW}px`, height: `${cellH}px`, overflow: "hidden" }}
-                          >
-                            {/* Etiqueta "real" escalada para caber siempre */}
-                            <div
-                              className="bg-white rounded-md shadow-lg border-2 border-gray-300 flex flex-col items-center justify-center relative"
-                              style={{
-                                width: `${naturalW}px`,
-                                height: `${naturalH}px`,
-                                transform: `scale(${previewScale})`,
-                                transformOrigin: "top left",
-                                padding: `${previewPad}px`,
-                              }}
-                            >
-                              {/* 1) Código de barras */}
-                              {barcodeFormat === "QR" ? (
-                                <QRCodeSVG
-                                  value={a.barcode}
-                                  sizePx={mmToPx(parseFloat(labelConfig.qrSizeMm))}
-                                />
-                              ) : (
-                                <BarcodeSVG
-                                  value={a.barcode}
-                                  format={barcodeFormat as "CODE128" | "CODE128B"}
-                                  heightPx={previewBarHeightPx}
-                                  fontFamily={labelConfig.font}
-                                  fontSizePx={parseFloat(labelConfig.fontSize)}
-                                />
-                              )}
-
-                              {/* 2) Texto debajo */}
-                              <div
-                                className="text-black text-center font-medium" style={{
-                                  fontSize: `${Math.max(10, Number.parseInt(labelConfig.fontSize) * 0.8)}px`, marginTop: "6px", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                }}
-                                title={a.text}
-                              >
-                                {a.text}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
     </div>
-  )
+  </div>
+)
+
 }
 
 /****************************VERSION ESTABLE********************************/

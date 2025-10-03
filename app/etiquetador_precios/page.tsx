@@ -823,482 +823,487 @@ export default function LabelGenerator() {
     }
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-purple-900">
-      <style jsx global>{`
-        input.no-spin::-webkit-outer-spin-button, input.no-spin::-webkit-inner-spin-button { -webkit-appearance:none; margin:0 }
-        input.no-spin { -moz-appearance:textfield }
-      `}</style>
+return (
+  <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-purple-900">
+    <style jsx global>{`
+      input.no-spin::-webkit-outer-spin-button, input.no-spin::-webkit-inner-spin-button { -webkit-appearance:none; margin:0 }
+      input.no-spin { -moz-appearance:textfield }
+      @supports (-webkit-touch-callout: none) {
+        input, select, textarea, button { font-size: 16px; }
+      }
+    `}</style>
 
-      {/* Dialog sucursal */}
-      <Dialog open={!sucursalId}>
-        <DialogContent className="bg-gray-900 text-white border-gray-700 max-w-md">
-          <DialogHeader><DialogTitle>Selecciona una sucursal</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <Label className="text-gray-300">Sucursal / Almacén</Label>
-            <Select value={sucursalId} onValueChange={setSucursalId}>
-              <SelectTrigger className="bg-gray-800 border-gray-700 text-white"><SelectValue placeholder="Elige una sucursal" /></SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-700">
-                {SCS.map((s) => (<SelectItem className="text-white" key={s.id} value={s.id}>{s.nombre}</SelectItem>))}
-              </SelectContent>
-            </Select>
-            <Button className="w-full bg-purple-600 hover:bg-purple-700" disabled={!sucursalId}>Continuar</Button>
+    {/* Dialog sucursal */}
+    <Dialog open={!sucursalId}>
+      <DialogContent className="bg-gray-900 text-white border-gray-700 w-full max-w-[95vw] sm:max-w-md">
+        <DialogHeader><DialogTitle>Selecciona una sucursal</DialogTitle></DialogHeader>
+        <div className="space-y-4">
+          <Label className="text-gray-300">Sucursal / Almacén</Label>
+          <Select value={sucursalId} onValueChange={setSucursalId}>
+            <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-full">
+              <SelectValue placeholder="Elige una sucursal" />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-800 border-gray-700">
+              {SCS.map((s) => (
+                <SelectItem className="text-white" key={s.id} value={s.id}>
+                  {s.nombre}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button className="w-full bg-purple-600 hover:bg-purple-700" disabled={!sucursalId}>
+            Continuar
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+
+    {/* Dialog: Buscar por ubicación */}
+    <Dialog
+      open={ubicModalOpen}
+      onOpenChange={(open) => {
+        setUbicModalOpen(open)
+        if (!open) { stopCamera(); setUbicTab("manual"); setUbicErr(null) }
+      }}
+    >
+      <DialogContent className="bg-gray-900 text-white border-gray-700 w-full max-w-[95vw] sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Search className="w-4 h-4" /> Buscar por ubicación
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="grid gap-3">
+          {/* Tabs simples */}
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              variant={ubicTab === "manual" ? "default" : "outline"}
+              className={ubicTab === "manual" ? "bg-purple-600 hover:bg-purple-700 flex-1 sm:flex-none" : "border-gray-700 flex-1 sm:flex-none"}
+              onClick={() => { setUbicTab("manual"); stopCamera() }}
+            >
+              <Keyboard className="w-4 h-4 mr-2" /> Manual
+            </Button>
+            <Button
+              variant={ubicTab === "cam" ? "default" : "outline"}
+              className={ubicTab === "cam" ? "bg-purple-600 hover:bg-purple-700 flex-1 sm:flex-none" : "border-gray-700 flex-1 sm:flex-none"}
+              onClick={() => { setUbicTab("cam"); startCamera() }}
+            >
+              <Camera className="w-4 h-4 mr-2" /> Cámara
+            </Button>
           </div>
-        </DialogContent>
-      </Dialog>
 
-      {/* Dialog: Buscar por ubicación */}
-      <Dialog
-        open={ubicModalOpen}
-        onOpenChange={(open) => {
-          setUbicModalOpen(open)
-          if (!open) { stopCamera(); setUbicTab("manual"); setUbicErr(null) }
-        }}
-      >
-        <DialogContent className="bg-gray-900 text-white border-gray-700 max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Search className="w-4 h-4" /> Buscar por ubicación
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="grid gap-3">
-            {/* Tabs simples */}
-            <div className="flex gap-2">
-              <Button
-                variant={ubicTab === "manual" ? "default" : "outline"}
-                className={ubicTab === "manual" ? "bg-purple-600 hover:bg-purple-700" : "border-gray-700"}
-                onClick={() => { setUbicTab("manual"); stopCamera() }}
-              >
-                <Keyboard className="w-4 h-4 mr-2" /> Manual
-              </Button>
-              <Button
-                variant={ubicTab === "cam" ? "default" : "outline"}
-                className={ubicTab === "cam" ? "bg-purple-600 hover:bg-purple-700" : "border-gray-700"}
-                onClick={() => { setUbicTab("cam"); startCamera() }}
-              >
-                <Camera className="w-4 h-4 mr-2" /> Cámara
-              </Button>
+          {ubicTab === "manual" ? (
+            <div className="space-y-3">
+              <Label className="text-gray-100">Ubicación / Anaquel / Pasillo</Label>
+              <Input
+                value={ubicacion}
+                onChange={(e) => setUbicacion(e.target.value)}
+                placeholder="Ej. A-12-03"
+                className="bg-gray-800 border-gray-700 text-white"
+                onKeyDown={(e) => { if (e.key === "Enter") buscarPorUbicacion() }}
+              />
+              {ubicErr && (
+                <div className="px-3 py-2 text-sm text-red-300 flex items-center gap-2 bg-red-900/20 rounded">
+                  <AlertCircle className="w-4 h-4" />{ubicErr}
+                </div>
+              )}
+              <div className="flex flex-col sm:flex-row justify-end gap-2">
+                <Button variant="outline" className="border-gray-700 w-full sm:w-auto" onClick={() => { setUbicModalOpen(false); stopCamera() }}>
+                  Cancelar
+                </Button>
+                <Button className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto" onClick={buscarPorUbicacion} disabled={buscandoUbic}>
+                  {buscandoUbic ? <Loader2 className="w-4 h-4 animate-spin" /> : "Buscar"}
+                </Button>
+              </div>
             </div>
-
-            {ubicTab === "manual" ? (
-              <div className="space-y-3">
-                <Label className="text-gray-100">Ubicación / Anaquel / Pasillo</Label>
-                <Input
-                  value={ubicacion}
-                  onChange={(e) => setUbicacion(e.target.value)}
-                  placeholder="Ej. A-12-03"
-                  className="bg-gray-800 border-gray-700 text-white"
-                  onKeyDown={(e) => { if (e.key === "Enter") buscarPorUbicacion() }}
+          ) : (
+            <div className="space-y-4 p-4 sm:p-6">
+              {/* Contenedor de video: vertical en móvil, 16:9 en desktop */}
+              <div className="relative aspect-[3/4] md:aspect-video w-full rounded-md overflow-hidden border border-gray-700 bg-black">
+                <video
+                  ref={videoRef}
+                  className="w-full h-full object-contain"
+                  muted
+                  playsInline
                 />
-                {ubicErr && (
-                  <div className="px-3 py-2 text-sm text-red-300 flex items-center gap-2 bg-red-900/20 rounded">
-                    <AlertCircle className="w-4 h-4" />{ubicErr}
+                {!streamRef.current && (
+                  <div className="absolute inset-0 grid place-items-center text-gray-300 text-sm sm:text-base px-4 text-center">
+                    <div>
+                      <p>Activa la cámara para escanear el anaquel / código de ubicación.</p>
+                      <p className="opacity-80 mt-2">Al detectar un código válido, lo copiaré arriba.</p>
+                    </div>
                   </div>
                 )}
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" className="border-gray-700" onClick={() => { setUbicModalOpen(false); stopCamera() }}>Cancelar</Button>
-                  <Button className="bg-purple-600 hover:bg-purple-700" onClick={buscarPorUbicacion} disabled={buscandoUbic}>
-                    {buscandoUbic ? <Loader2 className="w-4 h-4 animate-spin" /> : "Buscar"}
-                  </Button>
-                </div>
               </div>
-            ) : (
-              <div className="space-y-4 p-4 sm:p-6">
-                {/* Contenedor de video: vertical en móvil, 16:9 en desktop */}
-                <div className="relative aspect-[3/4] md:aspect-video w-full rounded-md overflow-hidden border border-gray-700 bg-black">
-                  <video
-                    ref={videoRef}
-                    className="w-full h-full object-contain"
-                    muted
-                    playsInline
-                  />
-                  {!streamRef.current && (
-                    <div className="absolute inset-0 grid place-items-center text-gray-300 text-sm sm:text-base px-4 text-center">
-                      <div>
-                        <p>Activa la cámara para escanear el anaquel / código de ubicación.</p>
-                        <p className="opacity-80 mt-2">Al detectar un código válido, lo copiaré arriba.</p>
-                      </div>
+
+              {/* Controles cámara */}
+              <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
+                <Button onClick={startCamera} className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto h-11">
+                  Iniciar cámara
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-gray-700 w-full sm:w-auto h-11"
+                  onClick={stopCamera}
+                >
+                  Detener
+                </Button>
+              </div>
+
+              {ubicacion && (
+                <div className="text-sm sm:text-base text-gray-200">
+                  Detectado: <span className="font-semibold text-purple-300 break-all">{ubicacion}</span>
+                </div>
+              )}
+
+              {ubicErr && (
+                <div className="px-3 py-2 text-sm sm:text-base text-red-300 flex items-start gap-2 bg-red-900/20 rounded">
+                  <AlertCircle className="w-4 h-4 mt-0.5" />
+                  <span className="flex-1">{ubicErr}</span>
+                </div>
+              )}
+
+              {/* Acciones finales */}
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
+                <Button
+                  variant="outline"
+                  className="border-gray-700 w-full sm:w-auto h-11"
+                  onClick={() => {
+                    setUbicModalOpen(false);
+                    stopCamera();
+                  }}
+                >
+                  Cerrar
+                </Button>
+
+                <Button
+                  className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto h-11"
+                  onClick={buscarPorUbicacion}
+                  disabled={!ubicacion || buscandoUbic}
+                >
+                  {buscandoUbic ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    "Buscar con ubicación detectada"
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+
+    <div className="min-h-screen p-4 sm:p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-6 sm:mb-8">
+          <p className="text-gray-200 text-base sm:text-lg">
+            Sucursal actual:{" "}
+            <span className="font-semibold text-purple-200">{sucursalActual ? sucursalActual.nombre : "—"}</span>
+          </p>
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-stretch min-h-0">
+          {/* Izquierda */}
+          <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm h-full flex flex-col w-full">
+            <CardHeader className="border-b border-gray-600 flex w-full justify-between">
+              <CardTitle className="flex items-center gap-2 text-white">
+                <Settings className="w-5 h-5 text-purple-300" />Configuración
+              </CardTitle>
+              <CardTitle className="flex items-center gap-2 text-white font-light text-xs">v2.3.0</CardTitle>
+            </CardHeader>
+
+            <CardContent className="p-4 sm:p-6 space-y-6">
+              {/* Selector de plantilla */}
+              <div className="grid sm:grid-cols-2 gap-4 items-end">
+                <div className="space-y-2">
+                  <Label className="text-gray-100 font-medium flex items-center gap-2">
+                    <LayoutTemplate className="w-4 h-4" />Tipo de etiqueta
+                  </Label>
+                  <Select value={tplId} onValueChange={setTplId} >
+                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-full">
+                      <SelectValue placeholder="Elige una plantilla" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-800 border-gray-700">
+                      {LABEL_TEMPLATES.map(t => (
+                        <SelectItem className="text-white" key={t.id} value={t.id}>{t.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-400">Dimensiones fijas: {template.width} × {template.height} mm</p>
+                </div>
+
+                {/* Captura */}
+                <div className="space-y-2 sm:col-span-2">
+                  <Label className="text-gray-100 font-medium">Código del artículo</Label>
+                  <div className="flex gap-2 flex-wrap">
+                    <Input
+                      type="text"
+                      placeholder={!sucursalId ? "Selecciona una sucursal…" : "Escanea o escribe el código…"}
+                      value={codigo}
+                      onChange={(e) => setCodigo(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && codigo.trim() && sucursalId) {
+                          e.preventDefault()
+                          addByCodigo(codigo.trim(), Math.max(1, parseInt(quantity || "1", 10)))
+                        }
+                      }}
+                      className="bg-gray-700 border-gray-500 text-white placeholder-gray-300 flex-1 min-w-[200px]"
+                      disabled={!sucursalId}
+                    />
+                    <div className="w-full sm:w-36">
+                      <NumberField value={quantity} onChange={setQuantity} min={1} step={1} ariaLabel="Número de impresiones" />
+                    </div>
+                    <Button
+                      onClick={() => {
+                        if (codigo.trim() && sucursalId) {
+                          addByCodigo(codigo.trim(), Math.max(1, parseInt(quantity || "1", 10)))
+                        }
+                      }}
+                      className="bg-purple-600 hover:bg-purple-700 text-white border-0 w-full sm:w-auto"
+                      disabled={!sucursalId || !codigo.trim() || loadingAdd}
+                      title="Agregar etiqueta"
+                    >
+                      {loadingAdd ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                  {addError && (
+                    <div className="mt-2 px-3 py-2 text-sm text-red-300 flex items-center gap-2 bg-red-900/20 rounded">
+                      <AlertCircle className="w-4 h-4" />{addError}
                     </div>
                   )}
                 </div>
-
-                {/* Controles cámara: columna en móvil, fila en pantallas más grandes */}
-                <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
-                  <Button
-                    onClick={startCamera}
-                    className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto h-11"
-                  >
-                    Iniciar cámara
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="border-gray-700 w-full sm:w-auto h-11"
-                    onClick={stopCamera}
-                  >
-                    Detener
-                  </Button>
-                </div>
-
-                {ubicacion && (
-                  <div className="text-sm sm:text-base text-gray-200">
-                    Detectado: <span className="font-semibold text-purple-300 break-all">{ubicacion}</span>
-                  </div>
-                )}
-
-                {ubicErr && (
-                  <div className="px-3 py-2 text-sm sm:text-base text-red-300 flex items-start gap-2 bg-red-900/20 rounded">
-                    <AlertCircle className="w-4 h-4 mt-0.5" />
-                    <span className="flex-1">{ubicErr}</span>
-                  </div>
-                )}
-
-                {/* Acciones finales: columna (con botón principal al final) en móvil */}
-                <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    className="border-gray-700 w-full sm:w-auto h-11"
-                    onClick={() => {
-                      setUbicModalOpen(false);
-                      stopCamera();
-                    }}
-                  >
-                    Cerrar
-                  </Button>
-
-                  <Button
-                    className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto h-11"
-                    onClick={buscarPorUbicacion}
-                    disabled={!ubicacion || buscandoUbic}
-                  >
-                    {buscandoUbic ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      "Buscar con ubicación detectada"
-                    )}
-                  </Button>
-                </div>
               </div>
 
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                {/* Input oculto para subir Excel/CSV */}
+                <input
+                  ref={fileRef}
+                  type="file"
+                  className="hidden"
+                  accept=".xlsx,.xls,.csv"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    if (file.size > 10 * 1024 * 1024) {
+                      new Noty({ type: "error", layout: "topRight", theme: "mint", text: "El archivo es muy grande (máx 10 MB).", timeout: 3000 }).show()
+                      e.currentTarget.value = ""
+                      return
+                    }
+                    try {
+                      await importFromExcel(file)
+                      new Noty({ type: "success", layout: "topRight", theme: "mint", text: "Importación completada.", timeout: 2500 }).show()
+                    } catch (err: any) {
+                      new Noty({ type: "error", layout: "topRight", theme: "mint", text: err?.message ?? "Error al importar el archivo.", timeout: 3000 }).show()
+                    } finally {
+                      e.currentTarget.value = ""
+                    }
+                  }}
+                />
 
-      <div className="min-h-screen p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-8">
-            <p className="text-gray-200 text-lg">
-              Sucursal actual:{" "}
-              <span className="font-semibold text-purple-200">{sucursalActual ? sucursalActual.nombre : "—"}</span>
-            </p>
-          </div>
+                <Button
+                  onClick={handlePrint}
+                  className="col-span-full w-full justify-center h-11 bg-gray-600 hover:bg-gray-700 text-white border-0"
+                  disabled={!sucursalId || articles.length === 0}
+                  title="Imprimir etiquetas"
+                >
+                  <Printer className="w-4 h-4 mr-2" />
+                  Imprimir ({totalLabels})
+                </Button>
 
-          <div className="grid lg:grid-cols-2 gap-8 items-stretch min-h-0">
-            {/* Izquierda */}
-            <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm h-full flex flex-col w-full">
-              <CardHeader className="border-b border-gray-600 flex w-full justify-between">
-                <CardTitle className="flex items-center gap-2 text-white">
-                  <Settings className="w-5 h-5 text-purple-300" />Configuración
-                </CardTitle>
-                <CardTitle className="flex items-center gap-2 text-white font-light text-xs">v2.3.0</CardTitle>
-              </CardHeader>
-              <CardContent className="p-6 space-y-6">
-                {/* Selector de plantilla */}
-                <div className="grid sm:grid-cols-2 gap-4 items-end">
-                  <div className="space-y-2">
-                    <Label className="text-gray-100 font-medium flex items-center gap-2">
-                      <LayoutTemplate className="w-4 h-4" />Tipo de etiqueta
-                    </Label>
-                    <Select value={tplId} onValueChange={setTplId} >
-                      <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-full">
-                        <SelectValue placeholder="Elige una plantilla" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-gray-800 border-gray-700">
-                        {LABEL_TEMPLATES.map(t => (
-                          <SelectItem className="text-white" key={t.id} value={t.id}>{t.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-gray-400">Dimensiones fijas: {template.width} × {template.height} mm</p>
-                  </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-center h-10 sm:h-11 border-gray-600 text-white"
+                  onClick={downloadTemplate}
+                  title="Descargar plantilla con solo CODIGO y CANTIDAD"
+                >
+                  <Download className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                  <span>Descargar plantilla</span>
+                </Button>
 
-                  {/* Captura */}
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label className="text-gray-100 font-medium">Código del artículo</Label>
-                    <div className="flex gap-2 flex-wrap">
-                      <Input
-                        type="text"
-                        placeholder={!sucursalId ? "Selecciona una sucursal…" : "Escanea o escribe el código…"}
-                        value={codigo}
-                        onChange={(e) => setCodigo(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && codigo.trim() && sucursalId) {
-                            e.preventDefault()
-                            addByCodigo(codigo.trim(), Math.max(1, parseInt(quantity || "1", 10)))
-                          }
-                        }}
-                        className="bg-gray-700 border-gray-500 text-white placeholder-gray-300 flex-1"
-                        disabled={!sucursalId}
-                      />
-                      <div className="w-36">
-                        <NumberField value={quantity} onChange={setQuantity} min={1} step={1} ariaLabel="Número de impresiones" />
-                      </div>
-                      <Button
-                        onClick={() => {
-                          if (codigo.trim() && sucursalId) {
-                            addByCodigo(codigo.trim(), Math.max(1, parseInt(quantity || "1", 10)))
-                          }
-                        }}
-                        className="bg-purple-600 hover:bg-purple-700 text-white border-0"
-                        disabled={!sucursalId || !codigo.trim() || loadingAdd}
-                        title="Agregar etiqueta"
-                      >
-                        {loadingAdd ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                      </Button>
+                <Button
+                  type="button"
+                  className="w-full justify-center h-10 sm:h-11 bg-purple-600 hover:bg-purple-700 text-white border-0"
+                  disabled={!sucursalId || importing}
+                  onClick={() => fileRef.current?.click()}
+                  title="Importar desde Excel o CSV"
+                >
+                  {importing ? (
+                    <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 animate-spin" />
+                  ) : (
+                    <Upload className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                  )}
+                  <span className="text-center">
+                    {importing
+                      ? `Importando ${importProgress.done}/${importProgress.total}`
+                      : "Importar Excel"}
+                  </span>
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-center h-10 sm:h-11 border-gray-600 text-white"
+                  onClick={() => setUbicModalOpen(true)}
+                  title="Buscar por ubicación"
+                >
+                  <Search className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                  <span>Buscar por ubicación</span>
+                </Button>
+              </div>
+
+              {(importing || importErrors.length > 0) && (
+                <div className="mt-3 space-y-2">
+                  {importing && (
+                    <div className="px-3 py-2 rounded bg-gray-700/60 text-white text-sm">
+                      Procesando… {importProgress.done}/{importProgress.total}
                     </div>
-                    {addError && (
-                      <div className="mt-2 px-3 py-2 text-sm text-red-300 flex items-center gap-2 bg-red-900/20 rounded">
-                        <AlertCircle className="w-4 h-4" />{addError}
+                  )}
+                  {importErrors.length > 0 && (
+                    <div className="px-3 py-2 rounded bg-red-900/30 border border-red-700 text-red-200 text-sm max-h-40 overflow-y-auto">
+                      <div className="flex items-center gap-2 font-medium mb-1">
+                        <AlertCircle className="w-4 h-4" />
+                        Errores de importación ({importErrors.length})
                       </div>
-                    )}
+                      <ul className="list-disc ml-5 space-y-1">
+                        {importErrors.slice(0, 50).map((err, i) => (<li key={i}>{err}</li>))}
+                      </ul>
+                      {importErrors.length > 50 && <div className="mt-1 opacity-80">…y más</div>}
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Derecha */}
+          <div className="flex flex-col gap-4 sm:gap-6 h-full min-h-0">
+            <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm flex-1 flex min-h-0">
+              <CardHeader className="border-b border-gray-600 shrink-0">
+                <div className="flex items-start justify-between gap-3 flex-wrap min-w-0">
+                  <CardTitle className="text-white truncate">Artículos ({articles.length})</CardTitle>
+
+                  {/* Controles: columna en móvil */}
+                  <div className="flex items-center flex-wrap gap-2 w-full sm:w-auto min-w-0">
+                    <Button
+                      type="button"
+                      className="bg-gray-700 hover:bg-gray-600 text-white border-0 w-full sm:w-auto"
+                      disabled={articles.length === 0}
+                      onClick={exportArticlesExcel}
+                      title="Exportar artículos cargados (CODIGO, CANTIDAD) para compartir"
+                    >
+                      <Download className="w-4 h-4 mr-2 shrink-0" />
+                      <span className="truncate">Exportar Excel</span>
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={resetArticles}
+                      disabled={articles.length === 0}
+                      title="Eliminar todos los artículos"
+                      className="text-red-400 hover:text-red-300 hover:bg-red-900/20 disabled:opacity-40 disabled:cursor-not-allowed w-full sm:w-auto"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                    </Button>
+
+                    <span className="text-sm text-purple-300 w-full sm:w-auto truncate">
+                      Total: {totalLabels} etiquetas
+                    </span>
                   </div>
                 </div>
+              </CardHeader>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-
-
-                  {/* Input oculto para subir Excel/CSV */}
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    className="hidden"
-                    accept=".xlsx,.xls,.csv"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0]
-                      if (!file) return
-                      if (file.size > 10 * 1024 * 1024) {
-                        new Noty({ type: "error", layout: "topRight", theme: "mint", text: "El archivo es muy grande (máx 10 MB).", timeout: 3000 }).show()
-                        e.currentTarget.value = ""
-                        return
-                      }
-                      try {
-                        await importFromExcel(file)
-                        new Noty({ type: "success", layout: "topRight", theme: "mint", text: "Importación completada.", timeout: 2500 }).show()
-                      } catch (err: any) {
-                        new Noty({ type: "error", layout: "topRight", theme: "mint", text: err?.message ?? "Error al importar el archivo.", timeout: 3000 }).show()
-                      } finally {
-                        e.currentTarget.value = ""
-                      }
-                    }}
-                  />
-
-                  <Button
-                    onClick={handlePrint}
-                    className="col-span-full w-full justify-center h-11 bg-gray-600 hover:bg-gray-700 text-white border-0"
-                    disabled={!sucursalId || articles.length === 0}
-                    title="Imprimir etiquetas"
-                  >
-                    <Printer className="w-4 h-4 mr-2" />
-                    Imprimir ({totalLabels})
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full justify-center h-10 sm:h-11 border-gray-600 text-white"
-                    onClick={downloadTemplate}
-                    title="Descargar plantilla con solo CODIGO y CANTIDAD"
-                  >
-                    <Download className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                    <span>Descargar plantilla</span>
-                  </Button>
-
-                  <Button
-                    type="button"
-                    className="w-full justify-center h-10 sm:h-11 bg-purple-600 hover:bg-purple-700 text-white border-0"
-                    disabled={!sucursalId || importing}
-                    onClick={() => fileRef.current?.click()}
-                    title="Importar desde Excel o CSV"
-                  >
-                    {importing ? (
-                      <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 animate-spin" />
-                    ) : (
-                      <Upload className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                    )}
-                    <span className="text-center">
-                      {importing
-                        ? `Importando ${importProgress.done}/${importProgress.total}`
-                        : "Importar Excel"}
-                    </span>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full justify-center h-10 sm:h-11 border-gray-600 text-white"
-                    onClick={() => setUbicModalOpen(true)}
-                    title="Buscar por ubicación"
-                  >
-                    <Search className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                    <span>Buscar por ubicación</span>
-                  </Button>
-                </div>
-
-
-                {(importing || importErrors.length > 0) && (
-                  <div className="mt-3 space-y-2">
-                    {importing && (
-                      <div className="px-3 py-2 rounded bg-gray-700/60 text-white text-sm">
-                        Procesando… {importProgress.done}/{importProgress.total}
-                      </div>
-                    )}
-                    {importErrors.length > 0 && (
-                      <div className="px-3 py-2 rounded bg-red-900/30 border border-red-700 text-red-200 text-sm max-h-40 overflow-y-auto">
-                        <div className="flex items-center gap-2 font-medium mb-1">
-                          <AlertCircle className="w-4 h-4" />
-                          Errores de importación ({importErrors.length})
+              <CardContent className="p-4 sm:p-6 flex-1 flex flex-col min-h-0 max-w-full overflow-auto whitespace-wrap">
+                {articles.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    <p>No hay artículos agregados</p>
+                    <p className="text-sm">Escribe un código y presiona Enter o el botón +</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 flex-1 overflow-y-auto max-h-[400px]">
+                    {articles.map((a) => (
+                      <div
+                        key={a.id}
+                        className="flex items-center justify-between bg-gray-700/50 p-3 rounded-lg gap-3 min-w-0"
+                      >
+                        {/* Columna izquierda */}
+                        <div className="flex-1 basis-0 min-w-0 overflow-hidden text-wrap sm:max-w-[100%] max-w-[300px]">
+                          <p className="text-white font-medium truncate">{a.nombre}</p>
+                          <p className="text-gray-300 text-xs sm:text-sm break-words">
+                            Código: <span className="break-all">{a.codigo}</span> • Precio: <span className="break-words">{money(a.precio)}</span> •
+                            Dist: <span className="break-words">{money(a.distribuidor)}</span> •
+                            Unidad: <span className="break-words">{a.unidad}</span> •
+                            Fecha: <span className="break-words">{a.fecha}</span> •
+                            Estatus: <span className="break-words">{a.estatus ?? "-"}</span> •
+                            Inv. Máx: <span className="break-words">
+                              {Number.isFinite(a.inventarioMaximo) ? a.inventarioMaximo : 0}
+                            </span>
+                          </p>
                         </div>
-                        <ul className="list-disc ml-5 space-y-1">
-                          {importErrors.slice(0, 50).map((err, i) => (<li key={i}>{err}</li>))}
-                        </ul>
-                        {importErrors.length > 50 && <div className="mt-1 opacity-80">…y más</div>}
+
+                        {/* Columna derecha */}
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="text-purple-300 font-medium">{a.quantity}x</span>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => removeArticle(a.id)}
+                            className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
-                    )}
+                    ))}
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            {/* Derecha */}
-            <div className="flex flex-col gap-6 h-full min-h-0">
-              <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm flex-1 flex min-h-0">
-                <CardHeader className="border-b border-gray-600 shrink-0">
-                  <div className="flex items-start justify-between gap-3 flex-wrap min-w-0">
-                    <CardTitle className="text-white truncate">Artículos ({articles.length})</CardTitle>
+            {/* Preview */}
+            <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm flex-1 flex min-h-0 max-w-[100%]">
+              <CardHeader className="border-b border-gray-600 shrink-0">
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <Eye className="w-5 h-5 text-purple-300" />Vista Previa
+                </CardTitle>
+                <p className="text-gray-300 text-sm">Dimensiones fijas: {template.width}mm × {template.height}mm</p>
+              </CardHeader>
 
-                    {/* Controles: columna en móvil */}
-                    <div className="flex items-center flex-wrap gap-2 w-full sm:w-auto min-w-0">
-                      <Button
-                        type="button"
-                        className="bg-gray-700 hover:bg-gray-600 text-white border-0 w-full sm:w-auto"
-                        disabled={articles.length === 0}
-                        onClick={exportArticlesExcel}
-                        title="Exportar artículos cargados (CODIGO, CANTIDAD) para compartir"
-                      >
-                        <Download className="w-4 h-4 mr-2 shrink-0" />
-                        <span className="truncate">Exportar Excel</span>
-                      </Button>
-
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={resetArticles}
-                        disabled={articles.length === 0}
-                        title="Eliminar todos los artículos"
-                        className="text-red-400 hover:text-red-300 hover:bg-red-900/20 disabled:opacity-40 disabled:cursor-not-allowed w-full sm:w-auto"
-                      >
-                        <RotateCcw className="w-4 h-4" />
-                      </Button>
-
-                      <span className="text-sm text-purple-300 w-full sm:w-auto truncate">
-                        Total: {totalLabels} etiquetas
-                      </span>
-                    </div>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="p-4 sm:p-6 flex-1 flex flex-col min-h-0 max-w-full overflow-auto whitespace-wrap">
+              <CardContent className="p-4 sm:p-6 flex-1 flex flex-col min-h-0 overflow-hidden max-w-[100%]">
+                <div className="bg-gray-900/60 rounded-lg p-4 sm:p-8 flex-1 flex relative">
                   {articles.length === 0 ? (
-                    <div className="text-center py-8 text-gray-400">
-                      <p>No hay artículos agregados</p>
-                      <p className="text-sm">Escribe un código y presiona Enter o el botón +</p>
+                    <div className="m-auto text-center text-gray-400">
+                      <p>Agrega artículos para ver la vista previa</p>
                     </div>
                   ) : (
-                    <div className="space-y-2 flex-1 overflow-y-auto ">
-                      {articles.map((a) => (
-                        <div
-                          key={a.id}
-                          className="flex items-center justify-between bg-gray-700/50 p-3 rounded-lg gap-3 min-w-0"  // 👈 min-w-0 en la fila
-                        >
-                          {/* Columna izquierda: puede encogerse y envolver */}
-                          <div className="flex-1 basis-0 min-w-0 overflow-hidden text-wrap max-w-[300px]">  {/* 👈 basis-0 + min-w-0 */}
-                            <p className="text-white font-medium truncate">{a.nombre}</p>
-
-                            <p className="text-gray-300 text-xs sm:text-sm break-words sm:display-none text-wrap"> {/* 👈 wrap por defecto */}
-                              Código: <span className="break-all">{a.codigo}</span> • Precio: <span className="break-words">{money(a.precio)}</span> •
-                              Dist: <span className="break-words">{money(a.distribuidor)}</span> •
-                              Unidad: <span className="break-words">{a.unidad}</span> •
-                              Fecha: <span className="break-words">{a.fecha}</span> •
-                              Estatus: <span className="break-words">{a.estatus ?? "-"}</span> •
-                              Inv. Máx: <span className="break-words">
-                                {Number.isFinite(a.inventarioMaximo) ? a.inventarioMaximo : 0}
-                              </span>
-                            </p>
-                          </div>
-
-                          {/* Columna derecha: no se encoge, pero no desborda */}
-                          <div className="flex items-center gap-3 shrink-0">
-                            <span className="text-purple-300 font-medium">{a.quantity}x</span>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => removeArticle(a.id)}
-                              className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
+                    <div className="w-full flex justify-center items-center overflow-auto">
+                      <div
+                        className="bg-white rounded-md shadow-lg border-2 border-gray-300 text-black"
+                        style={{
+                          width: "100%",
+                          maxWidth: naturalW,            // no más grande que el tamaño real
+                          height: "auto",
+                          aspectRatio: `${naturalW} / ${naturalH}`,
+                          padding: 6,
+                          overflow: "hidden",
+                        }}
+                      >
+                        {template.preview(articles[0])}
+                      </div>
                     </div>
-
                   )}
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm flex-1 flex min-h-0 max-w-[100%]">
-                <CardHeader className="border-b border-gray-600 shrink-0">
-                  <CardTitle className="flex items-center gap-2 text-white">
-                    <Eye className="w-5 h-5 text-purple-300" />Vista Previa
-                  </CardTitle>
-                  <p className="text-gray-300 text-sm">Dimensiones fijas: {template.width}mm × {template.height}mm</p>
-                </CardHeader>
-
-                <CardContent className="p-4 sm:p-6 flex-1 flex flex-col min-h-0 overflow-hidden max-w-[100%]">
-                  <div className="bg-gray-900/60 rounded-lg p-4 sm:p-8 flex-1 flex relative">
-                    {articles.length === 0 ? (
-                      <div className="m-auto text-center text-gray-400">
-                        <p>Agrega artículos para ver la vista previa</p>
-                      </div>
-                    ) : (
-                      // En móvil permitimos scroll horizontal si el naturalW supera el viewport
-                      <div className="w-full flex justify-center items-center">
-                        <div
-                          className="bg-white rounded-md shadow-lg border-2 border-gray-300 text-black"
-                          style={{
-                            width: "100%",              // ocupa el ancho disponible
-                            maxWidth: naturalW,         // nunca más grande que su tamaño real
-                            height: "auto",             // se ajusta proporcionalmente
-                            aspectRatio: `${naturalW} / ${naturalH}`, // mantiene proporción
-                            padding: 6,
-                            overflow: "hidden",
-                          }}
-                        >
-                          {template.preview(articles[0])}
-                        </div>
-                      </div>
-
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
     </div>
-  )
+  </div>
+)
+
 }
 
 // ====== NumberField ======

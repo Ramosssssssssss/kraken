@@ -82,7 +82,7 @@ function EtiquetadorHubInner() {
       </section>
 
       {/* Contenido (Tabs + iframe) */}
-      <section className="w-full max-w-[100%] mx-auto px-6 pb-4 flex-1 flex min-h-0">
+      <section className="w-full max-w-[100%] mx-auto px-6 pb-4 flex-1 flex min-h-0 sm:px-[10px]">
         <Tabs
           value={active}
           onValueChange={(v) => setActive(v as TabId)}
