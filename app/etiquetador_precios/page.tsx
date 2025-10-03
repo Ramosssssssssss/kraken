@@ -1155,14 +1155,6 @@ export default function LabelGenerator() {
                         <Download className="w-4 h-4 mr-2" />
                         Exportar Excel
                       </Button>
-
-                      <input
-                        ref={fileRef}
-                        type="file"
-                        className="hidden"
-                        accept=".xlsx,.xls,.csv"
-                        onChange={async (e) => { /* ... tu handler actual ... */ }}
-                      />
                       <Button
                         size="sm"
                         variant="ghost"
