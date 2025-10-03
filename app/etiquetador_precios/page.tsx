@@ -1,5 +1,4 @@
 "use client"
-import Link from "next/link"
 import React, { useEffect, useMemo, useRef, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -7,14 +6,15 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Eye, Settings, Printer, Plus, Trash2, Minus, Loader2, AlertCircle, Upload, Download, LayoutTemplate, ArrowLeft, RotateCcw, Search } from "lucide-react"
+import { Eye, Settings, Printer, Plus, Trash2, Minus, Loader2, AlertCircle, Upload, Download, LayoutTemplate, RotateCcw, Search } from "lucide-react"
 import * as XLSX from "xlsx"
 import pLimit from "p-limit"
+import Noty from "noty"
+import "noty/lib/noty.css"
+import "noty/lib/themes/mint.css"
 
-import Noty from "noty";
-import "noty/lib/noty.css";
-import "noty/lib/themes/mint.css";
-// ====== Types & consts ======
+
+// ===== Types & utils =====
 type ArticleItem = {
   id: string
   codigo: string
@@ -28,6 +28,7 @@ type ArticleItem = {
   quantity: number
 }
 
+
 const SCS = [
   { id: "19", nombre: "TOTOLCINGO" },
   { id: "9603355", nombre: "VIA MORELOS" },
@@ -37,12 +38,15 @@ const SCS = [
   { id: "188104", nombre: "CEDIS" },
 ]
 
+
 const mmToPx = (mm: number) => Math.max(1, Math.round(mm * 3.78))
 const money = (n: number) => new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 }).format(Number.isFinite(n) ? n : 0)
 const todayMX = () => new Date().toLocaleDateString("es-MX", { timeZone: "America/Mexico_City", year: "numeric", month: "2-digit", day: "2-digit" })
 
-// ====== Soporte de JsBarcode (preview + impresión) ======
+
+// ===== JsBarcode support =====
 declare global { interface Window { JsBarcode?: any } }
+
 
 async function ensureJsBarcodeLoaded(): Promise<void> {
   if (typeof window === "undefined") return
@@ -60,19 +64,15 @@ async function ensureJsBarcodeLoaded(): Promise<void> {
   })
 }
 
+
 function renderAllBarcodes(root: HTMLElement | Document = document) {
   const els = Array.from(root.querySelectorAll<SVGSVGElement>(".jsb"))
   if (!els.length || !window.JsBarcode) return
   for (const el of els) {
     const code = el.getAttribute("data-code") || ""
     try {
-      window.JsBarcode(el, code, {
-        format: "CODE128",
-        displayValue: false,
-        height: 50,
-        margin: 0,
-      })
-    } catch { /* noop */ }
+      window.JsBarcode(el, code, { format: "CODE128", displayValue: false, height: 50, margin: 0 })
+    } catch { }
   }
 }
 
@@ -286,23 +286,24 @@ const LABEL_TEMPLATES = [
   },
   {
     id: "blanca-40x22",
-    name: "Etiqueta blanca (40×22.4 )",
-    width: 40,
-    height: 22.4,
+    name: "Etiqueta blanca (40×22.7 )",
+    width: 39.9,
+    height: 23.8,
     css: (w: number, h: number, pad: number) => `
       @page{size:${w}mm ${h}mm;margin:0}
       *{box-sizing:border-box;margin:0;padding:0}
       body{font-family:Arial, Helvetica, sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
       .p{width:${w}mm;height:${h}mm;page-break-after:always;display:flex;align-items:center;justify-content:center}
       .p:last-child{page-break-after:auto}
-      .l{width:${w}mm;height:${h}mm;padding:${pad}mm;display:flex}
-      .g{width:100%;height:100%;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(6,minmax(0,auto));gap:3px;font-size:8px;line-height:1.05; padding:1mm;}
+      .l{width:${w}mm;height:${h}mm;display:flex}
+      .g{width:100%;height:100%;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(6,minmax(0,auto));font-size:7px; gap:3px 8px;
+      line-height:1.07; padding: 2mm;}
 
-      .desc{grid-area:1/1/3/4;font-weight:700;text-align:left;font-size:9px;line-height:1.2;white-space:normal;overflow-wrap:break-word;display:flex;align-items:center}
+      .desc{grid-area:1/1/3/4;font-weight:700;text-align:left;font-size:8px;line-height:1.03;white-space:normal;overflow-wrap:break-word;display:flex;align-items:center;}
 
       .im{grid-area:3/1/4/2}.es{grid-area:4/1/5/2}.un{grid-area:5/1/6/2}.co{grid-area:6/1/7/2}.fe{grid-area:3/2/4/4;text-align:right}
 
-      .pm{grid-area:4/2/6/4;display:flex;align-items:center;justify-content:flex-end;font-weight:700;font-size:25px}
+      .pm{grid-area:4/2/6/4;display:flex;align-items:center;justify-content:flex-end;font-weight:700;font-size:20px}
       .pl{grid-area:6/2/7/4;text-align:right;font-weight:600}.b{font-weight:600}
     `,
     renderHTML: (a: ArticleItem) => `
@@ -314,10 +315,10 @@ const LABEL_TEMPLATES = [
         <div class="co"><span class="b">${escapeHTML(a.codigo)}</span></div>
         <div class="fe"><span class="b">${escapeHTML(a.fecha)}</span></div>
         <div class="pm">${escapeHTML(money(a.precio))}</div>
-        <div class="pl">Distribuidor: ${escapeHTML(money(a.distribuidor))}</div>
+        <div class="pl">Dist: ${escapeHTML(money(a.distribuidor))}</div>
       </div></div></div>`,
     preview: (a: ArticleItem) => (
-      <div className="w-full h-full grid" style={{ gridTemplateColumns: "repeat(3, 1fr)", gridTemplateRows: "repeat(6, minmax(0, auto))", gap: "3px 8px", fontSize: 8, lineHeight: 1.05 }}>
+      <div className="w-full h-full grid" style={{ gridTemplateColumns: "repeat(3, 1fr)", gridTemplateRows: "repeat(6, minmax(0, auto))", gap: "1px", fontSize: 7, lineHeight: 1.07 }}>
         <div className="col-[1/4] row-[1/3] font-bold flex items-center">{a.nombre}</div>
         <div className="col-[1/2] row-[3/4]"><span className="font-semibold">G - {Number.isFinite(a.inventarioMaximo) ? a.inventarioMaximo : 0}</span></div>
         <div className="col-[1/2] row-[4/5]"><span className="font-semibold">{a.estatus ?? "-"}</span></div>
@@ -325,7 +326,7 @@ const LABEL_TEMPLATES = [
         <div className="col-[1/2] row-[6/7]"><span className="font-semibold">{a.codigo}</span></div>
         <div className="col-[2/4] row-[3/4] text-right"><span className="font-semibold">{a.fecha}</span></div>
         <div className="col-[2/4] row-[4/6] flex items-center justify-end font-extrabold text-[25px]">{money(a.precio)}</div>
-        <div className="col-[2/4] row-[6/7] text-right font-semibold">Distribuidor: {money(a.distribuidor)}</div>
+        <div className="col-[2/4] row-[6/7] text-right font-semibold">Dist: {money(a.distribuidor)}</div>
       </div>
     )
   },
@@ -473,8 +474,6 @@ export default function LabelGenerator() {
   }
 
   // ====== Print (usa la plantilla seleccionada) ======
-  // ====== Print (usa la plantilla seleccionada) ======
-  // ====== Print (usa la plantilla seleccionada) ======
   const handlePrint = () => {
     if (!articles.length) return
 
@@ -501,6 +500,7 @@ export default function LabelGenerator() {
     @media print {
       .p{ break-after: page; }
       .p:last-of-type{ break-after: auto; }
+
     }
   </style>
 
@@ -614,7 +614,7 @@ export default function LabelGenerator() {
             <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm h-full flex flex-col w-full">
               <CardHeader className="border-b border-gray-600 flex w-full justify-between">
                 <CardTitle className="flex items-center gap-2 text-white"><Settings className="w-5 h-5 text-purple-300" />Configuración</CardTitle>
-                <CardTitle className="flex items-center gap-2 text-white font-light text-xs">v2.2.6</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-white font-light text-xs">v2.2.7</CardTitle>
               </CardHeader>
               <CardContent className="p-6 space-y-6">
                 {/* Selector de plantilla */}
@@ -725,10 +725,10 @@ export default function LabelGenerator() {
                     <Printer className="w-4 h-4 mr-2" />
                     Imprimir ({totalLabels})
                   </Button>
-                  {/* <Button type="button" variant="outline" className="border-gray-600 text-white" >
+                  <Button type="button" variant="outline" className="border-gray-600 text-white" >
                     <Search className="w-4 h-4 mr-2" />
                     Buscar por ubicación
-                  </Button> */}
+                  </Button>
                 </div>
 
 
@@ -769,7 +769,7 @@ export default function LabelGenerator() {
                   </div>
                 </CardHeader>
 
-                <CardContent className="p-6 flex-1 flex flex-col min-h-0">
+                <CardContent className="p-6 flex-1 flex flex-col min-h-0  max-h-[400px]">
                   {articles.length === 0 ? (
                     <div className="text-center py-8 text-gray-400"><p>No hay artículos agregados</p><p className="text-sm">Escribe un código y presiona Enter o el botón +</p></div>
                   ) : (
