@@ -1026,7 +1026,7 @@ export default function LabelGenerator() {
                   {/* Captura */}
                   <div className="space-y-2 sm:col-span-2">
                     <Label className="text-gray-100 font-medium">Código del artículo</Label>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       <Input
                         type="text"
                         placeholder={!sucursalId ? "Selecciona una sucursal…" : "Escanea o escribe el código…"}
@@ -1173,35 +1173,41 @@ export default function LabelGenerator() {
             <div className="flex flex-col gap-6 h-full min-h-0">
               <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm flex-1 flex min-h-0">
                 <CardHeader className="border-b border-gray-600 shrink-0">
-                  <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <CardTitle className="text-white">Artículos ({articles.length})</CardTitle>
-                    <div className="flex items-center flex-wrap">
+                  <div className="flex items-start justify-between gap-3 flex-wrap min-w-0">
+                    <CardTitle className="text-white truncate">Artículos ({articles.length})</CardTitle>
+
+                    {/* Controles: columna en móvil */}
+                    <div className="flex items-center flex-wrap gap-2 w-full sm:w-auto min-w-0">
                       <Button
                         type="button"
-                        className="bg-gray-700 hover:bg-gray-600 text-white border-0"
+                        className="bg-gray-700 hover:bg-gray-600 text-white border-0 w-full sm:w-auto"
                         disabled={articles.length === 0}
                         onClick={exportArticlesExcel}
                         title="Exportar artículos cargados (CODIGO, CANTIDAD) para compartir"
                       >
-                        <Download className="w-4 h-4 mr-2" />
-                        Exportar Excel
+                        <Download className="w-4 h-4 mr-2 shrink-0" />
+                        <span className="truncate">Exportar Excel</span>
                       </Button>
+
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={resetArticles}
                         disabled={articles.length === 0}
                         title="Eliminar todos los artículos"
-                        className="text-red-400 hover:text-red-300 hover:bg-red-900/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="text-red-400 hover:text-red-300 hover:bg-red-900/20 disabled:opacity-40 disabled:cursor-not-allowed w-full sm:w-auto"
                       >
                         <RotateCcw className="w-4 h-4" />
                       </Button>
-                      <span className="text-sm text-purple-300">Total: {totalLabels} etiquetas</span>
+
+                      <span className="text-sm text-purple-300 w-full sm:w-auto truncate">
+                        Total: {totalLabels} etiquetas
+                      </span>
                     </div>
                   </div>
                 </CardHeader>
 
-                <CardContent className="p-6 flex-1 flex flex-col min-h-0  max-h-[400px]">
+                <CardContent className="p-4 sm:p-6 flex-1 flex flex-col min-h-0 max-w-full overflow-hidden">
                   {articles.length === 0 ? (
                     <div className="text-center py-8 text-gray-400">
                       <p>No hay artículos agregados</p>
@@ -1210,16 +1216,28 @@ export default function LabelGenerator() {
                   ) : (
                     <div className="space-y-2 flex-1 overflow-y-auto">
                       {articles.map((a) => (
-                        <div key={a.id} className="flex items-center justify-between bg-gray-700/50 p-3 rounded-lg">
-                          <div className="flex-1 min-w-0">
+                        <div
+                          key={a.id}
+                          className="flex items-center justify-between bg-gray-700/50 p-3 rounded-lg gap-3 min-w-0"  // 👈 min-w-0 en la fila
+                        >
+                          {/* Columna izquierda: puede encogerse y envolver */}
+                          <div className="flex-1 basis-0 min-w-0 overflow-hidden">  {/* 👈 basis-0 + min-w-0 */}
                             <p className="text-white font-medium truncate">{a.nombre}</p>
-                            <p className="text-gray-300 text-sm">
-                              Código: {a.codigo} • Precio: {money(a.precio)} • Dist: {money(a.distribuidor)} •
-                              Unidad: {a.unidad} • Fecha: {a.fecha} • Estatus: {a.estatus ?? "-"} •
-                              Inv. Máx: {Number.isFinite(a.inventarioMaximo) ? a.inventarioMaximo : 0}
+
+                            <p className="text-gray-300 text-xs sm:text-sm break-words"> {/* 👈 wrap por defecto */}
+                              Código: <span className="break-all">{a.codigo}</span> • Precio: <span className="break-words">{money(a.precio)}</span> •
+                              Dist: <span className="break-words">{money(a.distribuidor)}</span> •
+                              Unidad: <span className="break-words">{a.unidad}</span> •
+                              Fecha: <span className="break-words">{a.fecha}</span> •
+                              Estatus: <span className="break-words">{a.estatus ?? "-"}</span> •
+                              Inv. Máx: <span className="break-words">
+                                {Number.isFinite(a.inventarioMaximo) ? a.inventarioMaximo : 0}
+                              </span>
                             </p>
                           </div>
-                          <div className="flex items-center gap-3">
+
+                          {/* Columna derecha: no se encoge, pero no desborda */}
+                          <div className="flex items-center gap-3 shrink-0">
                             <span className="text-purple-300 font-medium">{a.quantity}x</span>
                             <Button
                               size="sm"
@@ -1233,6 +1251,7 @@ export default function LabelGenerator() {
                         </div>
                       ))}
                     </div>
+
                   )}
                 </CardContent>
               </Card>
@@ -1244,24 +1263,37 @@ export default function LabelGenerator() {
                   </CardTitle>
                   <p className="text-gray-300 text-sm">Dimensiones fijas: {template.width}mm × {template.height}mm</p>
                 </CardHeader>
-                <CardContent className="p-6 flex-1 flex flex-col min-h-0">
-                  <div className="bg-gray-900/60 rounded-lg p-8 min-h-[100%] flex-1 flex items-center justify-center relative overflow-auto">
+
+                <CardContent className="p-4 sm:p-6 flex-1 flex flex-col min-h-0 overflow-hidden">
+                  <div className="bg-gray-900/60 rounded-lg p-4 sm:p-8 flex-1 flex relative">
                     {articles.length === 0 ? (
-                      <div className="text-center text-gray-400"><p>Agrega artículos para ver la vista previa</p></div>
+                      <div className="m-auto text-center text-gray-400">
+                        <p>Agrega artículos para ver la vista previa</p>
+                      </div>
                     ) : (
-                      <div className="flex items-center justify-center" style={{ width: `${naturalW}px`, height: `${naturalH}px` }}>
+                      // En móvil permitimos scroll horizontal si el naturalW supera el viewport
+                      <div className="w-full flex justify-center items-center">
                         <div
                           className="bg-white rounded-md shadow-lg border-2 border-gray-300 text-black"
-                          style={{ width: naturalW, height: naturalH, padding: 6, overflow: "hidden" }}
+                          style={{
+                            width: "100%",              // ocupa el ancho disponible
+                            maxWidth: naturalW,         // nunca más grande que su tamaño real
+                            height: "auto",             // se ajusta proporcionalmente
+                            aspectRatio: `${naturalW} / ${naturalH}`, // mantiene proporción
+                            padding: 6,
+                            overflow: "hidden",
+                          }}
                         >
                           {template.preview(articles[0])}
                         </div>
                       </div>
+
                     )}
                   </div>
                 </CardContent>
               </Card>
             </div>
+
           </div>
         </div>
       </div>
