@@ -395,7 +395,6 @@ type Template = typeof LABEL_TEMPLATES[number]
 
 function escapeHTML(s: string) { return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string)) }
 
-// ====== Page ======
 export default function LabelGenerator() {
   // Sucursal con persistencia simple
   const [sucursalId, setSucursalId] = useState<string>("")
@@ -403,9 +402,12 @@ export default function LabelGenerator() {
   useEffect(() => { if (sucursalId) localStorage.setItem("almacenId", sucursalId) }, [sucursalId])
   const sucursalActual = useMemo(() => SCS.find((s) => s.id === sucursalId) || null, [sucursalId])
 
-  // Plantilla seleccionada (por defecto tu diseño original)
-  const [tplId, setTplId] = useState<Template["id"]>("original-69x25")
-  const template = useMemo(() => LABEL_TEMPLATES.find(t => t.id === tplId) || LABEL_TEMPLATES[0], [tplId])
+  // Plantilla seleccionada (por defecto la primera)
+  const [tplId, setTplId] = useState<Template["id"]>(LABEL_TEMPLATES?.[0]?.id ?? "original-69x25")
+  const template = useMemo(
+    () => LABEL_TEMPLATES.find(t => t.id === tplId) || LABEL_TEMPLATES[0],
+    [tplId]
+  )
 
   // Artículos y captura
   const [articles, setArticles] = useState<ArticleItem[]>([])
@@ -415,9 +417,8 @@ export default function LabelGenerator() {
   const [addError, setAddError] = useState<string | null>(null)
 
   const resetArticles = () => {
-    if (articles.length === 0) return;
-
-    setArticles([]);
+    if (articles.length === 0) return
+    setArticles([])
     new Noty({
       type: "success",
       layout: "topRight",
@@ -425,27 +426,45 @@ export default function LabelGenerator() {
       text: "Se eliminaron todos los artículos",
       timeout: 2500,
       progressBar: true,
-    }).show();
-  };
-
+    }).show()
+  }
 
   const upsert = (item: ArticleItem) => setArticles((prev) => {
     const i = prev.findIndex((a) => a.codigo === item.codigo)
-    if (i !== -1) { const next = [...prev]; next[i] = { ...next[i], quantity: next[i].quantity + item.quantity }; return next }
+    if (i !== -1) {
+      const next = [...prev]
+      next[i] = { ...next[i], quantity: next[i].quantity + item.quantity }
+      return next
+    }
     return [...prev, item]
   })
 
   const addByCodigo = async (cod: string, qtyOverride?: number) => {
     const clean = (cod || "").trim(); if (!clean || !sucursalId) return
-    const qty = Number.isFinite(qtyOverride as number) && (qtyOverride as number) > 0 ? (qtyOverride as number) : Math.max(1, parseInt(quantity || "1", 10))
+    const qty = Number.isFinite(qtyOverride as number) && (qtyOverride as number) > 0
+      ? (qtyOverride as number)
+      : Math.max(1, parseInt(quantity || "1", 10))
     setLoadingAdd(true); setAddError(null)
     try {
       const r = await fetch(`/api/etiquetasPiso?codigo=${encodeURIComponent(clean)}&almacen=${encodeURIComponent(sucursalId)}`, { headers: { Accept: "application/json" } })
       const j = await r.json(); if (!r.ok || !j?.ok) throw new Error(j?.error || "No se pudo obtener el artículo.")
       const row = Array.isArray(j.data) ? j.data[0] : null; if (!row) throw new Error("Sin resultados para ese código en el almacén seleccionado.")
-      upsert({ id: `${Date.now()}_${clean}`, codigo: clean, nombre: String(row.descripcion || "").trim() || "SIN DESCRIPCIÓN", unidad: String(row.unidad_venta || "-").trim(), precio: Number(row.precio_lista_iva ?? 0), distribuidor: Number(row.precio_mayor_iva ?? 0), fecha: todayMX(), estatus: (row.estatus ?? null) as string | null, inventarioMaximo: Number(row.inventario_maximo ?? 0), quantity: qty })
+      upsert({
+        id: `${Date.now()}_${clean}`,
+        codigo: clean,
+        nombre: String(row.descripcion || "").trim() || "SIN DESCRIPCIÓN",
+        unidad: String(row.unidad_venta || "-").trim(),
+        precio: Number(row.precio_lista_iva ?? 0),
+        distribuidor: Number(row.precio_mayor_iva ?? 0),
+        fecha: todayMX(),
+        estatus: (row.estatus ?? null) as string | null,
+        inventarioMaximo: Number(row.inventario_maximo ?? 0),
+        quantity: qty
+      })
       setCodigo(""); setQuantity("1")
-    } catch (e: any) { setAddError(e?.message || "Error al agregar el artículo.") } finally { setLoadingAdd(false) }
+    } catch (e: any) {
+      setAddError(e?.message || "Error al agregar el artículo.")
+    } finally { setLoadingAdd(false) }
   }
 
   const removeArticle = (id: string) => setArticles((p) => p.filter((a) => a.id !== id))
@@ -460,8 +479,8 @@ export default function LabelGenerator() {
   const downloadTemplate = () => {
     const wb = XLSX.utils.book_new()
     const ws = XLSX.utils.aoa_to_sheet([["CODIGO", "CANTIDAD"], ["12500", 2], ["12501", 1]])
-      // @ts-ignore
-      ; (ws as any)["!cols"] = [{ wch: 12 }, { wch: 10 }]
+    // @ts-ignore
+    ; (ws as any)["!cols"] = [{ wch: 12 }, { wch: 10 }]
     XLSX.utils.book_append_sheet(wb, ws, "Plantilla")
     XLSX.writeFile(wb, "plantilla_etiquetas_codigos.xlsx")
   }
@@ -472,16 +491,24 @@ export default function LabelGenerator() {
       const wb = XLSX.read(await file.arrayBuffer(), { type: "array" })
       const ws = wb.Sheets[wb.SheetNames[0]]
       const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, blankrows: false }) as any[][]
-      const data = rows.slice(1).map((r, i) => ({ codigo: String(r[0] || "").trim(), qty: Math.max(1, parseInt(String(r[1] ?? "1"), 10)), i }))
+      const data = rows.slice(1).map((r, i) => ({
+        codigo: String(r[0] || "").trim(),
+        qty: Math.max(1, parseInt(String(r[1] ?? "1"), 10)),
+        i
+      }))
       const valid = data.filter((r) => r.codigo)
       const total = valid.length; setImportProgress({ done: 0, total })
       const limit = pLimit(4)
       let done = 0; const errors: string[] = []
       await Promise.all(valid.map((r) => limit(async () => {
-        try { await addByCodigo(r.codigo, r.qty) } catch (e: any) { errors.push(`Fila ${r.i + 2} (CODIGO=${r.codigo}): ${e?.message || "Error"}`) } finally { done++; setImportProgress({ done, total }) }
+        try { await addByCodigo(r.codigo, r.qty) }
+        catch (e: any) { errors.push(`Fila ${r.i + 2} (CODIGO=${r.codigo}): ${e?.message || "Error"}`) }
+        finally { done++; setImportProgress({ done, total }) }
       })))
       setImportErrors(errors)
-    } catch (e: any) { setImportErrors([e?.message || "No se pudo leer el archivo"]) } finally { setImporting(false) }
+    } catch (e: any) {
+      setImportErrors([e?.message || "No se pudo leer el archivo"])
+    } finally { setImporting(false) }
   }
 
   // ====== Print (usa la plantilla seleccionada) ======
@@ -510,14 +537,13 @@ export default function LabelGenerator() {
   <!-- CSS de la plantilla -->
   <style>
     ${template.css(w, h, pad)}
-    /* Asegura que el último .p no agregue página extra */
     @media print {
       .p{ break-after: page; }
       .p:last-of-type{ break-after: auto; }
       *{
-  font-family: "DM Sans", sans-serif;
-      font-weight: 700;
-      font-style: normal;
+        font-family: "DM Sans", sans-serif;
+        font-weight: 700;
+        font-style: normal;
       }
     }
   </style>
@@ -530,38 +556,22 @@ export default function LabelGenerator() {
       try {
         document.querySelectorAll('.jsb').forEach(function (el) {
           var code = el.getAttribute('data-code') || '';
-
-          // Calcula el alto disponible en px a partir del contenedor .bc-fit (o .q3 como respaldo)
           var box = el.closest('.bc-fit') || el.closest('.q3');
           var hPx = 80;
           if (box) {
             var rect = box.getBoundingClientRect();
-            hPx = Math.max(20, Math.round(rect.height)); // nunca menos de 20px
+            hPx = Math.max(20, Math.round(rect.height));
           }
-
-          // Render del código de barras con altura real del contenedor
-          JsBarcode(el, code, {
-            format: 'CODE128',
-            displayValue: false,
-            margin: 0,
-            height: hPx
-          });
-
-          // Quitar width/height fijos que pone JsBarcode para que el CSS (100%) mande
+          JsBarcode(el, code, { format: 'CODE128', displayValue: false, margin: 0, height: hPx });
           el.removeAttribute('width');
           el.removeAttribute('height');
-          // Por si el inline style vino mal formateado, garantizar que ocupe todo
           el.style.width = '100%';
           el.style.height = '100%';
         });
       } catch (e) {}
-
-      // Imprimir
       setTimeout(function () { window.print(); }, 0);
     });
   </script>
-
-
 </head>
 <body>
   ${labelsHTML}
@@ -580,9 +590,8 @@ export default function LabelGenerator() {
 
     const cleanup = () => { try { document.body.removeChild(f) } catch { } }
     setTimeout(cleanup, 10000)
-      ; (f.contentWindow as any)?.addEventListener?.("afterprint", cleanup)
+    ; (f.contentWindow as any)?.addEventListener?.("afterprint", cleanup)
   }
-
 
   const naturalW = mmToPx(template.width), naturalH = mmToPx(template.height)
 
@@ -595,6 +604,138 @@ export default function LabelGenerator() {
       } catch { }
     })()
   }, [articles, tplId])
+
+  // ===== Modal: Buscar por ubicación =====
+  const [ubicModalOpen, setUbicModalOpen] = useState(false)
+  const [ubicTab, setUbicTab] = useState<"manual" | "cam">("manual")
+  const [ubicacion, setUbicacion] = useState("")
+  const [buscandoUbic, setBuscandoUbic] = useState(false)
+  const [ubicErr, setUbicErr] = useState<string | null>(null)
+
+  // Cámara / escáner
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const rafRef = useRef<number | null>(null)
+  const detectorRef = useRef<any>(null) // BarcodeDetector si está disponible
+
+  const stopCamera = () => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    rafRef.current = null
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop())
+      streamRef.current = null
+    }
+  }
+
+  const startCamera = async () => {
+    setUbicErr(null)
+    try {
+      stopCamera()
+      const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false })
+      streamRef.current = s
+      if (!videoRef.current) return
+      videoRef.current.srcObject = s
+      await videoRef.current.play()
+
+      // Detector nativo si existe
+      // @ts-ignore
+      if ("BarcodeDetector" in window) {
+        // @ts-ignore
+        detectorRef.current = new window.BarcodeDetector({
+          formats: ["code_128","code_39","ean_13","ean_8","upc_a","upc_e","qr_code"]
+        })
+      } else {
+        detectorRef.current = null
+        new Noty({
+          type: "warning",
+          layout: "topRight",
+          theme: "mint",
+          text: "Este navegador no soporta BarcodeDetector. Puedes escribir el código manualmente.",
+          timeout: 3000
+        }).show()
+      }
+
+      const tick = async () => {
+        if (!videoRef.current) return
+        if (detectorRef.current) {
+          try {
+            const codes = await detectorRef.current.detect(videoRef.current)
+            if (codes && codes.length) {
+              const val = (codes[0].rawValue || "").trim()
+              if (val) {
+                setUbicacion(val)
+                try { navigator.vibrate?.(100) } catch {}
+                stopCamera()
+                setUbicTab("manual")
+                new Noty({
+                  type: "success",
+                  layout: "topRight",
+                  theme: "mint",
+                  text: `Ubicación detectada: ${val}`,
+                  timeout: 2000
+                }).show()
+                return
+              }
+            }
+          } catch { }
+        }
+        rafRef.current = requestAnimationFrame(tick)
+      }
+      rafRef.current = requestAnimationFrame(tick)
+    } catch (e: any) {
+      setUbicErr(e?.message || "No se pudo acceder a la cámara")
+    }
+  }
+
+  useEffect(() => { return () => stopCamera() }, [])
+
+  const buscarPorUbicacion = async () => {
+    const u = (ubicacion || "").trim()
+    if (!u) { setUbicErr("Ingresa una ubicación válida"); return }
+    if (!sucursalId) { setUbicErr("Selecciona una sucursal primero"); return }
+
+    setBuscandoUbic(true); setUbicErr(null)
+    try {
+      // 👉 Ajusta este endpoint a tu backend real
+      const url = `/api/etiquetasPiso?ubicacion=${encodeURIComponent(u)}&almacen=${encodeURIComponent(sucursalId)}`
+      const r = await fetch(url, { headers: { Accept: "application/json" } })
+      const j = await r.json()
+      if (!r.ok || !j?.ok) throw new Error(j?.error || "No se pudo buscar por ubicación")
+
+      const rows: any[] = Array.isArray(j.data) ? j.data : []
+      if (!rows.length) throw new Error("Sin artículos en esa ubicación")
+
+      let added = 0
+      for (const row of rows) {
+        const cod = String(row.codigo || row.CODIGO || row.id || "").trim()
+        if (!cod) continue
+        upsert({
+          id: `${Date.now()}_${cod}_${Math.random().toString(36).slice(2)}`,
+          codigo: cod,
+          nombre: String(row.descripcion || row.DESCRIPCION || "").trim() || "SIN DESCRIPCIÓN",
+          unidad: String(row.unidad_venta || row.UNIDAD || "-").trim(),
+          precio: Number(row.precio_lista_iva ?? row.PRECIO ?? 0),
+          distribuidor: Number(row.precio_mayor_iva ?? row.MAYOREO ?? 0),
+          fecha: todayMX(),
+          estatus: (row.estatus ?? row.ESTATUS ?? null) as string | null,
+          inventarioMaximo: Number(row.inventario_maximo ?? row.INV_MAX ?? 0),
+          quantity: 1,
+        })
+        added++
+      }
+
+      new Noty({
+        type: "success", layout: "topRight", theme: "mint",
+        text: `Se agregaron ${added} artículos de la ubicación ${u}.`, timeout: 2500
+      }).show()
+      setUbicModalOpen(false)
+      setUbicacion("")
+    } catch (e: any) {
+      setUbicErr(e?.message || "Error al buscar por ubicación")
+    } finally {
+      setBuscandoUbic(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-purple-900">
@@ -611,9 +752,106 @@ export default function LabelGenerator() {
             <Label className="text-gray-300">Sucursal / Almacén</Label>
             <Select value={sucursalId} onValueChange={setSucursalId}>
               <SelectTrigger className="bg-gray-800 border-gray-700 text-white"><SelectValue placeholder="Elige una sucursal" /></SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-700">{SCS.map((s) => (<SelectItem className="text-white" key={s.id} value={s.id}>{s.nombre}</SelectItem>))}</SelectContent>
+              <SelectContent className="bg-gray-800 border-gray-700">
+                {SCS.map((s) => (<SelectItem className="text-white" key={s.id} value={s.id}>{s.nombre}</SelectItem>))}
+              </SelectContent>
             </Select>
             <Button className="w-full bg-purple-600 hover:bg-purple-700" disabled={!sucursalId}>Continuar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Buscar por ubicación */}
+      <Dialog
+        open={ubicModalOpen}
+        onOpenChange={(open) => {
+          setUbicModalOpen(open)
+          if (!open) { stopCamera(); setUbicTab("manual"); setUbicErr(null) }
+        }}
+      >
+        <DialogContent className="bg-gray-900 text-white border-gray-700 max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Search className="w-4 h-4" /> Buscar por ubicación
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="grid gap-3">
+            {/* Tabs simples */}
+            <div className="flex gap-2">
+              <Button
+                variant={ubicTab === "manual" ? "default" : "outline"}
+                className={ubicTab === "manual" ? "bg-purple-600 hover:bg-purple-700" : "border-gray-700"}
+                onClick={() => { setUbicTab("manual"); stopCamera() }}
+              >
+                <Keyboard className="w-4 h-4 mr-2" /> Manual
+              </Button>
+              <Button
+                variant={ubicTab === "cam" ? "default" : "outline"}
+                className={ubicTab === "cam" ? "bg-purple-600 hover:bg-purple-700" : "border-gray-700"}
+                onClick={() => { setUbicTab("cam"); startCamera() }}
+              >
+                <Camera className="w-4 h-4 mr-2" /> Cámara
+              </Button>
+            </div>
+
+            {ubicTab === "manual" ? (
+              <div className="space-y-3">
+                <Label className="text-gray-100">Ubicación / Anaquel / Pasillo</Label>
+                <Input
+                  value={ubicacion}
+                  onChange={(e) => setUbicacion(e.target.value)}
+                  placeholder="Ej. A-12-03"
+                  className="bg-gray-800 border-gray-700 text-white"
+                  onKeyDown={(e) => { if (e.key === "Enter") buscarPorUbicacion() }}
+                />
+                {ubicErr && (
+                  <div className="px-3 py-2 text-sm text-red-300 flex items-center gap-2 bg-red-900/20 rounded">
+                    <AlertCircle className="w-4 h-4" />{ubicErr}
+                  </div>
+                )}
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" className="border-gray-700" onClick={() => { setUbicModalOpen(false); stopCamera() }}>Cancelar</Button>
+                  <Button className="bg-purple-600 hover:bg-purple-700" onClick={buscarPorUbicacion} disabled={buscandoUbic}>
+                    {buscandoUbic ? <Loader2 className="w-4 h-4 animate-spin" /> : "Buscar"}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="relative aspect-video w-full rounded-md overflow-hidden border border-gray-700 bg-black">
+                  <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />
+                  {!streamRef.current && (
+                    <div className="absolute inset-0 grid place-items-center text-gray-300 text-sm">
+                      <div className="text-center">
+                        <p>Activa la cámara para escanear el anaquel / código de ubicación.</p>
+                        <p className="opacity-80 mt-1">Al detectar un código válido, lo copiaré arriba.</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={startCamera} className="bg-purple-600 hover:bg-purple-700">Iniciar cámara</Button>
+                  <Button variant="outline" className="border-gray-700" onClick={stopCamera}>Detener</Button>
+                </div>
+                {ubicacion && (
+                  <div className="text-sm text-gray-200">
+                    Detectado: <span className="font-semibold text-purple-300">{ubicacion}</span>
+                  </div>
+                )}
+                {ubicErr && (
+                  <div className="px-3 py-2 text-sm text-red-300 flex items-center gap-2 bg-red-900/20 rounded">
+                    <AlertCircle className="w-4 h-4" />{ubicErr}
+                  </div>
+                )}
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" className="border-gray-700" onClick={() => { setUbicModalOpen(false); stopCamera() }}>Cerrar</Button>
+                  <Button className="bg-purple-600 hover:bg-purple-700" onClick={buscarPorUbicacion} disabled={!ubicacion || buscandoUbic}>
+                    {buscandoUbic ? <Loader2 className="w-4 h-4 animate-spin" /> : "Buscar con ubicación detectada"}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
@@ -621,30 +859,36 @@ export default function LabelGenerator() {
       <div className="min-h-screen p-6">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-8">
-            {/* <h1 className="text-4xl font-bold text-white mb-1">Etiquetador de <span className="text-purple-300">Precios</span></h1> */}
-            <p className="text-gray-200 text-lg">Sucursal actual: <span className="font-semibold text-purple-200">{sucursalActual ? sucursalActual.nombre : "—"}</span></p>
-            {/* <Link href="/etiquetador_hub" className="flex items-center gap-2 text-purple-300 hover:text-purple-200">
-              <ArrowLeft className="w-4 h-4" />
-              Volver
-            </Link> */}
+            <p className="text-gray-200 text-lg">
+              Sucursal actual:{" "}
+              <span className="font-semibold text-purple-200">{sucursalActual ? sucursalActual.nombre : "—"}</span>
+            </p>
           </div>
 
           <div className="grid lg:grid-cols-2 gap-8 items-stretch min-h-0">
             {/* Izquierda */}
             <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm h-full flex flex-col w-full">
               <CardHeader className="border-b border-gray-600 flex w-full justify-between">
-                <CardTitle className="flex items-center gap-2 text-white"><Settings className="w-5 h-5 text-purple-300" />Configuración</CardTitle>
-                <CardTitle className="flex items-center gap-2 text-white font-light text-xs">v2.2.9</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <Settings className="w-5 h-5 text-purple-300" />Configuración
+                </CardTitle>
+                <CardTitle className="flex items-center gap-2 text-white font-light text-xs">v2.3.0</CardTitle>
               </CardHeader>
               <CardContent className="p-6 space-y-6">
                 {/* Selector de plantilla */}
                 <div className="grid sm:grid-cols-2 gap-4 items-end">
                   <div className="space-y-2">
-                    <Label className="text-gray-100 font-medium flex items-center gap-2"><LayoutTemplate className="w-4 h-4" />Tipo de etiqueta</Label>
+                    <Label className="text-gray-100 font-medium flex items-center gap-2">
+                      <LayoutTemplate className="w-4 h-4" />Tipo de etiqueta
+                    </Label>
                     <Select value={tplId} onValueChange={setTplId} >
-                      <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-full"><SelectValue placeholder="Elige una plantilla" /></SelectTrigger>
+                      <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-full">
+                        <SelectValue placeholder="Elige una plantilla" />
+                      </SelectTrigger>
                       <SelectContent className="bg-gray-800 border-gray-700">
-                        {LABEL_TEMPLATES.map(t => <SelectItem className="text-white" key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                        {LABEL_TEMPLATES.map(t => (
+                          <SelectItem className="text-white" key={t.id} value={t.id}>{t.name}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-gray-400">Dimensiones fijas: {template.width} × {template.height} mm</p>
@@ -654,13 +898,41 @@ export default function LabelGenerator() {
                   <div className="space-y-2 sm:col-span-2">
                     <Label className="text-gray-100 font-medium">Código del artículo</Label>
                     <div className="flex gap-2">
-                      <Input type="text" placeholder={!sucursalId ? "Selecciona una sucursal…" : "Escanea o escribe el código…"} value={codigo} onChange={(e) => setCodigo(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && codigo.trim() && sucursalId) { e.preventDefault(); addByCodigo(codigo.trim(), Math.max(1, parseInt(quantity || "1", 10))) } }} className="bg-gray-700 border-gray-500 text-white placeholder-gray-300 flex-1" disabled={!sucursalId} />
+                      <Input
+                        type="text"
+                        placeholder={!sucursalId ? "Selecciona una sucursal…" : "Escanea o escribe el código…"}
+                        value={codigo}
+                        onChange={(e) => setCodigo(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && codigo.trim() && sucursalId) {
+                            e.preventDefault()
+                            addByCodigo(codigo.trim(), Math.max(1, parseInt(quantity || "1", 10)))
+                          }
+                        }}
+                        className="bg-gray-700 border-gray-500 text-white placeholder-gray-300 flex-1"
+                        disabled={!sucursalId}
+                      />
                       <div className="w-36">
                         <NumberField value={quantity} onChange={setQuantity} min={1} step={1} ariaLabel="Número de impresiones" />
                       </div>
-                      <Button onClick={() => { if (codigo.trim() && sucursalId) { addByCodigo(codigo.trim(), Math.max(1, parseInt(quantity || "1", 10))) } }} className="bg-purple-600 hover:bg-purple-700 text-white border-0" disabled={!sucursalId || !codigo.trim() || loadingAdd} title="Agregar etiqueta">{loadingAdd ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}</Button>
+                      <Button
+                        onClick={() => {
+                          if (codigo.trim() && sucursalId) {
+                            addByCodigo(codigo.trim(), Math.max(1, parseInt(quantity || "1", 10)))
+                          }
+                        }}
+                        className="bg-purple-600 hover:bg-purple-700 text-white border-0"
+                        disabled={!sucursalId || !codigo.trim() || loadingAdd}
+                        title="Agregar etiqueta"
+                      >
+                        {loadingAdd ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                      </Button>
                     </div>
-                    {addError && (<div className="mt-2 px-3 py-2 text-sm text-red-300 flex items-center gap-2 bg-red-900/20 rounded"><AlertCircle className="w-4 h-4" />{addError}</div>)}
+                    {addError && (
+                      <div className="mt-2 px-3 py-2 text-sm text-red-300 flex items-center gap-2 bg-red-900/20 rounded">
+                        <AlertCircle className="w-4 h-4" />{addError}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -692,6 +964,7 @@ export default function LabelGenerator() {
                       ? `Importando ${importProgress.done}/${importProgress.total}`
                       : "Importar Excel"}
                   </Button>
+
                   {/* Input oculto para subir Excel/CSV */}
                   <input
                     ref={fileRef}
@@ -699,9 +972,8 @@ export default function LabelGenerator() {
                     className="hidden"
                     accept=".xlsx,.xls,.csv"
                     onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      // Opcional: validación rápida de tamaño (ej. 10 MB)
+                      const file = e.target.files?.[0]
+                      if (!file) return
                       if (file.size > 10 * 1024 * 1024) {
                         new Noty({
                           type: "error",
@@ -709,19 +981,19 @@ export default function LabelGenerator() {
                           theme: "mint",
                           text: "El archivo es muy grande (máx 10 MB).",
                           timeout: 3000,
-                        }).show();
-                        e.currentTarget.value = "";
-                        return;
+                        }).show()
+                        e.currentTarget.value = ""
+                        return
                       }
                       try {
-                        await importFromExcel(file);
+                        await importFromExcel(file)
                         new Noty({
                           type: "success",
                           layout: "topRight",
                           theme: "mint",
                           text: "Importación completada.",
                           timeout: 2500,
-                        }).show();
+                        }).show()
                       } catch (err: any) {
                         new Noty({
                           type: "error",
@@ -729,10 +1001,9 @@ export default function LabelGenerator() {
                           theme: "mint",
                           text: err?.message ?? "Error al importar el archivo.",
                           timeout: 3000,
-                        }).show();
+                        }).show()
                       } finally {
-                        // Permite re-seleccionar el mismo archivo después
-                        e.currentTarget.value = "";
+                        e.currentTarget.value = ""
                       }
                     }}
                   />
@@ -745,20 +1016,34 @@ export default function LabelGenerator() {
                     <Printer className="w-4 h-4 mr-2" />
                     Imprimir ({totalLabels})
                   </Button>
-                  <Button type="button" variant="outline" className="border-gray-600 text-white" >
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-gray-600 text-white"
+                    onClick={() => setUbicModalOpen(true)}
+                  >
                     <Search className="w-4 h-4 mr-2" />
                     Buscar por ubicación
                   </Button>
                 </div>
 
-
                 {(importing || importErrors.length > 0) && (
                   <div className="mt-3 space-y-2">
-                    {importing && (<div className="px-3 py-2 rounded bg-gray-700/60 text-white text-sm">Procesando… {importProgress.done}/{importProgress.total}</div>)}
+                    {importing && (
+                      <div className="px-3 py-2 rounded bg-gray-700/60 text-white text-sm">
+                        Procesando… {importProgress.done}/{importProgress.total}
+                      </div>
+                    )}
                     {importErrors.length > 0 && (
                       <div className="px-3 py-2 rounded bg-red-900/30 border border-red-700 text-red-200 text-sm max-h-40 overflow-y-auto">
-                        <div className="flex items-center gap-2 font-medium mb-1"><AlertCircle className="w-4 h-4" />Errores de importación ({importErrors.length})</div>
-                        <ul className="list-disc ml-5 space-y-1">{importErrors.slice(0, 50).map((err, i) => (<li key={i}>{err}</li>))}</ul>
+                        <div className="flex items-center gap-2 font-medium mb-1">
+                          <AlertCircle className="w-4 h-4" />
+                          Errores de importación ({importErrors.length})
+                        </div>
+                        <ul className="list-disc ml-5 space-y-1">
+                          {importErrors.slice(0, 50).map((err, i) => (<li key={i}>{err}</li>))}
+                        </ul>
                         {importErrors.length > 50 && <div className="mt-1 opacity-80">…y más</div>}
                       </div>
                     )}
@@ -784,23 +1069,40 @@ export default function LabelGenerator() {
                       >
                         <RotateCcw className="w-4 h-4" />
                       </Button>
-
-                      <span className="text-sm text-purple-300">Total: {totalLabels} etiquetas</span></div>
+                      <span className="text-sm text-purple-300">Total: {totalLabels} etiquetas</span>
+                    </div>
                   </div>
                 </CardHeader>
 
                 <CardContent className="p-6 flex-1 flex flex-col min-h-0  max-h-[400px]">
                   {articles.length === 0 ? (
-                    <div className="text-center py-8 text-gray-400"><p>No hay artículos agregados</p><p className="text-sm">Escribe un código y presiona Enter o el botón +</p></div>
+                    <div className="text-center py-8 text-gray-400">
+                      <p>No hay artículos agregados</p>
+                      <p className="text-sm">Escribe un código y presiona Enter o el botón +</p>
+                    </div>
                   ) : (
                     <div className="space-y-2 flex-1 overflow-y-auto">
                       {articles.map((a) => (
                         <div key={a.id} className="flex items-center justify-between bg-gray-700/50 p-3 rounded-lg">
                           <div className="flex-1 min-w-0">
                             <p className="text-white font-medium truncate">{a.nombre}</p>
-                            <p className="text-gray-300 text-sm">Código: {a.codigo} • Precio: {money(a.precio)} • Dist: {money(a.distribuidor)} • Unidad: {a.unidad} • Fecha: {a.fecha} • Estatus: {a.estatus ?? "-"} • Inv. Máx: {Number.isFinite(a.inventarioMaximo) ? a.inventarioMaximo : 0}</p>
+                            <p className="text-gray-300 text-sm">
+                              Código: {a.codigo} • Precio: {money(a.precio)} • Dist: {money(a.distribuidor)} •
+                              Unidad: {a.unidad} • Fecha: {a.fecha} • Estatus: {a.estatus ?? "-"} •
+                              Inv. Máx: {Number.isFinite(a.inventarioMaximo) ? a.inventarioMaximo : 0}
+                            </p>
                           </div>
-                          <div className="flex items-center gap-3"><span className="text-purple-300 font-medium">{a.quantity}x</span><Button size="sm" variant="ghost" onClick={() => removeArticle(a.id)} className="text-red-400 hover:text-red-300 hover:bg-red-900/20"><Trash2 className="w-4 h-4" /></Button></div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-purple-300 font-medium">{a.quantity}x</span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => removeArticle(a.id)}
+                              className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -810,14 +1112,21 @@ export default function LabelGenerator() {
 
               <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm flex-1 flex min-h-0">
                 <CardHeader className="border-b border-gray-600 shrink-0">
-                  <CardTitle className="flex items-center gap-2 text-white"><Eye className="w-5 h-5 text-purple-300" />Vista Previa</CardTitle>
+                  <CardTitle className="flex items-center gap-2 text-white">
+                    <Eye className="w-5 h-5 text-purple-300" />Vista Previa
+                  </CardTitle>
                   <p className="text-gray-300 text-sm">Dimensiones fijas: {template.width}mm × {template.height}mm</p>
                 </CardHeader>
                 <CardContent className="p-6 flex-1 flex flex-col min-h-0">
                   <div className="bg-gray-900/60 rounded-lg p-8 min-h-[100%] flex-1 flex items-center justify-center relative overflow-auto">
-                    {articles.length === 0 ? <div className="text-center text-gray-400"><p>Agrega artículos para ver la vista previa</p></div> : (
+                    {articles.length === 0 ? (
+                      <div className="text-center text-gray-400"><p>Agrega artículos para ver la vista previa</p></div>
+                    ) : (
                       <div className="flex items-center justify-center" style={{ width: `${naturalW}px`, height: `${naturalH}px` }}>
-                        <div className="bg-white rounded-md shadow-lg border-2 border-gray-300 text-black" style={{ width: naturalW, height: naturalH, padding: 6, overflow: "hidden" }}>
+                        <div
+                          className="bg-white rounded-md shadow-lg border-2 border-gray-300 text-black"
+                          style={{ width: naturalW, height: naturalH, padding: 6, overflow: "hidden" }}
+                        >
                           {template.preview(articles[0])}
                         </div>
                       </div>
@@ -833,8 +1142,10 @@ export default function LabelGenerator() {
   )
 }
 
-// ====== NumberField (al final para evitar scroll arriba) ======
-function NumberField({ value, onChange, min = 0, max = Number.MAX_SAFE_INTEGER, step = 1, id, className = "", inputClassName = "", ariaLabel, }: {
+// ====== NumberField ======
+function NumberField({
+  value, onChange, min = 0, max = Number.MAX_SAFE_INTEGER, step = 1, id, className = "", inputClassName = "", ariaLabel,
+}: {
   value: string | number; onChange: (val: string) => void; min?: number; max?: number; step?: number; id?: string; className?: string; inputClassName?: string; ariaLabel?: string
 }) {
   const clamp = (n: number) => Math.min(max, Math.max(min, n))
@@ -842,9 +1153,21 @@ function NumberField({ value, onChange, min = 0, max = Number.MAX_SAFE_INTEGER, 
   const bump = (d: 1 | -1) => onChange(String(clamp(parseVal(value) + d * step)))
   return (
     <div className={`flex items-stretch overflow-hidden rounded-md border border-gray-500 bg-gray-700 ${className}`}>
-      <Button type="button" variant="ghost" className="px-3 border-r border-gray-600 rounded-none text-white hover:bg-gray-600" aria-label="disminuir" onClick={() => bump(-1)}><Minus className="w-4 h-4" /></Button>
-      <Input id={id} type="number" inputMode="decimal" value={value} onChange={(e) => onChange(e.target.value)} className={`no-spin bg-gray-700 border-0 text-white text-center focus-visible:ring-0 ${inputClassName}`} min={min} max={max} step={step} aria-label={ariaLabel} />
-      <Button type="button" variant="ghost" className="px-3 border-l border-gray-600 rounded-none text-white hover:bg-gray-600" aria-label="aumentar" onClick={() => bump(1)}><Plus className="w-4 h-4" /></Button>
+      <Button type="button" variant="ghost" className="px-3 border-r border-gray-600 rounded-none text-white hover:bg-gray-600" aria-label="disminuir" onClick={() => bump(-1)}>
+        <Minus className="w-4 h-4" />
+      </Button>
+      <Input
+        id={id}
+        type="number"
+        inputMode="decimal"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={`no-spin bg-gray-700 border-0 text-white text-center focus-visible:ring-0 ${inputClassName}`}
+        min={min} max={max} step={step} aria-label={ariaLabel}
+      />
+      <Button type="button" variant="ghost" className="px-3 border-l border-gray-600 rounded-none text-white hover:bg-gray-600" aria-label="aumentar" onClick={() => bump(1)}>
+        <Plus className="w-4 h-4" />
+      </Button>
     </div>
   )
 }

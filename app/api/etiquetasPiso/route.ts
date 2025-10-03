@@ -1,7 +1,6 @@
 // app/api/buscarArticulo/route.ts
 import { type NextRequest, NextResponse } from "next/server"
 import * as fb from "node-firebird"
-import jwt from "jsonwebtoken"
 import * as fs from "fs"
 import * as path from "path"
 
@@ -23,13 +22,11 @@ const fbConfig: fb.Options = {
   encoding: "UTF8",
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || "elyssia-secret-key"
 const LOGS_DIR = process.env.LOGS_DIR || "./logs"
 
 // ======== Config de redondeo de precios ============
 type RoundMode = "ROUND" | "CEIL" | "FLOOR"
 const PRICE_ROUND_MODE = (process.env.PRICE_ROUND_MODE as RoundMode) || "ROUND"
-
 const _DEC_STR = process.env.PRICE_DECIMALS
 const PRICE_DECIMALS = _DEC_STR === undefined ? 0 : Number(_DEC_STR)
 if (!Number.isFinite(PRICE_DECIMALS) || PRICE_DECIMALS < 0) {
@@ -38,7 +35,6 @@ if (!Number.isFinite(PRICE_DECIMALS) || PRICE_DECIMALS < 0) {
 
 // ================= Logs ============================
 if (!fs.existsSync(LOGS_DIR)) fs.mkdirSync(LOGS_DIR, { recursive: true })
-
 function nowMX(): string {
   try {
     const parts = new Intl.DateTimeFormat("es-MX", {
@@ -52,7 +48,6 @@ function nowMX(): string {
     return `${m.year}-${m.month}-${m.day} ${m.hour}:${m.minute}:${m.second}`
   } catch { return new Date().toISOString().replace("T", " ").substring(0, 19) }
 }
-
 function log(msg: string, level: "INFO" | "ERROR" | "DEBUG" | "WARN" = "INFO") {
   const file = path.join(LOGS_DIR, `buscar_articulo-${new Date().toISOString().slice(0, 10)}.log`)
   const line = `[${nowMX()}] [${level}] ${msg}\n`
@@ -63,7 +58,7 @@ function log(msg: string, level: "INFO" | "ERROR" | "DEBUG" | "WARN" = "INFO") {
   else console.log(line)
 }
 
-// ================= Utils ===========================
+// ================= Tipos ===========================
 type Row = {
   R_CODIGO: string
   R_DESCRIPCION: string
@@ -73,7 +68,6 @@ type Row = {
   R_PRECIO_MAYOR_IVA: number
   R_ESTATUS: string | null
 }
-
 type ApiRow = {
   codigo: string
   descripcion: string
@@ -88,7 +82,6 @@ const toNum = (v: any, d = 0) => {
   const n = Number(v)
   return Number.isFinite(n) ? n : d
 }
-
 function roundPrice(v: any, decimals = PRICE_DECIMALS, mode: RoundMode = PRICE_ROUND_MODE): number {
   const n = toNum(v, 0)
   if (!Number.isFinite(n)) return 0
@@ -103,19 +96,8 @@ function roundPrice(v: any, decimals = PRICE_DECIMALS, mode: RoundMode = PRICE_R
   const out = roundedScaled / factor
   return Number(out.toFixed(decimals))
 }
-
-// Mapeo con logs de entrada/salida
 const mapRow = (r: Row, rid: string): ApiRow => {
-  console.log(`[${rid}] Valores crudos Firebird:`, {
-    R_CODIGO: r.R_CODIGO,
-    R_DESCRIPCION: r.R_DESCRIPCION,
-    R_UNIDAD_VENTA: r.R_UNIDAD_VENTA,
-    R_INVENTARIO_MAXIMO: r.R_INVENTARIO_MAXIMO,
-    R_PRECIO_LIST_IVA: r.R_PRECIO_LIST_IVA,
-    R_PRECIO_MAYOR_IVA: r.R_PRECIO_MAYOR_IVA,
-    R_ESTATUS: r.R_ESTATUS
-  })
-
+  console.log(`[${rid}] Valores crudos Firebird:`, r)
   const mapped: ApiRow = {
     codigo: r.R_CODIGO ?? "",
     descripcion: r.R_DESCRIPCION ?? "",
@@ -125,7 +107,6 @@ const mapRow = (r: Row, rid: string): ApiRow => {
     precio_mayor_iva: roundPrice(r.R_PRECIO_MAYOR_IVA),
     estatus: r.R_ESTATUS ?? null,
   }
-
   console.log(`[${rid}] Mapeado/redondeado:`, mapped)
   return mapped
 }
@@ -167,25 +148,115 @@ function buildSQL() {
   `
 }
 
+// ============== Helpers de búsqueda =================
+
+// (1) Detalle por CÓDIGO usando tu SP existente
+async function searchByCodigo(codigo: string, almacen: number, rid: string): Promise<ApiRow[]> {
+  const sql = buildSQL()
+  const rows = await queryFirebird<Row>(sql, [codigo, almacen])
+  return rows.map(r => mapRow(r, rid))
+}
+
+// (2) ARTICULO_IDs por ubicación (tu consulta base)
+async function getArticuloIdsPorUbicacion(almacenId: number, ubicacion: string): Promise<number[]> {
+  const sql = `
+    SELECT ARTICULO_ID
+    FROM NIVELES_ARTICULOS
+    WHERE ALMACEN_ID = ? AND UPPER(LOCALIZACION) = UPPER(?)
+  `
+  const rows = await queryFirebird<{ ARTICULO_ID: number }>(sql, [almacenId, ubicacion])
+  return rows.map(r => Number(r.ARTICULO_ID)).filter(n => Number.isFinite(n))
+}
+
+// (3) CLAVE_ARTICULO(s) por ARTICULO_ID (tu segunda consulta)
+async function getClavesPorArticuloId(articuloId: number): Promise<string[]> {
+  const sql = `SELECT CLAVE_ARTICULO FROM CLAVES_ARTICULOS WHERE ARTICULO_ID = ?`
+  const rows = await queryFirebird<{ CLAVE_ARTICULO: string }>(sql, [articuloId])
+  return rows.map(r => (r.CLAVE_ARTICULO || "").trim()).filter(Boolean)
+}
+
+// (4) NUEVO: pipeline completo por ubicación -> ids -> claves -> SP
+async function searchByUbicacion(almacen: number, ubicacion: string, rid: string): Promise<ApiRow[]> {
+  log(`[${rid}] Buscar por ubicacion="${ubicacion}" almacen=${almacen}`, "INFO")
+
+  // A) obtener todos los ARTICULO_ID de esa ubicación
+  const articuloIds = await getArticuloIdsPorUbicacion(almacen, ubicacion)
+  if (articuloIds.length === 0) return []
+
+  // B) por cada articuloId, obtener TODAS las claves de CLAVES_ARTICULOS
+  //    (puede haber varias claves por artículo)
+  const clavesSet = new Set<string>()
+  // controla lotes para no saturar (ajusta a tu gusto)
+  const CONC_GET_CLAVES = 20
+  for (let i = 0; i < articuloIds.length; i += CONC_GET_CLAVES) {
+    const batch = articuloIds.slice(i, i + CONC_GET_CLAVES).map(async (id) => {
+      try {
+        const claves = await getClavesPorArticuloId(id)
+        claves.forEach(c => c && clavesSet.add(c))
+      } catch (e) {
+        log(`[${rid}] Error obteniendo claves para ARTICULO_ID=${id}: ${String(e)}`, "WARN")
+      }
+    })
+    await Promise.all(batch)
+  }
+
+  const claves = Array.from(clavesSet)
+  if (claves.length === 0) return []
+
+  // C) con cada clave, invocar tu SP para traer el detalle homogéneo
+  const results: ApiRow[] = []
+  const CONC_SP = 5
+  for (let i = 0; i < claves.length; i += CONC_SP) {
+    const batch = claves.slice(i, i + CONC_SP).map(async (clave) => {
+      try {
+        const detalle = await searchByCodigo(clave, almacen, rid)
+        results.push(...detalle)
+      } catch (e) {
+        log(`[${rid}] Error obteniendo detalle para CLAVE_ARTICULO=${clave}: ${String(e)}`, "WARN")
+      }
+    })
+    await Promise.all(batch)
+  }
+
+  log(`[${rid}] Ubicacion="${ubicacion}" -> ${articuloIds.length} articulo_id(s), ${claves.length} clave(s), ${results.length} fila(s)`, "INFO")
+  return results
+}
+
 // ================= RUTA =============================
 export async function GET(req: NextRequest) {
   const rid = Math.random().toString(36).slice(2, 10)
   try {
     const { searchParams } = new URL(req.url)
+
     const codigo = (searchParams.get("codigo") || req.headers.get("x-codigo") || "").trim()
+    const ubicacion = (searchParams.get("ubicacion") || req.headers.get("x-ubicacion") || "").trim()
     const almacenStr = (searchParams.get("almacen") || req.headers.get("x-almacen") || "").trim()
     const almacen = Number(almacenStr)
 
-    const sql = buildSQL()
-    const rows = await queryFirebird<Row>(sql, [codigo, almacen])
-
-    if (rows.length === 0) {
-      return NextResponse.json({ ok: false, error: "Artículo no encontrado" }, { status: 404 })
+    if (!almacenStr || !Number.isFinite(almacen)) {
+      return NextResponse.json({ ok: false, error: "Parámetro 'almacen' inválido" }, { status: 400 })
     }
 
-    const data = rows.map(r => mapRow(r, rid))
+    // 1) por CÓDIGO (comportamiento original)
+    if (codigo) {
+      const data = await searchByCodigo(codigo, almacen, rid)
+      if (data.length === 0) {
+        return NextResponse.json({ ok: false, error: "Artículo no encontrado" }, { status: 404 })
+      }
+      return NextResponse.json({ ok: true, data })
+    }
 
-    return NextResponse.json({ ok: true, data })
+    // 2) por UBICACIÓN (ahora con el pipeline ARTICULO_ID -> CLAVE_ARTICULO -> SP)
+    if (ubicacion) {
+      const data = await searchByUbicacion(almacen, ubicacion, rid)
+      if (data.length === 0) {
+        return NextResponse.json({ ok: false, error: "Sin artículos en esa ubicación" }, { status: 404 })
+      }
+      return NextResponse.json({ ok: true, data })
+    }
+
+    // 3) faltan parámetros
+    return NextResponse.json({ ok: false, error: "Falta 'codigo' o 'ubicacion'" }, { status: 400 })
   } catch (error: any) {
     console.error(`[${rid}] ERROR:`, error)
     return NextResponse.json({ ok: false, error: "Error interno" }, { status: 500 })
