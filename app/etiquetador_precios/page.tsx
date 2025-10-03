@@ -91,7 +91,7 @@ const LABEL_TEMPLATES = [
       .p{width:${w}mm;height:${h}mm;page-break-after:always;display:flex;align-items:center;justify-content:center}
       .p:last-child{page-break-after:auto}
       .l{width:${w}mm;height:${h}mm;padding:${pad}mm;display:flex}
-      .g{width:100%;height:100%;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(6,minmax(0,auto));gap:3px 8px;font-size:11px;line-height:1.05}
+      .g{width:100%;height:100%;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(6,minmax(0,auto));gap:3px 8px;font-size:11px;line-height:1.05; font-weight:bold;}
       .desc{grid-area:1/1/3/4;font-weight:700;text-align:left;font-size:12px;line-height:1.2;white-space:normal;overflow-wrap:break-word;display:flex;align-items:center}
       .im{grid-area:3/1/4/2}.es{grid-area:4/1/5/2}.un{grid-area:5/1/6/2}.co{grid-area:6/1/7/2}.fe{grid-area:3/2/4/4;text-align:right}
       .pm{grid-area:4/2/6/4;display:flex;align-items:center;justify-content:flex-end;font-weight:700;font-size:35px}
@@ -124,25 +124,27 @@ const LABEL_TEMPLATES = [
   {
     id: "25x25",
     name: "Pequeñas (25×25 mm)",
-    width: 25.4,
-    height: 25.4,
+    width: 25,
+    height: 25,
     css: (w: number, h: number) => `
       @page{size:${w}mm ${h}mm;margin:0}
       *{box-sizing:border-box;margin:0;padding:0}
       body{font-family:Arial;-webkit-print-color-adjust:exact;print-color-adjust:exact}
       .p{width:${w}mm;height:${h}mm;page-break-after:always;display:flex;align-items:center;justify-content:center}
       .p:last-child{page-break-after:auto}
-      .l{width:${w}mm;height:${h}mm;padding:1mm;display:flex; flex: 1;}
+      .l{width:${w}mm;height:${h}mm;display:flex; flex: 1;}
 
-      .g{width:${w}mm;height:${h}mm;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(6, 0fr));gap:0px;font-size:7px;font-weight: bold; padding: 1mm;}
+      .g{width:${w}mm;height:${h}mm;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(6, 0fr));
+      gap:1px;font-size:8px;font-weight: bold; padding:1mm;}
 
       .desc{grid-area: 1/1/2/4;
   font-weight: bold;
   text-align: left;
   font-size: 8px;
-  line-height: 1.2;
-  display: -webkit-box;      
-  -webkit-line-clamp: 1;         
+  display:flex;
+  margin-top:1.5mm;
+  justify-content:center;
+  line-height: 1.05;
   text-overflow: ellipsis;       
   white-space: no-wrap;         
   word-break: keep-all;              
@@ -152,10 +154,10 @@ const LABEL_TEMPLATES = [
 
       .im{grid-area: 4 / 1 / 5 / 2;}.es{grid-area: 5 / 3 / 6 / 4;}.un{grid-area:5/1/6/2}.co{grid-area:6/1/7/2}.fe{grid-area:4 / 3 / 5 / 4;text-align:right}
       
-      .pm{ grid-area: 2 / 1 /3 / 4;display:flex;align-items:center;justify-content:flex-end;font-weight:700;font-size:15px}
+      .pm{ grid-area: 2 / 1 /3 / 4;display:flex;align-items:center;justify-content:flex-end;font-weight:bold;font-size:15px}
 
-      .pl{grid-area:6/2/7/4;text-align:right;font-weight:600}
-      .b{font-weight:600 font-size: 6px;}
+      .pl{grid-area:6/2/7/4;text-align:right;}
+      .b{font-weight:bold font-size: 7px;}
     `,
     renderHTML: (a: ArticleItem) => `
       <div class="p"><div class="l"><div class="g">
