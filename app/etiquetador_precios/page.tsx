@@ -904,39 +904,82 @@ export default function LabelGenerator() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-3">
-                <div className="relative aspect-video w-full rounded-md overflow-hidden border border-gray-700 bg-black">
-                  <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />
+              <div className="space-y-4 p-4 sm:p-6">
+                {/* Contenedor de video: vertical en móvil, 16:9 en desktop */}
+                <div className="relative aspect-[3/4] md:aspect-video w-full rounded-md overflow-hidden border border-gray-700 bg-black">
+                  <video
+                    ref={videoRef}
+                    className="w-full h-full object-contain"
+                    muted
+                    playsInline
+                  />
                   {!streamRef.current && (
-                    <div className="absolute inset-0 grid place-items-center text-gray-300 text-sm">
-                      <div className="text-center">
+                    <div className="absolute inset-0 grid place-items-center text-gray-300 text-sm sm:text-base px-4 text-center">
+                      <div>
                         <p>Activa la cámara para escanear el anaquel / código de ubicación.</p>
-                        <p className="opacity-80 mt-1">Al detectar un código válido, lo copiaré arriba.</p>
+                        <p className="opacity-80 mt-2">Al detectar un código válido, lo copiaré arriba.</p>
                       </div>
                     </div>
                   )}
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button onClick={startCamera} className="bg-purple-600 hover:bg-purple-700">Iniciar cámara</Button>
-                  <Button variant="outline" className="border-gray-700" onClick={stopCamera}>Detener</Button>
+
+                {/* Controles cámara: columna en móvil, fila en pantallas más grandes */}
+                <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
+                  <Button
+                    onClick={startCamera}
+                    className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto h-11"
+                  >
+                    Iniciar cámara
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="border-gray-700 w-full sm:w-auto h-11"
+                    onClick={stopCamera}
+                  >
+                    Detener
+                  </Button>
                 </div>
+
                 {ubicacion && (
-                  <div className="text-sm text-gray-200">
-                    Detectado: <span className="font-semibold text-purple-300">{ubicacion}</span>
+                  <div className="text-sm sm:text-base text-gray-200">
+                    Detectado: <span className="font-semibold text-purple-300 break-all">{ubicacion}</span>
                   </div>
                 )}
+
                 {ubicErr && (
-                  <div className="px-3 py-2 text-sm text-red-300 flex items-center gap-2 bg-red-900/20 rounded">
-                    <AlertCircle className="w-4 h-4" />{ubicErr}
+                  <div className="px-3 py-2 text-sm sm:text-base text-red-300 flex items-start gap-2 bg-red-900/20 rounded">
+                    <AlertCircle className="w-4 h-4 mt-0.5" />
+                    <span className="flex-1">{ubicErr}</span>
                   </div>
                 )}
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" className="border-gray-700" onClick={() => { setUbicModalOpen(false); stopCamera() }}>Cerrar</Button>
-                  <Button className="bg-purple-600 hover:bg-purple-700" onClick={buscarPorUbicacion} disabled={!ubicacion || buscandoUbic}>
-                    {buscandoUbic ? <Loader2 className="w-4 h-4 animate-spin" /> : "Buscar con ubicación detectada"}
+
+                {/* Acciones finales: columna (con botón principal al final) en móvil */}
+                <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    className="border-gray-700 w-full sm:w-auto h-11"
+                    onClick={() => {
+                      setUbicModalOpen(false);
+                      stopCamera();
+                    }}
+                  >
+                    Cerrar
+                  </Button>
+
+                  <Button
+                    className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto h-11"
+                    onClick={buscarPorUbicacion}
+                    disabled={!ubicacion || buscandoUbic}
+                  >
+                    {buscandoUbic ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      "Buscar con ubicación detectada"
+                    )}
                   </Button>
                 </div>
               </div>
+
             )}
           </div>
         </DialogContent>
@@ -1130,9 +1173,9 @@ export default function LabelGenerator() {
             <div className="flex flex-col gap-6 h-full min-h-0">
               <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm flex-1 flex min-h-0">
                 <CardHeader className="border-b border-gray-600 shrink-0">
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
                     <CardTitle className="text-white">Artículos ({articles.length})</CardTitle>
-                    <div className="flex items-center">
+                    <div className="flex items-center flex-wrap">
                       <Button
                         type="button"
                         className="bg-gray-700 hover:bg-gray-600 text-white border-0"
