@@ -1,5 +1,3 @@
-// app/planes/page.tsx
-
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -11,10 +9,12 @@ import {
   X,
   Clock,
   ArrowLeft,
+  ShieldCheck,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCompany } from "@/lib/company-context";
+import { useBillingStatus } from "@/lib/hooks/useBillingStatus";
 
 /* ================== Tipos devueltos por /api/stripe/catalog ================== */
 interface StripePrice {
@@ -266,6 +266,10 @@ export default function PlanesPage() {
   // ⬇️ Usa contexto de compañía
   const { companyData, isReady } = useCompany();
 
+  // Estado de suscripción del tenant (para decidir CTA)
+  const { active, loading: billingLoading, error: billingError, tenant } =
+    useBillingStatus();
+
   const [items, setItems] = useState<StripeCatalogItem[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -273,6 +277,7 @@ export default function PlanesPage() {
   const [cycle, setCycle] = useState<CycleKey>("monthly");
   const [email, setEmail] = useState<string>("");
   const [busyPrice, setBusyPrice] = useState<string | null>(null);
+  const [busyPortal, setBusyPortal] = useState(false);
 
   const [showFeatures, setShowFeatures] = useState(false);
   const [showSupport, setShowSupport] = useState(false);
@@ -293,21 +298,12 @@ export default function PlanesPage() {
       try {
         setLoading(true);
         setError(null);
-
-        // Opción A: endpoint interno Next API (recomendado)
-        // Pasa el tenant para que el handler resuelva catálogo por compañía
         const res = await fetch(
           `/api/stripe/catalog?tenant=${encodeURIComponent(
             companyData.codigo
           )}`,
-          {
-            cache: "no-store",
-          }
+          { cache: "no-store" }
         );
-
-        // Opción B (si manejas todo desde el backend de la compañía):
-        // const res = await fetch(`${companyData.apiUrl}/stripe/catalog?tenant=${encodeURIComponent(companyData.codigo)}`, { cache: "no-store" });
-
         if (!res.ok) throw new Error("No se pudo cargar el catálogo");
         const data = await res.json();
         if (mounted) setItems((data.items || []) as StripeCatalogItem[]);
@@ -321,7 +317,7 @@ export default function PlanesPage() {
     return () => {
       mounted = false;
     };
-  }, [isReady, companyData?.codigo /* , companyData?.apiUrl */]);
+  }, [isReady, companyData?.codigo]);
 
   /* ================== Resolver price por ciclo ================== */
   const plan = useMemo(() => {
@@ -351,7 +347,6 @@ export default function PlanesPage() {
 
       setBusyPrice(priceId);
 
-      // Opción A: endpoint interno
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -360,15 +355,12 @@ export default function PlanesPage() {
           priceId,
           tenant: companyData.codigo, // ⬅️ importante
           successUrl: `${window.location.origin}/planes/success`,
-          cancelUrl: `${
-            window.location.origin
-          }/planes/cancel?price=${encodeURIComponent(priceId)}`,
+          cancelUrl: `${window.location.origin}/planes/cancel?price=${encodeURIComponent(
+            priceId
+          )}`,
           userId: null, // ⬅️ ya no hay UserContext
         }),
       });
-
-      // Opción B (backend por compañía):
-      // const res = await fetch(`${companyData.apiUrl}/stripe/checkout`, { ... });
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -380,6 +372,26 @@ export default function PlanesPage() {
       alert(e?.message || "Error iniciando el checkout");
     } finally {
       setBusyPrice(null);
+    }
+  }
+
+  /* ================== Portal de Stripe ================== */
+  async function openStripePortal() {
+    try {
+      if (!tenant) return alert("Tenant no detectado");
+      setBusyPortal(true);
+      const res = await fetch("/api/stripe/portal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tenant }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "No fue posible abrir el portal");
+      if (data?.url) window.location.href = data.url as string;
+    } catch (e: any) {
+      alert(e?.message || "Error abriendo portal");
+    } finally {
+      setBusyPortal(false);
     }
   }
 
@@ -395,7 +407,7 @@ export default function PlanesPage() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => router.push("/")}
+                onClick={() => router.push("/dashboard")}
                 className="inline-flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/70 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800 transition"
                 aria-label="Regresar al inicio"
               >
@@ -413,11 +425,10 @@ export default function PlanesPage() {
                 <button
                   key={k}
                   onClick={() => setCycle(k)}
-                  className={`px-4 py-2 rounded-full text-sm transition ${
-                    cycle === k
+                  className={`px-4 py-2 rounded-full text-sm transition ${cycle === k
                       ? "bg-white text-black"
                       : "text-zinc-300 hover:text-white"
-                  }`}
+                    }`}
                 >
                   {CYCLE_META[k].label.split(" (")[0]}
                 </button>
@@ -452,6 +463,25 @@ export default function PlanesPage() {
             mensual, semestral y anual cuando quieras.
           </p>
 
+          {/* Estado de suscripción */}
+          <div className="mt-4">
+            {billingLoading ? (
+              <div className="text-sm text-zinc-500 flex items-center gap-2">
+                <Loader2 className="size-4 animate-spin" />
+                Verificando tu suscripción…
+              </div>
+            ) : billingError ? (
+              <div className="text-sm text-amber-400">
+                No fue posible validar la suscripción: {billingError}
+              </div>
+            ) : active ? (
+              <div className="inline-flex items-center gap-2 rounded-lg border border-emerald-700/40 bg-emerald-900/20 px-3 py-2 text-emerald-200">
+                <ShieldCheck className="w-4 h-4" />
+                Suscripción activa
+              </div>
+            ) : null}
+          </div>
+
           {/* Email (ya no hay user.email) */}
           <div className="mt-6 max-w-lg">
             <input
@@ -460,7 +490,7 @@ export default function PlanesPage() {
               placeholder="Tu email (para el recibo)"
               className="w-full rounded-xl bg-zinc-900/70 border border-zinc-800 px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500"
               type="email"
-              disabled={disabled}
+              disabled={disabled || active /* si ya está activo, no necesita pagar */}
             />
           </div>
 
@@ -582,31 +612,36 @@ export default function PlanesPage() {
               </ul>
 
               <div className="mt-8">
-                <button
-                  onClick={() => handleSubscribe(plan.price?.price_id)}
-                  disabled={
-                    !plan.price ||
-                    busyPrice === plan.price?.price_id ||
-                    disabled
-                  }
-                  className="w-full rounded-xl bg-white text-black hover:bg-zinc-200 disabled:opacity-50 border border-zinc-200 px-4 py-3 font-medium transition"
-                >
-                  {busyPrice === plan.price?.price_id ? (
-                    <span className="inline-flex items-center gap-2">
-                      <Loader2 className="size-4 animate-spin" /> Redirigiendo…
-                    </span>
-                  ) : (
-                    <>Continuar con Stripe</>
-                  )}
-                </button>
+                {active ? (
+                  <button
+                    onClick={openStripePortal}
+                    disabled={busyPortal}
+                    className="w-full rounded-xl bg-white text-black hover:bg-zinc-200 disabled:opacity-50 border border-zinc-200 px-4 py-3 font-medium transition"
+                  >
+                    {busyPortal ? "Abriendo portal…" : "Abrir portal de Stripe"}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleSubscribe(plan.price?.price_id)}
+                    disabled={
+                      !plan.price || busyPrice === plan.price?.price_id || disabled
+                    }
+                    className="w-full rounded-xl bg-white text-black hover:bg-zinc-200 disabled:opacity-50 border border-zinc-200 px-4 py-3 font-medium transition"
+                  >
+                    {busyPrice === plan.price?.price_id ? (
+                      <span className="inline-flex items-center gap-2">
+                        <Loader2 className="size-4 animate-spin" /> Redirigiendo…
+                      </span>
+                    ) : (
+                      <>Continuar con Stripe</>
+                    )}
+                  </button>
+                )}
               </div>
 
               {(cycle === "annual" || cycle === "semiannual") && (
                 <p className="mt-4 text-xs text-zinc-500">
-                  *{" "}
-                  {cycle === "annual"
-                    ? "ANUAL – Ahorra un 16%"
-                    : "SEMESTRAL – Ahorra un 8%"}
+                  * {cycle === "annual" ? "ANUAL – Ahorra un 16%" : "SEMESTRAL – Ahorra un 8%"}
                 </p>
               )}
             </article>
@@ -634,9 +669,7 @@ export default function PlanesPage() {
       {/* Footer */}
       <footer className="border-t border-zinc-900/60 bg-black/80">
         <div className="mx-auto max-w-6xl px-6 py-10 text-sm text-zinc-500 flex items-center justify-between">
-          <div>
-            © {new Date().getFullYear()} – Facturación segura con Stripe.
-          </div>
+          <div>© {new Date().getFullYear()} – Facturación segura con Stripe.</div>
           <Link href="https://blck-sheep.com" target="_blank">
             <img
               src={"/Logos/black_sheep_centro2.png"}

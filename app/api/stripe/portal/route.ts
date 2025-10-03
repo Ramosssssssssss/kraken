@@ -1,80 +1,100 @@
-// app/api/stripe/portal/route.ts
-// Crea una sesión del Stripe Billing Portal y te regresa la URL para que el usuario abra su “panel de suscripciones” de Stripe.
-import { NextResponse } from "next/server";
+// /app/api/stripe/portal/route.ts
+import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
+import * as fb from "node-firebird";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-// Inicializa Stripe (recorta espacios accidentales del .env)
-const secret = process.env.STRIPE_SECRET_KEY_BS?.trim();
-if (!secret) {
-    throw new Error("Missing STRIPE_SECRET_KEY_BS");
+// ===== Stripe (lazy init) =====
+let _stripe: Stripe | null = null;
+function stripe() {
+    if (!_stripe) {
+        const key = process.env.STRIPE_SECRET_KEY_BS;
+        if (!key) throw new Error("Missing env STRIPE_SECRET_KEY_BS");
+        _stripe = new Stripe(key, { apiVersion: "2025-09-30.clover" });
+    }
+    return _stripe!;
 }
-const stripe = new Stripe(secret);
 
-export async function POST(req: Request) {
-    try {
-        const { customerId, email, returnUrl } = await req.json();
+// ===== Firebird (ajusta a tu conexión) =====
+const fbConfig: fb.Options = {
+    host: "localhost",
+    port: 3050,
+    database: "C:\\BS\\BLACKSHEEP.FDB",
+    user: "SYSDBA",
+    password: "BlueMamut$23",
+    lowercase_keys: false,
+};
 
-        // 1) Resolver el customerId (cid)
-        let cid: string | undefined = customerId;
-        if (!cid) {
-            if (!email) {
-                return NextResponse.json(
-                    { error: "Falta customerId o email" },
-                    { status: 400 }
-                );
-            }
-
-            // a) Intentar Search (rápido)
+function withFb<T = any>(fn: (db: fb.Database) => Promise<T>) {
+    return new Promise<T>((resolve, reject) => {
+        fb.attach(fbConfig, async (err, db) => {
+            if (err) return reject(err);
             try {
-                const found = await stripe.customers.search({
-                    query: `email:'${email}'`,
-                    limit: 1,
-                });
-                cid = found.data[0]?.id;
-            } catch {
-                // si Search no está disponible, seguimos abajo
+                const out = await fn(db);
+                db.detach();
+                resolve(out);
+            } catch (e) {
+                try { db.detach(); } catch { }
+                reject(e);
             }
+        });
+    });
+}
 
-            // b) Fallback a List
-            if (!cid) {
-                const list = await stripe.customers.list({ email, limit: 1 });
-                cid = list.data[0]?.id;
-            }
+async function getCustomerIdByTenant(tenant: string): Promise<string | null> {
+    // 1) Intenta desde SUSCRIPCIONES
+    const subRow = await withFb((db) => new Promise<any>((res, rej) => {
+        const sql = `
+      SELECT FIRST 1 CUSTOMER_ID
+      FROM SUSCRIPCIONES
+      WHERE TENANT = ?
+      ORDER BY UPDATED_AT DESC
+    `;
+        db.query(sql, [tenant], (e, rs) => (e ? rej(e) : res(rs?.[0] || null)));
+    }));
+    if (subRow?.CUSTOMER_ID) return String(subRow.CUSTOMER_ID);
 
-            // c) Crear si no existe
-            if (!cid) {
-                cid = (await stripe.customers.create({ email })).id;
-            }
+    // 2) Fallback: último pago del tenant
+    const payRow = await withFb((db) => new Promise<any>((res, rej) => {
+        const sql = `
+      SELECT FIRST 1 CUSTOMER_ID
+      FROM PAGOS_SUSCRIPCION
+      WHERE TENANT = ?
+      ORDER BY CREATED_AT DESC
+    `;
+        db.query(sql, [tenant], (e, rs) => (e ? rej(e) : res(rs?.[0] || null)));
+    }));
+    if (payRow?.CUSTOMER_ID) return String(payRow.CUSTOMER_ID);
+
+    return null;
+}
+
+export async function POST(req: NextRequest) {
+    try {
+        const { tenant, returnUrl } = await req.json();
+        if (!tenant) {
+            return NextResponse.json({ error: "Falta tenant" }, { status: 400 });
         }
 
-        // 2) Crear sesión del Portal
-        const session = await stripe.billingPortal.sessions.create({
-            customer: cid!,
-            return_url:
-                (returnUrl as string | undefined)?.trim() ||
-                process.env.NEXT_PUBLIC_BASE_URL?.trim() ||
-                "http://localhost:3000",
+        const customerId = await getCustomerIdByTenant(String(tenant).toLowerCase());
+        if (!customerId) {
+            return NextResponse.json(
+                { error: "No se encontró customer para el tenant" },
+                { status: 404 }
+            );
+        }
+
+        const origin =
+            req.headers.get("origin") || `${req.nextUrl.protocol}//${req.nextUrl.host}`;
+        const portal = await stripe().billingPortal.sessions.create({
+            customer: customerId,
+            return_url: returnUrl || `${origin}/dashboard`,
         });
 
-        // 3) Asegurarnos de devolver URL ABSOLUTA (Stripe normalmente ya la da así)
-        let url = session.url;
-        if (!/^https?:\/\//i.test(url)) {
-            url = `https://billing.stripe.com${url.startsWith("/") ? "" : "/"}${url}`;
-        }
-
-        console.log("[portal session url]", url);
-        return NextResponse.json({ url });
+        return NextResponse.json({ url: portal.url }, { status: 200 });
     } catch (e: any) {
-        console.error("[/api/stripe/portal] error:", {
-            message: e?.message,
-            type: e?.type,
-            code: e?.code,
-        });
-        return NextResponse.json(
-            { error: "No fue posible crear la sesión del portal" },
-            { status: 500 }
-        );
+        return NextResponse.json({ error: e?.message || "Error" }, { status: 500 });
     }
 }

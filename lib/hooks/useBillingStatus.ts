@@ -1,27 +1,38 @@
-// /lib/hooks/useBillingStatus.ts
+// C:\inetpub\wwwroot\kraken\lib\hooks\useBillingStatus.ts
 "use client";
 
 import { useEffect, useState } from "react";
 import { useCompany } from "@/lib/company-context";
 
-type BillingStatus =
-  | {
-      active: true;
-      tenant: string;
-      source: "SUSCRIPCIONES" | "PAGOS_SUSCRIPCION";
-      status: string;
-      subscription_id?: string;
-      price_id?: string;
-      invoice_id?: string;
-      current_period_start?: number;
-      current_period_end?: number;
-      cancel_at_period_end?: boolean;
-    }
-  | {
-      active: false;
-      tenant: string;
-      reason?: string;
-    };
+type ActiveFromSubs = {
+  active: true;
+  tenant: string;
+  source: "SUSCRIPCIONES";
+  status: string;
+  subscription_id: string;
+  price_id?: string | null;
+  current_period_start?: number;
+  current_period_end?: number;
+  cancel_at_period_end?: boolean;
+};
+
+type ActiveFromPayments = {
+  active: true;
+  tenant: string;
+  source: "PAGOS_SUSCRIPCION";
+  status: "paid";
+  invoice_id: string;
+  current_period_start?: number;
+  current_period_end?: number;
+};
+
+type Inactive = {
+  active: false;
+  tenant: string;
+  reason?: string;
+};
+
+export type BillingStatus = ActiveFromSubs | ActiveFromPayments | Inactive;
 
 export function useBillingStatus() {
   const { companyData, isReady } = useCompany();
@@ -31,7 +42,9 @@ export function useBillingStatus() {
 
   useEffect(() => {
     if (!isReady) return;
-    if (!companyData?.codigo) {
+
+    const tenant = companyData?.codigo?.toLowerCase().trim();
+    if (!tenant) {
       setData(null);
       setLoading(false);
       setErr("Tenant no detectado");
@@ -44,21 +57,20 @@ export function useBillingStatus() {
         setLoading(true);
         setErr(null);
         const res = await fetch(
-          `/api/billing/status?tenant=${encodeURIComponent(
-            companyData.codigo.toLowerCase()
-          )}`,
+          `/api/billing/status?tenant=${encodeURIComponent(tenant)}`,
           { cache: "no-store" }
         );
         const json = await res.json();
         if (abort) return;
-        if (!res.ok) throw new Error(json?.error || "Error");
+        if (!res.ok) throw new Error(json?.error || "Error consultando estado de suscripción");
         setData(json as BillingStatus);
       } catch (e: any) {
-        if (!abort) setErr(e?.message || "Error");
+        if (!abort) setErr(e?.message || "Error desconocido");
       } finally {
         if (!abort) setLoading(false);
       }
     })();
+
     return () => {
       abort = true;
     };
@@ -66,7 +78,7 @@ export function useBillingStatus() {
 
   return {
     isReady,
-    tenant: companyData?.codigo || null,
+    tenant: companyData?.codigo ?? null,
     loading,
     error,
     data,

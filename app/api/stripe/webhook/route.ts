@@ -1,3 +1,4 @@
+// app/api/stripe/webhook/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import * as fb from "node-firebird";
@@ -14,9 +15,8 @@ function required(name: string) {
   return v;
 }
 
-const stripe = new Stripe(required("STRIPE_SECRET_KEY_BS"), {
-  apiVersion: "2025-09-30.clover",
-});
+// Usa la versión por defecto de tu cuenta (evita apiVersion inventadas)
+const stripe = new Stripe(required("STRIPE_SECRET_KEY_BS"));
 const webhookSecret = required("STRIPE_WEBHOOK_SECRET_BS");
 
 /* ========= Firebird config ========= */
@@ -53,7 +53,7 @@ function withFb<T = any>(fn: (db: fb.Database) => Promise<T>) {
       } catch (e) {
         try {
           db.detach();
-        } catch {}
+        } catch { }
         reject(e);
       }
     });
@@ -218,7 +218,7 @@ function getSolutionFromEvent(ev: Stripe.Event): string {
       const inv = ev.data.object as Stripe.Invoice;
       return (inv.metadata?.solution ?? "KRNK").toUpperCase();
     }
-  } catch {}
+  } catch { }
   return "KRNK";
 }
 
@@ -321,6 +321,23 @@ export async function POST(req: NextRequest) {
           periodStart,
           periodEnd,
         });
+
+        // ⬇️ NUEVO: persiste también en SUSCRIPCIONES el periodo actual
+        if (subscriptionId && periodStart && periodEnd) {
+          await withFb((db) => {
+            return new Promise<void>((res, rej) => {
+              const sql = `
+                UPDATE SUSCRIPCIONES
+                   SET CURRENT_PERIOD_START = ?,
+                       CURRENT_PERIOD_END   = ?,
+                       UPDATED_AT           = CURRENT_TIMESTAMP
+                 WHERE SUBSCRIPTION_ID = ?
+              `;
+              db.query(sql, [periodStart, periodEnd, subscriptionId], (e) => (e ? rej(e) : res()));
+            });
+          });
+        }
+
         break;
       }
 

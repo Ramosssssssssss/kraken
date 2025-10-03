@@ -1,0 +1,32 @@
+[2025-10-03 08:08:28] [INFO] [9lod7gn9] GET /api/tamano_etiqueta
+[2025-10-03 08:08:28] [DEBUG] [9lod7gn9] Listando todas las etiquetas
+[2025-10-03 08:08:28] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-10-03 08:08:29] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-10-03 08:08:29] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-10-03 08:08:29] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (C:\inetpub\wwwroot\kraken\.next\server\chunks\2105.js:1:24415)
+    at C:\inetpub\wwwroot\kraken\.next\server\chunks\2105.js:1:194897
+    at L (C:\inetpub\wwwroot\kraken\.next\server\chunks\2105.js:1:189394)
+    at S (C:\inetpub\wwwroot\kraken\.next\server\chunks\2105.js:1:184962)
+    at L (C:\inetpub\wwwroot\kraken\.next\server\chunks\2105.js:1:189384)
+    at S (C:\inetpub\wwwroot\kraken\.next\server\chunks\2105.js:1:184962)
+    at C:\inetpub\wwwroot\kraken\.next\server\chunks\2105.js:1:189423
+    at Socket.<anonymous> (C:\inetpub\wwwroot\kraken\.next\server\chunks\2105.js:1:194616)
+    at Socket.emit (node:events:517:28)
+    at addChunk (node:internal/streams/readable:335:12)
+[2025-10-03 08:10:27] [INFO] [z6622h08] GET /api/tamano_etiqueta
+[2025-10-03 08:10:27] [DEBUG] [z6622h08] Listando todas las etiquetas
+[2025-10-03 08:10:27] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-10-03 08:10:27] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-10-03 08:10:27] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-10-03 08:10:27] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (C:\inetpub\wwwroot\kraken\.next\server\chunks\2105.js:1:24415)
+    at C:\inetpub\wwwroot\kraken\.next\server\chunks\2105.js:1:194897
+    at L (C:\inetpub\wwwroot\kraken\.next\server\chunks\2105.js:1:189394)
+    at S (C:\inetpub\wwwroot\kraken\.next\server\chunks\2105.js:1:184962)
+    at L (C:\inetpub\wwwroot\kraken\.next\server\chunks\2105.js:1:189384)
+    at S (C:\inetpub\wwwroot\kraken\.next\server\chunks\2105.js:1:184962)
+    at C:\inetpub\wwwroot\kraken\.next\server\chunks\2105.js:1:189423
+    at Socket.<anonymous> (C:\inetpub\wwwroot\kraken\.next\server\chunks\2105.js:1:194616)
+    at Socket.emit (node:events:517:28)
+    at addChunk (node:internal/streams/readable:335:12)
