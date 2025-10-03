@@ -1207,24 +1207,24 @@ export default function LabelGenerator() {
                   </div>
                 </CardHeader>
 
-                <CardContent className="p-4 sm:p-6 flex-1 flex flex-col min-h-0 max-w-full overflow-hidden">
+                <CardContent className="p-4 sm:p-6 flex-1 flex flex-col min-h-0 max-w-full overflow-auto whitespace-wrap">
                   {articles.length === 0 ? (
                     <div className="text-center py-8 text-gray-400">
                       <p>No hay artículos agregados</p>
                       <p className="text-sm">Escribe un código y presiona Enter o el botón +</p>
                     </div>
                   ) : (
-                    <div className="space-y-2 flex-1 overflow-y-auto">
+                    <div className="space-y-2 flex-1 overflow-y-auto ">
                       {articles.map((a) => (
                         <div
                           key={a.id}
                           className="flex items-center justify-between bg-gray-700/50 p-3 rounded-lg gap-3 min-w-0"  // 👈 min-w-0 en la fila
                         >
                           {/* Columna izquierda: puede encogerse y envolver */}
-                          <div className="flex-1 basis-0 min-w-0 overflow-hidden">  {/* 👈 basis-0 + min-w-0 */}
+                          <div className="flex-1 basis-0 min-w-0 overflow-hidden text-wrap max-w-[300px]">  {/* 👈 basis-0 + min-w-0 */}
                             <p className="text-white font-medium truncate">{a.nombre}</p>
 
-                            <p className="text-gray-300 text-xs sm:text-sm break-words"> {/* 👈 wrap por defecto */}
+                            <p className="text-gray-300 text-xs sm:text-sm break-words sm:display-none text-wrap"> {/* 👈 wrap por defecto */}
                               Código: <span className="break-all">{a.codigo}</span> • Precio: <span className="break-words">{money(a.precio)}</span> •
                               Dist: <span className="break-words">{money(a.distribuidor)}</span> •
                               Unidad: <span className="break-words">{a.unidad}</span> •
@@ -1256,7 +1256,7 @@ export default function LabelGenerator() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm flex-1 flex min-h-0">
+              <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm flex-1 flex min-h-0 max-w-[100%]">
                 <CardHeader className="border-b border-gray-600 shrink-0">
                   <CardTitle className="flex items-center gap-2 text-white">
                     <Eye className="w-5 h-5 text-purple-300" />Vista Previa
@@ -1264,7 +1264,7 @@ export default function LabelGenerator() {
                   <p className="text-gray-300 text-sm">Dimensiones fijas: {template.width}mm × {template.height}mm</p>
                 </CardHeader>
 
-                <CardContent className="p-4 sm:p-6 flex-1 flex flex-col min-h-0 overflow-hidden">
+                <CardContent className="p-4 sm:p-6 flex-1 flex flex-col min-h-0 overflow-hidden max-w-[100%]">
                   <div className="bg-gray-900/60 rounded-lg p-4 sm:p-8 flex-1 flex relative">
                     {articles.length === 0 ? (
                       <div className="m-auto text-center text-gray-400">
