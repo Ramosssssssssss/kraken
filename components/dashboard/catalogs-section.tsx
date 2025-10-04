@@ -56,28 +56,28 @@ export default function CatalogsSection() {
         <div className="relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <ModuleCard
-              title="Pedidos"
+              title="Almacenes"
               description="Registra la entrada de mercancía, validar contra órdenes de compra y asegurar cantidades correctas."
               icon={Inbox}
               version="v2.1.0"
               onClick={handleModuleClick}
             />
             <ModuleCard
-              title="Órdenes de compra"
+              title="Artículos"
               description="Ubica y organiza la mercancia recíbida en su posición correcta dentro del almacén."
               icon={LucideWarehouse}
               version="v2.1.0"
               onClick={handleModuleClick}
             />
             <ModuleCard
-              title="Proveedores"
+              title="Clientes"
               description="Prepara los productos solicitados tomando la mercancía de su ubicación en almacén."
               icon={ScanBarcode}
               version="v2.1.0"
               onClick={handleModuleClick}
             />
             <ModuleCard
-              title="Clientes"
+              title="Empresas"
               description="Empaca y consolida los productos seleccionados para el envío o entrega."
               icon={BoxIcon}
               version="v2.1.0"
@@ -93,13 +93,28 @@ export default function CatalogsSection() {
         <div className="relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <ModuleCard
-              title="Articulos"
+              title="Órdenes de Compra"
+              description="Registra la entrada de mercancía, validar contra órdenes de compra y asegurar cantidades correctas."
+              icon={Inbox}
+              version="v2.1.0"
+              onClick={handleModuleClick}
+            />
+               <ModuleCard
+              title="Pedidos"
+              description="Registra la entrada de mercancía, validar contra órdenes de compra y asegurar cantidades correctas."
+              icon={Inbox}
+              version="v2.1.0"
+              onClick={handleModuleClick}
+            />
+               <ModuleCard
+              title="Proveedores"
               description="Registra la entrada de mercancía, validar contra órdenes de compra y asegurar cantidades correctas."
               icon={Inbox}
               version="v2.1.0"
               onClick={handleModuleClick}
             />
           </div>
+          
         </div>
       </div>
     </div>
