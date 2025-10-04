@@ -61,6 +61,20 @@ export default function IntegrationsSection() {
             version="v2.1.0"
             onClick={handleModuleClick}
           />
+              <ModuleCard
+            title="Mercado Libre"
+            description="Ubica y organiza la mercancia recíbida en su posición correcta dentro del almacén."
+            icon={LucideWarehouse}
+            version="v2.1.0"
+            onClick={handleModuleClick}
+          />
+              <ModuleCard
+            title="SkyDropx"
+            description="Ubica y organiza la mercancia recíbida en su posición correcta dentro del almacén."
+            icon={LucideWarehouse}
+            version="v2.1.0"
+            onClick={handleModuleClick}
+          />
         </div>
       </div>
     </div>

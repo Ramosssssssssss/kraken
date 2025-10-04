@@ -17,9 +17,20 @@ interface CompanyData {
   branding?: Branding | null
 }
 
+interface UserData {
+  id?: number
+  user: string
+  password: string
+  nombre?: string
+  email?: string
+  [key: string]: any
+}
+
 interface CompanyContextType {
   companyData: CompanyData | null
   setCompanyData: (d: CompanyData | null) => void
+  userData: UserData | null
+  setUserData: (u: UserData | null) => void
   apiUrl: string | null
   isReady: boolean
 }
@@ -67,6 +78,7 @@ function readCookie(name: string) {
 /* ---------------- Provider ---------------- */
 export function CompanyProvider({ children }: { children: ReactNode }) {
   const [companyData, setCompanyDataState] = useState<CompanyData | null>(null)
+  const [userData, setUserDataState] = useState<UserData | null>(null)
   const [isReady, setIsReady] = useState(false)
 
   // evita fetchs duplicados de branding (StrictMode/dev)
@@ -78,10 +90,24 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     safeSetLS("companyData", d ? JSON.stringify(d) : null)
   }
 
-  // Carga inicial: LS -> subdominio (/check-cliente) -> cookies
+  const setUserData = (u: UserData | null) => {
+    setUserDataState(u)
+    safeSetLS("userData", u ? JSON.stringify(u) : null)
+  }
+
   useEffect(() => {
     let done = false
     ;(async () => {
+      const userLS = safeGetLS("userData")
+      if (userLS) {
+        try {
+          const parsedUser = JSON.parse(userLS) as UserData
+          if (parsedUser && parsedUser.user) {
+            setUserDataState(parsedUser)
+          }
+        } catch {}
+      }
+
       // 1) localStorage
       const ls = safeGetLS("companyData")
       if (ls) {
@@ -183,6 +209,8 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
       value={{
         companyData,
         setCompanyData,
+        userData,
+        setUserData,
         apiUrl: companyData?.apiUrl ?? null,
         isReady,
       }}

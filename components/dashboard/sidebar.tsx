@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { useState } from "react"
+import { useState } from "react";
 import {
   User,
   Settings,
@@ -19,20 +19,20 @@ import {
   MoreHorizontal,
   UserCircle,
   MoreVertical,
-} from "lucide-react"
-import { useRouter } from "next/navigation"
+} from "lucide-react";
+import { useRouter } from "next/navigation";
 interface SidebarProps {
-  activeSection: string
-  onSectionChange: (section: string) => void
-  sidebarOpen: boolean
-  onToggleSidebar: () => void
-  onLogout: () => void
+  activeSection: string;
+  onSectionChange: (section: string) => void;
+  sidebarOpen: boolean;
+  onToggleSidebar: () => void;
+  onLogout: () => void;
 }
 
 interface MenuItem {
-  name: string
-  icon: any
-  children?: MenuItem[]
+  name: string;
+  icon: any;
+  children?: MenuItem[];
 }
 
 export default function Sidebar({
@@ -42,15 +42,30 @@ export default function Sidebar({
   onToggleSidebar,
   onLogout,
 }: SidebarProps) {
-  const [expandedSections, setExpandedSections] = useState<string[]>(["Social Media"])
-  const [showCollapsedMenu, setShowCollapsedMenu] = useState(false)
-  const router = useRouter()
+  const [expandedSections, setExpandedSections] = useState<string[]>([
+    "Social Media",
+  ]);
+  const [showCollapsedMenu, setShowCollapsedMenu] = useState(false);
+  const router = useRouter();
 
 const menuItems: MenuItem[] = [
-    { name: "CUENTA", icon: LayoutDashboard },
-    { name: "PERSONALIZAR", icon: Briefcase },
-    { name: "USUARIOS", icon: TrendingUp },
-    { name: "CATÁLOGOS", icon: Zap },
+  { name: "ADUANA", icon: Zap },
+  { name: "APLICACIONES", icon: Zap },
+    { name: "AUDITORÍA", icon: TrendingUp },
+
+  { name: "CATÁLOGOS", icon: Zap },
+  { name: "INTEGRACIONES", icon: Zap },
+  { name: "INVENTARIO", icon: MoreHorizontal },
+  { name: "KPI's", icon: Zap },
+  { name: "LAYOUT", icon: Zap },
+  { name: "PERSONALIZAR", icon: Briefcase },
+  { name: "PLANEACIÓN", icon: Zap },
+  { name: "PROCESOS", icon: DollarSign },
+  { name: "TABLEROS", icon: Zap },
+  { name: "USUARIOS", icon: TrendingUp },
+
+]
+
     // {
     //   name: "Social Media",
     //   icon: Share2,
@@ -63,25 +78,21 @@ const menuItems: MenuItem[] = [
     //     { name: "INVENTARIO", icon: PackagePlusIcon },
     //   ],
     // },
-    { name: "PROCESOS", icon: DollarSign },
-    { name: "INVENTARIO", icon: MoreHorizontal },
-        { name: "CONFIGURATION", icon: MoreHorizontal },
-
-  ]
-
   const toggleSection = (sectionName: string) => {
     setExpandedSections((prev) =>
-      prev.includes(sectionName) ? prev.filter((s) => s !== sectionName) : [...prev, sectionName],
-    )
-  }
+      prev.includes(sectionName)
+        ? prev.filter((s) => s !== sectionName)
+        : [...prev, sectionName]
+    );
+  };
 
   const handleMenuClick = (itemName: string, hasChildren: boolean) => {
     if (hasChildren) {
-      toggleSection(itemName)
+      toggleSection(itemName);
     } else {
-      onSectionChange(itemName)
+      onSectionChange(itemName);
     }
-  }
+  };
 
   if (!sidebarOpen) {
     return (
@@ -103,13 +114,15 @@ const menuItems: MenuItem[] = [
         {/* Icon-only Menu Items */}
         <nav className="flex-1 p-2 space-y-1">
           {menuItems.map((item) => {
-            const Icon = item.icon
-            const hasChildren = item.children && item.children.length > 0
+            const Icon = item.icon;
+            const hasChildren = item.children && item.children.length > 0;
 
             return (
               <div key={item.name}>
                 <button
-                  onClick={() => (hasChildren ? null : onSectionChange(item.name))}
+                  onClick={() =>
+                    hasChildren ? null : onSectionChange(item.name)
+                  }
                   className="w-full p-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200 flex items-center justify-center group relative"
                   title={item.name}
                 >
@@ -124,15 +137,17 @@ const menuItems: MenuItem[] = [
                 {hasChildren && item.children && (
                   <div className="space-y-1 mt-1">
                     {item.children.map((child) => {
-                      const ChildIcon = child.icon
-                      const isActive = activeSection === child.name
+                      const ChildIcon = child.icon;
+                      const isActive = activeSection === child.name;
 
                       return (
                         <button
                           key={child.name}
                           onClick={() => onSectionChange(child.name)}
                           className={`w-full p-2 rounded-lg transition-all duration-200 flex items-center justify-center group relative ${
-                            isActive ? "bg-white/5 text-white" : "text-gray-500 hover:text-white hover:bg-white/5"
+                            isActive
+                              ? "bg-white/5 text-white"
+                              : "text-gray-500 hover:text-white hover:bg-white/5"
                           }`}
                           title={child.name}
                         >
@@ -142,12 +157,12 @@ const menuItems: MenuItem[] = [
                             {child.name}
                           </span>
                         </button>
-                      )
+                      );
                     })}
                   </div>
                 )}
               </div>
-            )
+            );
           })}
         </nav>
 
@@ -164,14 +179,17 @@ const menuItems: MenuItem[] = [
           {showCollapsedMenu && (
             <>
               {/* Backdrop to close menu */}
-              <div className="fixed inset-0 z-40" onClick={() => setShowCollapsedMenu(false)} />
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setShowCollapsedMenu(false)}
+              />
 
               {/* Menu */}
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-[#0a0a0a] border border-white/10 rounded-lg shadow-xl z-50 py-1 min-w-[160px]">
                 <button
                   onClick={() => {
-                    onSectionChange("Cuenta General")
-                    setShowCollapsedMenu(false)
+                    onSectionChange("PERFIL");
+                    setShowCollapsedMenu(false);
                   }}
                   className="w-full px-4 py-2.5 text-left text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200 flex items-center gap-3"
                 >
@@ -181,7 +199,7 @@ const menuItems: MenuItem[] = [
 
                 <button
                   onClick={() => {
-onSectionChange("CONFIGURATION")
+                    onSectionChange("CONFIGURATION");
                   }}
                   className="w-full px-4 py-2.5 text-left text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200 flex items-center gap-3"
                 >
@@ -193,8 +211,8 @@ onSectionChange("CONFIGURATION")
 
                 <button
                   onClick={() => {
-                    onLogout()
-                    setShowCollapsedMenu(false)
+                    onLogout();
+                    setShowCollapsedMenu(false);
                   }}
                   className="w-full px-4 py-2.5 text-left text-sm text-gray-400 hover:text-red-400 hover:bg-red-950/20 transition-all duration-200 flex items-center gap-3"
                 >
@@ -206,11 +224,11 @@ onSectionChange("CONFIGURATION")
           )}
         </div>
       </div>
-    )
+    );
   }
 
   return (
-<div className="w-72 flex-none flex flex-col h-dvh bg-[#0a0a0a] border-r border-white/5">
+    <div className="w-72 flex-none flex flex-col h-dvh bg-[#0a0a0a] border-r border-white/5">
       {/* Header */}
       <div className="p-4 border-b border-white/5 flex items-center justify-between">
         <div className="flex items-center space-x-3">
@@ -232,15 +250,15 @@ onSectionChange("CONFIGURATION")
       </div>
 
       {/* Menu Items */}
-  <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
         {menuItems.map((item) => {
-          const Icon = item.icon
-          const hasChildren = item.children && item.children.length > 0
-          const isExpanded = expandedSections.includes(item.name)
+          const Icon = item.icon;
+          const hasChildren = item.children && item.children.length > 0;
+          const isExpanded = expandedSections.includes(item.name);
 
           return (
             <div key={item.name}>
-               <button
+              <button
                 onClick={() => handleMenuClick(item.name, !!hasChildren)}
                 className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200 group"
               >
@@ -250,7 +268,9 @@ onSectionChange("CONFIGURATION")
                 </div>
                 {hasChildren && (
                   <ChevronDown
-                    className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+                    className={`w-4 h-4 transition-transform duration-200 ${
+                      isExpanded ? "rotate-180" : ""
+                    }`}
                   />
                 )}
               </button>
@@ -259,33 +279,37 @@ onSectionChange("CONFIGURATION")
               {hasChildren && isExpanded && (
                 <div className="ml-3 mt-0.5 space-y-0.5 border-l border-white/5 pl-3">
                   {item.children?.map((child) => {
-                    const ChildIcon = child.icon
-                    const isActive = activeSection === child.name
+                    const ChildIcon = child.icon;
+                    const isActive = activeSection === child.name;
 
                     return (
                       <button
                         key={child.name}
                         onClick={() => onSectionChange(child.name)}
                         className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200 ${
-                          isActive ? "bg-white/5 text-white" : "text-gray-500 hover:text-white hover:bg-white/5"
+                          isActive
+                            ? "bg-white/5 text-white"
+                            : "text-gray-500 hover:text-white hover:bg-white/5"
                         }`}
                       >
                         <ChildIcon className="w-4 h-4" />
-                        <span className="text-sm font-normal">{child.name}</span>
+                        <span className="text-sm font-normal">
+                          {child.name}
+                        </span>
                       </button>
-                    )
+                    );
                   })}
                 </div>
               )}
             </div>
-          )
+          );
         })}
       </nav>
 
       <div className="p-4 border-t border-white/5">
         <div className="flex items-center justify-center gap-2">
           <button
-            onClick={() => onSectionChange("Cuenta General")}
+            onClick={() => onSectionChange("PERFIL")}
             className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-all duration-200 flex items-center justify-center group relative"
             title="Cuenta General"
           >
@@ -319,5 +343,5 @@ onSectionChange("CONFIGURATION")
         </div>
       </div>
     </div>
-  )
+  );
 }

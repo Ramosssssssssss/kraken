@@ -1110,7 +1110,13 @@
   z-index: -1;
 }
 /* End of glitch effect animations */
-
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE y Edge */
+  scrollbar-width: none;    /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;            /* Chrome, Safari, Opera */
+}
 
 @keyframes sheen {
   0%   { transform: translateX(-120%) rotate(12deg); }

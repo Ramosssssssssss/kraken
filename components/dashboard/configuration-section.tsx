@@ -65,36 +65,35 @@ const handleEtiquetadorClick = () => {
       <h3 className="text-3xl font-bold text-white">Configuración del Modúlo de Recibo</h3>
 
 
-      {/* Módulos Activos */}
-      <div className="bg-black border border-white/20 rounded-lg p-6 grid-row-2">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4 ">
-          <div className="text-white/90 text-sm">     
-                <h1 className="text-xl font-bold text-white">SERIE: </h1>
-  
-            <input
-                type="text"
-                color="white"
-                placeholder="ABC"
-  className="w-50 pl-12 pr-4 py-3 bg-black border border-slate-200 rounded-xl text-slate-1 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all uppercase color-white font-bold"
-            maxLength={3}
-              />
-                              <h1 className="text-xl font-bold text-white">CONSECUTIVO:</h1>
+ {/* Módulos Activos */}
+<div className="bg-black border border-white/20 rounded-xl p-6">
+ {/* Estilo modulos por columnas  */}
 
-                <input
-                type="text"
-                placeholder="Folio"
-                className="w-50 pl-12 pr-4 py-3 bg-black border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                         maxLength={9}
-
-             />
-
-
-          
-      
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    {/* Columna 1 */}
+    <div className="flex flex-col space-y-3">
+      <label className="text-sm font-semibold text-white/80">SERIE:</label>
+      <input
+        type="text"
+        placeholder="ABC"
+        maxLength={3}
+        className="w-full px-4 py-3 bg-black border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all uppercase font-bold"
+      />
     </div>
+
+    {/* Columna 2 */}
+    <div className="flex flex-col space-y-3">
+      <label className="text-sm font-semibold text-white/80">CONSECUTIVO:</label>
+      <input
+        type="text"
+        placeholder="Folio"
+        maxLength={9}
+        className="w-full px-4 py-3 bg-black border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all font-bold"
+      />
     </div>
-    </div> 
-      
+  </div>
+</div>
+
     </div>   
   )
 }

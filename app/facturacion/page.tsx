@@ -226,7 +226,7 @@ function EditCardModal({
   )
 }
 
-export default function AccountSection() {
+export default function FacturacionSection() {
   const { companyData, isReady } = useCompany()
   const { active, data, tenant } = useBillingStatus()
   const [editOpen, setEditOpen] = useState(false)
@@ -309,11 +309,11 @@ export default function AccountSection() {
 
   return (
     <Elements stripe={stripePromise}>
-      <div className="space-y-6">
-        <h2 className="text-2xl font-bold text-white/95">Cuenta</h2>
+      <div className="space-y-6 h-full overflow-hidden">
+        <h2 className="text-2xl font-bold text-white/95">Facturación</h2>
 
         {/* Información del Usuario */}
-        <div className="bg-[#0a0a0a] border border-white/10 rounded-xl p-6">
+        {/* <div className="bg-[#0a0a0a] border border-white/10 rounded-xl p-6">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center border border-white/10">
               <User className="w-8 h-8 text-white/70" />
@@ -324,10 +324,10 @@ export default function AccountSection() {
               <p className="text-white/40 text-sm mt-0.5">usuario@krkn.com</p>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Información de Suscripción */}
-        <div className="bg-[#0a0a0a] border border-white/10 rounded-xl p-6">
+<div className="bg-[#0a0a0a] border border-white/10 rounded-xl p-6 mx-4 md:mx-12">
           <h3 className="text-lg font-semibold text-white/95 mb-4 flex items-center gap-2">
             <Crown className="w-5 h-5 text-white/70" />
             Suscripción
@@ -368,13 +368,32 @@ export default function AccountSection() {
               <button className="bg-white text-black px-4 py-2 rounded-lg hover:bg-white/90 transition-colors font-medium">
                 {active ? "Cambiar Plan" : "Activar Plan"}
               </button>
+              
             </Link>
+               {portalData && !portalData.active && (
+              <div className="bg-amber-950/20 border border-amber-900/40 rounded-xl p-2 w-365 h-10 ">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <div className="font-medium text-amber-300">No hay una suscripción activa. Ve a la página de planes para activarla.       <Link
+                        href="/planes"
+                        className="inline-block rounded-lg bg-amber-500/20 border border-amber-700/40 px-1 py-1 text-sm text-amber-200 hover:bg-amber-500/30 transition-colors align-middle ml-330  relative -top-7  "
+                      >
+                        Elegir plan
+                      </Link></div>
+                    <div className="mt-3">
+                
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Método de Pago y Facturación */}
         {loading && (
-          <div className="bg-[#0a0a0a] border border-white/10 rounded-xl p-6 flex items-center gap-3">
+          <div className="bg-[#0a0a0a] border border-white/10 rounded-xl p-6 flex items-center gap-3 ">
             <Loader2 className="w-5 h-5 animate-spin text-white/50" />
             <span className="text-white/70">Cargando información de facturación...</span>
           </div>
@@ -392,7 +411,7 @@ export default function AccountSection() {
         {!loading && !error && portalData && (
           <>
             {/* Método de Pago */}
-            <div className="bg-[#0a0a0a] border border-white/10 rounded-xl p-6">
+            <div className="bg-[#0a0a0a] border border-white/10 rounded-xl p-6 mx-4 md:mx-12">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-white/95 flex items-center gap-2">
                   <CreditCard className="w-5 h-5 text-white/70" />
@@ -408,7 +427,7 @@ export default function AccountSection() {
               </div>
 
               {portalData.paymentMethod ? (
-                <div className="flex items-center gap-4 bg-white/5 border border-white/10 rounded-lg p-4">
+                <div className="flex items-center gap-4 bg-white/5 border border-white/10 rounded-lg p-4 ">
                   <div className="w-12 h-12 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center">
                     <CreditCard className="w-6 h-6 text-white/70" />
                   </div>
@@ -436,7 +455,7 @@ export default function AccountSection() {
             </div>
 
             {/* Historial de Facturas */}
-            <div className="bg-[#0a0a0a] border border-white/10 rounded-xl overflow-hidden">
+            <div className="bg-[#0a0a0a] border border-white/10 rounded-xl overflow-hidden mx-4 md:mx-12">
               <div className="p-6 border-b border-white/10 flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-white/95 flex items-center gap-2">
                   <ReceiptText className="w-5 h-5 text-white/70" />
@@ -502,50 +521,11 @@ export default function AccountSection() {
               </div>
             )}
 
-            {!portalData.active && (
-              <div className="bg-amber-950/20 border border-amber-900/40 rounded-xl p-6">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <div className="font-medium text-amber-300">No hay una suscripción activa</div>
-                    <div className="text-sm text-amber-200/80 mt-1">Ve a la página de planes para activarla.</div>
-                    <div className="mt-3">
-                      <Link
-                        href="/planes"
-                        className="inline-block rounded-lg bg-amber-500/20 border border-amber-700/40 px-3 py-2 text-sm text-amber-200 hover:bg-amber-500/30 transition-colors"
-                      >
-                        Elegir plan
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+         
           </>
         )}
 
-        {/* Estadísticas de Uso */}
-        <div className="bg-[#0a0a0a] border border-white/10 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-white/95 mb-4">Estadísticas de Uso</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center bg-white/5 border border-white/10 rounded-lg p-4">
-              <div className="text-2xl font-bold text-white/90">—</div>
-              <div className="text-sm text-white/50 mt-1">Proyectos</div>
-            </div>
-            <div className="text-center bg-white/5 border border-white/10 rounded-lg p-4">
-              <div className="text-2xl font-bold text-white/90">—</div>
-              <div className="text-sm text-white/50 mt-1">API Calls</div>
-            </div>
-            <div className="text-center bg-white/5 border border-white/10 rounded-lg p-4">
-              <div className="text-2xl font-bold text-white/90">—</div>
-              <div className="text-sm text-white/50 mt-1">Uptime</div>
-            </div>
-            <div className="text-center bg-white/5 border border-white/10 rounded-lg p-4">
-              <div className="text-2xl font-bold text-white/90">—</div>
-              <div className="text-sm text-white/50 mt-1">Integraciones</div>
-            </div>
-          </div>
-        </div>
+
       </div>
 
       {tenant && (

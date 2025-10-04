@@ -25,7 +25,7 @@ export default function LoginPage() {
   const [customBackground, setCustomBackground] = useState<string | null>(null)
   const [brandingLoaded, setBrandingLoaded] = useState(false)
 
-  const { companyData, apiUrl: apiUrlFromCtx, isReady } = useCompany()
+  const { companyData, apiUrl: apiUrlFromCtx, isReady, setUserData } = useCompany()
 
   const derivedApiUrl = useMemo(() => {
     if (apiUrlFromCtx) return apiUrlFromCtx
@@ -36,13 +36,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     const fetchBranding = async () => {
-      console.log("[v0] fetchBranding called")
-      console.log("[v0] companyData:", companyData)
-      console.log("[v0] derivedApiUrl:", derivedApiUrl)
-      console.log("[v0] isReady:", isReady)
-
       if (!companyData?.codigo || !derivedApiUrl) {
-        console.log("[v0] Missing codigo or apiUrl, skipping branding fetch")
         setBrandingLoaded(true)
         return
       }
@@ -51,29 +45,18 @@ export default function LoginPage() {
 
       try {
         const response = await fetch(brandingUrl)
-        console.log("[v0] Branding response status:", response.status)
-
         const data = await response.json()
-        console.log("[v0] Branding response data:", data)
 
         if (data.ok && data.branding) {
-          console.log("[v0] Branding found!")
-          console.log("[v0] Logo:", data.branding.logo ? "YES" : "NO")
-          console.log("[v0] Background:", data.branding.background ? "YES" : "NO")
-
           if (data.branding.logo) {
-            console.log("[v0] Setting custom logo")
             setCustomLogo(data.branding.logo)
           }
           if (data.branding.background) {
-            console.log("[v0] Setting custom background")
             setCustomBackground(data.branding.background)
           }
-        } else {
-          console.log("[v0] No branding found or response not ok")
         }
       } catch (error) {
-        console.error("[v0] Error fetching branding:", error)
+        console.error("Error fetching branding:", error)
       } finally {
         setBrandingLoaded(true)
       }
@@ -82,7 +65,7 @@ export default function LoginPage() {
     if (isReady) {
       fetchBranding()
     }
-  }, [companyData, derivedApiUrl, isReady]) // Updated dependency array
+  }, [companyData, derivedApiUrl, isReady])
 
   const particles = useMemo(
     () =>
@@ -115,9 +98,6 @@ export default function LoginPage() {
     }
 
     try {
-      console.log("[v0] Making login request to:", `${apiUrl}/login`)
-      console.log("[v0] Company data:", companyData)
-
       const response = await fetch(`${apiUrl}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -125,21 +105,21 @@ export default function LoginPage() {
       })
 
       const data = await response.json()
-      console.log("[v0] Login response:", data)
 
       if (response.ok && data.message === "✅ Login exitoso") {
-        try {
-          localStorage.setItem("userData", JSON.stringify(data.user))
-          if (companyData) localStorage.setItem("companyData", JSON.stringify(companyData))
-        } catch {}
+        const userDataToSave = {
+          ...data.user,
+          user: email,
+          password: password,
+        }
+        setUserData(userDataToSave)
 
-        console.log("[v0] Login successful, redirecting to dashboard")
         router.replace("/dashboard")
       } else {
         setError(data.message || "Credenciales inválidas")
       }
     } catch (err) {
-      console.error("[v0] Login error:", err)
+      console.error("Login error:", err)
       setError("Error de conexión. Intenta nuevamente.")
     } finally {
       setIsLoading(false)

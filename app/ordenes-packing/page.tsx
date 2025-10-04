@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useCompany } from "@/lib/company-context"
+import { Package, Calendar, Box, ArrowLeft, Search, ArrowUpDown, RefreshCw } from "lucide-react"
 
 type OrdenPacking = {
   key: string
@@ -109,73 +110,51 @@ export default function OrdenesPacking() {
   }, [ordenes, search, sortAsc])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-100">
-      {/* Header with glassmorphism */}
-      <div className="sticky top-0 z-10 backdrop-blur-xl bg-white/70 border-b border-slate-200/50 shadow-sm">
+    <div className="min-h-screen bg-black">
+      {/* Header */}
+      <div className="sticky top-0 z-10 bg-black/80 backdrop-blur-xl border-b border-white/10">
         <div className="max-w-7xl mx-auto px-6 py-6">
-          <h1 className="text-4xl font-bold text-slate-900 mb-6 tracking-tight">Órdenes de Packing</h1>
+          <div className="flex items-center justify-between mb-6">
+            <button
+              onClick={() => router.push("/dashboard")}
+              className="p-2 hover:bg-white/5 rounded-lg transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5 text-white/90" />
+            </button>
+            <h1 className="text-2xl font-bold text-white/90">Órdenes de Packing</h1>
+            <div className="w-9" /> {/* Spacer for centering */}
+          </div>
 
-          {/* Search and Filter Row */}
-          <div className="flex gap-4 items-center">
-            {/* Search Input */}
+          {/* Search and Controls */}
+          <div className="flex gap-3 items-center">
+            {/* Search */}
             <div className="flex-1 relative">
-              <svg
-                className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/40" />
               <input
                 type="text"
                 placeholder="Buscar orden o cliente..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white/90 placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all"
               />
             </div>
 
             {/* Sort Button */}
             <button
               onClick={() => setSortAsc((v) => !v)}
-              className="flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 font-medium hover:bg-slate-50 transition-all"
+              className="flex items-center gap-2 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white/90 hover:bg-white/10 transition-all"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d={sortAsc ? "M19 9l-7 7-7-7" : "M5 15l7-7 7 7"}
-                />
-              </svg>
-              <span className="hidden sm:inline">{sortAsc ? "Más antiguos" : "Más recientes"}</span>
+              <ArrowUpDown className="h-5 w-5" />
+              <span className="hidden sm:inline text-sm">{sortAsc ? "Antiguos" : "Recientes"}</span>
             </button>
 
             {/* Refresh Button */}
             <button
               onClick={handleRefresh}
               disabled={refreshing}
-              className="p-3 bg-white border border-slate-200 rounded-xl text-slate-900 hover:bg-slate-50 transition-all disabled:opacity-50"
+              className="p-3 bg-white/5 border border-white/10 rounded-xl text-white/90 hover:bg-white/10 transition-all disabled:opacity-50"
             >
-              <svg
-                className={`w-5 h-5 ${refreshing ? "animate-spin" : ""}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-              </svg>
+              <RefreshCw className={`h-5 w-5 ${refreshing ? "animate-spin" : ""}`} />
             </button>
           </div>
         </div>
@@ -185,14 +164,15 @@ export default function OrdenesPacking() {
       <div className="max-w-7xl mx-auto px-6 py-8">
         {loadingInit ? (
           <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white/20"></div>
           </div>
         ) : filteredSorted.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-slate-500 text-lg">No hay órdenes por ahora.</p>
+            <Package className="h-16 w-16 text-white/20 mx-auto mb-4" />
+            <p className="text-white/60 text-lg">No hay órdenes disponibles</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredSorted.map((item) => (
               <button
                 key={item.key}
@@ -201,47 +181,38 @@ export default function OrdenesPacking() {
                     `/detalle-orden?doctoId=${item.doctoId}&sistema=${item.sistema}&orden=${encodeURIComponent(JSON.stringify(item))}`,
                   )
                 }
-                className="group bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl p-6 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 text-left"
+                className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:bg-white/10 hover:scale-[1.02] transition-all duration-300 text-left"
               >
-                {/* Card Header */}
+                {/* Icon and Status */}
                 <div className="flex items-start justify-between mb-4">
-                  <h3 className="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
-                    #{item.id}
-                  </h3>
-                  <span className="px-3 py-1 bg-amber-50 border border-amber-200 rounded-full text-xs font-semibold text-amber-700 uppercase tracking-wide">
+                  <div className="p-3 bg-white/10 rounded-xl group-hover:bg-white/20 transition-colors">
+                    <Package className="h-6 w-6 text-white/90" />
+                  </div>
+                  <span className="px-3 py-1 bg-amber-500/20 border border-amber-500/30 rounded-full text-xs font-semibold text-amber-400 uppercase tracking-wide">
                     {item.estado}
                   </span>
                 </div>
 
+                {/* Order ID */}
+                <h3 className="text-xl font-bold text-white/90 mb-2 group-hover:text-white transition-colors">
+                  #{item.id}
+                </h3>
+
                 {/* Cliente */}
-                <p className="text-base font-medium text-slate-700 mb-2">{item.cliente}</p>
+                <p className="text-base font-medium text-white/70 mb-3">{item.cliente}</p>
 
                 {/* Description */}
-                {item.descripcion && <p className="text-sm text-slate-500 mb-4 line-clamp-2">{item.descripcion}</p>}
+                {item.descripcion && <p className="text-sm text-white/50 mb-4 line-clamp-2">{item.descripcion}</p>}
 
                 {/* Footer Info */}
-                <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-                  <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
+                <div className="flex items-center justify-between pt-4 border-t border-white/10">
+                  <div className="flex items-center gap-2 text-sm text-white/60">
+                    <Calendar className="h-4 w-4" />
                     <span>{item.fecha || "—"}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                      />
-                    </svg>
-                    <span>{item.piezas ?? "—"} piezas</span>
+                  <div className="flex items-center gap-2 text-sm text-white/60">
+                    <Box className="h-4 w-4" />
+                    <span>{item.piezas ?? "—"} pzs</span>
                   </div>
                 </div>
               </button>
