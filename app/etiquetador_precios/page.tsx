@@ -17,7 +17,10 @@ import Noty from "noty"
 import "noty/lib/noty.css"
 import "noty/lib/themes/mint.css"
 
-// ====== NUEVO: importar tipos, utils y templates del registry ======
+// NUEVO: helper para ZPL
+import { buildZpl } from "@/lib/labels/zpl"
+
+// ====== importar tipos, utils y templates del registry ======
 import type { ArticleItem, LabelTemplate } from "@/lib/labels/types"
 import { mmToPx, money } from "@/lib/labels/utils"
 import { LABEL_TEMPLATES, getTemplate } from "@/components/labels/templates"
@@ -66,12 +69,12 @@ function renderAllBarcodes(root: HTMLElement | Document = document) {
 }
 
 // ========= Normalización/validación de ubicaciones =========
-const UBIC_REGEX = /^[A-Z0-9]{1,4}-(?:[A-Z0-9]{1,4}-){0,3}[A-Z0-9]{1,4}$/ // ajusta al patrón real
+const UBIC_REGEX = /^[A-Z0-9]{1,4}-(?:[A-Z0-9]{1,4}-){0,3}[A-Z0-9]{1,4}$/
 
 function normalizeCandidate(raw: string) {
   let s = (raw || "").trim().toUpperCase()
-  s = s.replace(/[–—_＋+]/g, "-")        // normaliza guiones
-  const map: Record<string, string> = { O: "0", I: "1", L: "1", S: "5", B: "8" } // parecidos visuales
+  s = s.replace(/[–—_＋+]/g, "-")
+  const map: Record<string, string> = { O: "0", I: "1", L: "1", S: "5", B: "8" }
   s = s.replace(/[OILSB]/g, (c) => map[c] || c)
   s = s.replace(/-+/g, "-")
   return s
@@ -203,28 +206,20 @@ export default function Page() {
     new Noty({ type: "success", layout: "topRight", theme: "mint", text: "Excel descargado.", timeout: 1800 }).show()
   }
 
-  // ====== IMPRESIÓN ======
-  // Modal-only print para móvil
+  // ====== IMPRESIÓN (HTML/PDF) ======
   const [printOpen, setPrintOpen] = useState(false)
   const printRef = useRef<HTMLDivElement | null>(null)
-
-  // Candado para evitar prints duplicados en móvil
   const printingRef = useRef(false)
 
-  // Helper: dispara impresión una sola vez por sesión (auto o botón)
   function triggerPrintOnce() {
     if (printingRef.current) return
     printingRef.current = true
-
     const onAfter = () => {
       printingRef.current = false
-      setPrintOpen(false) // cierra el modal tras imprimir
+      setPrintOpen(false)
       window.removeEventListener("afterprint", onAfter)
     }
-
     window.addEventListener("afterprint", onAfter)
-
-    // pequeño tiempo para asegurar DOM listo
     setTimeout(() => {
       try { window.print() } catch { printingRef.current = false }
     }, 100)
@@ -232,7 +227,6 @@ export default function Page() {
 
   const handlePrintMobile = async () => {
     if (!articles.length || printingRef.current) return
-
     const w = template.width
     const h = template.height
     const pad = template.id === "original-69x25" ? 3 : 0
@@ -247,9 +241,7 @@ export default function Page() {
     requestAnimationFrame(() => {
       const container = printRef.current
       if (container) {
-        // limpiar por si quedó algo previo
         container.innerHTML = `<div class="print-body"></div>`
-        // inyectar CSS de plantilla
         const styleTag = document.createElement("style")
         styleTag.textContent = template.css(w, h, pad) + `
 @page { size: ${w}mm ${h}mm; margin: 0; }
@@ -259,21 +251,14 @@ export default function Page() {
   *{ font-family: Arial, Helvetica, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }`
         container.prepend(styleTag)
-
-        // inyectar HTML dinámico
         const bodyEl = container.querySelector(".print-body") as HTMLDivElement | null
         if (bodyEl) bodyEl.innerHTML = labelsHTML
-
-        // renderizar códigos
         renderAllBarcodes(container)
       }
-
-      // Dispara la impresión UNA sola vez
       triggerPrintOnce()
     })
   }
 
-  // Tu impresión existente (iframe) – se usa para desktop
   const handlePrint = () => {
     if (!articles.length) return
     const w = template.width
@@ -316,6 +301,57 @@ ${template.css(w, h, pad)}
     const cleanup = () => { try { document.body.removeChild(f) } catch { } }
     setTimeout(cleanup, 10000)
     ;(f.contentWindow as any)?.addEventListener?.("afterprint", cleanup)
+  }
+
+  // ====== IMPRESIÓN DIRECTA ZPL ======
+  const [zebraHost, setZebraHost] = useState<string>(() => localStorage.getItem("zebraHost") || "")
+  const [zebraPort, setZebraPort] = useState<string>(() => localStorage.getItem("zebraPort") || "9100")
+  const [zebraDpi, setZebraDpi] = useState<"203" | "300" | "600">(() => (localStorage.getItem("zebraDpi") as any) || "203")
+  const [printingZpl, setPrintingZpl] = useState(false)
+
+  useEffect(() => { localStorage.setItem("zebraHost", zebraHost) }, [zebraHost])
+  useEffect(() => { localStorage.setItem("zebraPort", zebraPort) }, [zebraPort])
+  useEffect(() => { localStorage.setItem("zebraDpi", zebraDpi) }, [zebraDpi])
+
+  async function handlePrintZpl() {
+    if (!articles.length) return
+    if (!zebraHost) {
+      new Noty({ type: "error", layout: "topRight", theme: "mint", text: "Configura la IP de la Zebra", timeout: 2500 }).show()
+      return
+    }
+    setPrintingZpl(true)
+    try {
+      const items = articles.map(a => ({
+        codigo: a.codigo,
+        nombre: a.nombre,
+        precio: a.precio,
+        distribuidor: a.distribuidor,
+        quantity: a.quantity,
+      }))
+      const zpl = buildZpl(items, {
+        widthMm: template.width,
+        heightMm: template.height,
+        dpi: (parseInt(zebraDpi, 10) as 203 | 300 | 600),
+        showQR: false,
+      })
+      const res = await fetch("/api/print-zpl", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          host: zebraHost.trim(),
+          port: parseInt(zebraPort || "9100", 10),
+          zpl,
+          timeoutMs: 8000
+        }),
+      })
+      const j = await res.json()
+      if (!res.ok || !j?.ok) throw new Error(j?.error || "Fallo al enviar a la impresora")
+      new Noty({ type: "success", layout: "topRight", theme: "mint", text: "Enviado a Zebra (ZPL)", timeout: 2000 }).show()
+    } catch (e: any) {
+      new Noty({ type: "error", layout: "topRight", theme: "mint", text: e?.message || "Error al imprimir ZPL", timeout: 3500 }).show()
+    } finally {
+      setPrintingZpl(false)
+    }
   }
 
   const isMobile = useMemo(() => {
@@ -650,7 +686,6 @@ ${template.css(w, h, pad)}
         onOpenChange={(open) => {
           setPrintOpen(open)
           if (!open) {
-            // reset candado y limpia contenido para evitar restos en siguiente sesión
             printingRef.current = false
             if (printRef.current) printRef.current.innerHTML = `<div class="print-body"></div>`
           }
@@ -661,13 +696,10 @@ ${template.css(w, h, pad)}
             <DialogTitle>Vista de impresión</DialogTitle>
           </DialogHeader>
 
-          {/* Área que SÍ se imprime */}
           <div id="print-area" ref={printRef} className="relative">
-            {/* Se inyecta CSS + HTML dinámico en handlePrintMobile */}
             <div className="print-body p-2" />
           </div>
 
-          {/* Controles que NO se imprimen */}
           <div className="no-print mt-3 flex gap-2 justify-end">
             <Button variant="outline" onClick={() => setPrintOpen(false)}>Cerrar</Button>
             <Button onClick={triggerPrintOnce} className="bg-purple-600 hover:bg-purple-700" disabled={printingRef.current}>
@@ -694,7 +726,7 @@ ${template.css(w, h, pad)}
                 <CardTitle className="flex items-center gap-2 text-white">
                   <Settings className="w-5 h-5 text-purple-300" />Configuración
                 </CardTitle>
-                <CardTitle className="flex items-center gap-2 text-white font-light text-xs">v2.3.3</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-white font-light text-xs">v2.3.4</CardTitle>
               </CardHeader>
 
               <CardContent className="p-4 sm:p-6 space-y-6">
@@ -758,7 +790,67 @@ ${template.css(w, h, pad)}
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                {/* ====== Config Zebra (ZPL) ====== */}
+                <div className="grid sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-gray-100">Zebra IP</Label>
+                    <Input
+                      value={zebraHost}
+                      onChange={(e) => setZebraHost(e.target.value)}
+                      placeholder="192.168.1.50"
+                      className="bg-gray-800 border-gray-700 text-white"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-gray-100">Puerto</Label>
+                    <Input
+                      value={zebraPort}
+                      onChange={(e) => setZebraPort(e.target.value)}
+                      placeholder="9100"
+                      className="bg-gray-800 border-gray-700 text-white"
+                      inputMode="numeric"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-gray-100">DPI</Label>
+                    <Select value={zebraDpi} onValueChange={(v: any) => setZebraDpi(v)}>
+                      <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-full">
+                        <SelectValue placeholder="DPI" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-800 border-gray-700">
+                        <SelectItem className="text-white" value="203">203 dpi</SelectItem>
+                        <SelectItem className="text-white" value="300">300 dpi</SelectItem>
+                        <SelectItem className="text-white" value="600">600 dpi</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                  <Button
+                    onClick={handlePrintZpl}
+                    className="w-full justify-center h-11 bg-emerald-600 hover:bg-emerald-700 text-white border-0"
+                    disabled={!sucursalId || articles.length === 0 || !zebraHost || printingZpl}
+                    title="Imprimir directamente en Zebra (ZPL)"
+                  >
+                    {printingZpl ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Printer className="w-4 h-4 mr-2" />}
+                    Imprimir (ZPL)
+                  </Button>
+
+                  {/* Botón HTML/PDF existente */}
+                  <Button
+                    onClick={onPrintClick}
+                    className="w-full justify-center h-11 bg-gray-600 hover:bg-gray-700 text-white border-0"
+                    disabled={!sucursalId || articles.length === 0}
+                    title="Imprimir etiquetas (HTML/PDF)"
+                  >
+                    <Printer className="w-4 h-4 mr-2" />
+                    Imprimir ({totalLabels})
+                  </Button>
+                </div>
+
+                {/* Import / Export / Ubicación */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mt-4">
                   <input
                     ref={fileRef}
                     type="file"
@@ -782,16 +874,6 @@ ${template.css(w, h, pad)}
                       }
                     }}
                   />
-
-                  <Button
-                    onClick={onPrintClick}
-                    className="col-span-full w-full justify-center h-11 bg-gray-600 hover:bg-gray-700 text-white border-0"
-                    disabled={!sucursalId || articles.length === 0}
-                    title="Imprimir etiquetas"
-                  >
-                    <Printer className="w-4 h-4 mr-2" />
-                    Imprimir ({totalLabels})
-                  </Button>
 
                   <Button
                     type="button"
