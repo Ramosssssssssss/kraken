@@ -36,6 +36,8 @@ interface Toast {
 }
 
 export default function ManualReciboPage() {
+const [isSubmitting, setIsSubmitting] = useState(false)
+
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -197,7 +199,7 @@ export default function ManualReciboPage() {
     FECHA: new Date().toLocaleDateString(),
     FOLIO: searchParams.get("folio") || `MANUAL-${Date.now()}`,
     ALMACEN: "ALMACEN PRINCIPAL",
-    PROVEEDOR: "ENTRADA MANUAL",
+    PROVEEDOR: "ENTRADA",
     CLAVE_PROV: "MAN001",
     DOCTO_CM_ID: Date.now(),
   }
@@ -400,77 +402,88 @@ export default function ManualReciboPage() {
     }
   }
 
-  const recepcionar = useCallback(async () => {
-    if (!listo) {
-      showToast(
-        requireScan
-          ? "Debes escanear todas las piezas requeridas para aplicar la recepción."
-          : "Aún no completas todas las líneas.",
-      )
-      focusScanner()
+const resetRecepcion = useCallback(() => {
+  // 👉 Deja listo para una nueva recepción
+  // (ajusta estas líneas a tu estado real)
+  setDetalles((prev) =>
+    prev.map((d) => ({
+      ...d,
+      packed: 0,
+      scanned: 0,
+    }))
+  )
+  // si manejas un flag "listo", bájalo:
+  // setListo(false)
+  focusScanner()
+}, [focusScanner, setDetalles /*, setListo */])
+
+const recepcionar = useCallback(async () => {
+  if (isSubmitting) return
+
+  if (!listo) {
+    showToast(
+      requireScan
+        ? "Debes escanear todas las piezas requeridas para aplicar la recepción."
+        : "Aún no completas todas las líneas."
+    )
+    focusScanner()
+    return
+  }
+
+  if (!baseURL) {
+    showToast("No se encontró la URL de tu empresa")
+    return
+  }
+
+  setIsSubmitting(true) // 🔒 Bloquea al primer clic
+  try {
+    const detallesComp = detalles
+      .map((d) => ({
+        CLAVE: d.CLAVE,
+        CANTIDAD: requireScan ? d.scanned : d.packed,
+        COSTO_UNITARIO: 0,
+      }))
+      .filter((x) => Number(x.CANTIDAD) > 0)
+
+    const payload = {
+      P_SISTEMA: "IN",
+      P_CONCEPTO_ID: 27,
+      P_SUCURSAL_ID: 384,
+      P_ALMACEN_ID: 19,
+      P_DESCRIPCION: "ENTRADA DE GOUMAM",
+      P_NATURALEZA_CONCEPTO: "E",
+      detalles: detallesComp,
+    }
+
+    const resp = await fetch(`${baseURL}/recibo/xml`, {
+      method: "POST",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+
+    const data = await resp.json()
+
+    if (!resp.ok || !data.ok) {
+      showToast(data?.message || "Error al aplicar recepción")
       return
     }
 
-    if (!baseURL) {
-      showToast("No se encontró la URL de tu empresa")
-      return
-    }
+    // ✅ ÉXITO: muestra mensaje y reinicia para permitir una nueva recepción
+    showToast(
+      `✅ Recepción completada\nFolio: ${data.folio || "N/A"}\nDOCTO_IN_ID: ${data.doctoId}\nLíneas insertadas: ${data.inserted}`,
+      "success",
+      false
+    )
 
-    try {
-      console.log("🚀 Preparando payload de recepción XML...")
-
-      const detallesComp = detalles
-        .map((d) => ({
-          CLAVE: d.CLAVE,
-          CANTIDAD: requireScan ? d.scanned : d.packed,
-          COSTO_UNITARIO: 0,
-        }))
-        .filter((x) => Number(x.CANTIDAD) > 0)
-
-      const payload = {
-        P_SISTEMA: "IN",
-        P_CONCEPTO_ID: 27,
-        P_SUCURSAL_ID: 384,
-        P_ALMACEN_ID: 19,
-        P_DESCRIPCION: "ENTRADA DE GOUMAM",
-        P_NATURALEZA_CONCEPTO: "E",
-        detalles: detallesComp,
-      }
-
-      const fullURL = `${baseURL}/recibo/xml`
-      console.log("🌐 POST URL:", fullURL)
-      console.log("📦 Payload:", payload)
-
-      const resp = await fetch(fullURL, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      })
-
-      console.log("📡 Status de respuesta:", resp.status)
-      const data = await resp.json()
-      console.log("📥 Data recibida:", data)
-
-      if (!resp.ok || !data.ok) {
-        console.error("❌ Error del servidor:", data?.message)
-        showToast(data?.message || "Error al aplicar recepción")
-        return
-      }
-
-      showToast(
-        `✅ Recepción completada\nFolio: ${data.folio || "N/A"}\nDOCTO_IN_ID: ${data.doctoId}\nLíneas insertadas: ${data.inserted}`,
-        "success",
-        false,
-      )
-    } catch (error: any) {
-      console.error("❌ Error en recepcionar:", error)
-      showToast("Error de conexión: No se pudo conectar al servidor")
-    }
-  }, [listo, requireScan, focusScanner, detalles, baseURL, showToast])
-
+    // Reset del flujo para hacer otra recepción
+    resetRecepcion()
+  } catch (error) {
+    console.error("❌ Error en recepcionar:", error)
+    showToast("Error de conexión: No se pudo conectar al servidor")
+  } finally {
+    setIsSubmitting(false) // 🔓 Siempre libera el botón, éxito o error
+  }
+}, [isSubmitting, listo, requireScan, detalles, baseURL, showToast, focusScanner, resetRecepcion])
   const searchArticleByClave = async (clave: string) => {
     if (!clave.trim()) return
 
@@ -945,36 +958,32 @@ export default function ManualReciboPage() {
                 <p className="text-slate-500">El scanner está activo. Escanea cualquier código para agregarlo</p>
               </div>
             )}
+  {detalles.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-1/4 bg-gradient-to-t from-white via-white to-transparent pt-4 pb-0 px-6">
+   <button
+              className={`w-full flex items-center justify-center gap-3 py-4 rounded-xl font-semibold text-white transition-all duration-200 shadow-lg hover:shadow-xl ${
+    listo && !isSubmitting
+      ? "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+      : "bg-gradient-to-r from-slate-400 to-slate-500 cursor-not-allowed"
+  }`}
+  onClick={() => { if (listo && !isSubmitting) recepcionar() }}
+  disabled={!listo || isSubmitting}
+>
+  {isSubmitting ? (
+    <>
+      <Loader2 className="w-5 h-5 animate-spin" />
+      Aplicando Recepción...
+    </>
+  ) : (
+    <>
+      <CheckCircle className="w-5 h-5" />
+      Aplicar Recepción Manual
+    </>
+  )}
+</button>
 
-            {detalles.length > 0 && (
-              <div className="sticky bottom-6 mt-8">
-                <button
-                  className={`w-full flex items-center justify-center gap-3 py-4 rounded-xl font-semibold text-white transition-all duration-200 shadow-lg hover:shadow-xl ${
-                    listo
-                      ? "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                      : "bg-gradient-to-r from-slate-400 to-slate-500 cursor-not-allowed"
-                  }`}
-                  onClick={() => {
-                    if (listo) {
-                      recepcionar()
-                    }
-                  }}
-                  disabled={!listo}
-                >
-                  {listo ? (
-                    <>
-                      <CheckCircle className="w-5 h-5" />
-                      Aplicar Recepción Manual
-                    </>
-                  ) : (
-                    <>
-                      <AlertCircle className="w-5 h-5" />
-                      Completa el escaneo para continuar
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
+        </div>
+      )}
           </div>
         </div>
 

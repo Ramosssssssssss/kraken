@@ -274,7 +274,10 @@ export default function SeleccionTipoPremium() {
         NO_IDENTIFICACION: product.noIdentificacion,
       }))
 
-      router.push(`/xml?folio=${folio}&data=${encodeURIComponent(JSON.stringify(xmlData))}`)
+      sessionStorage.setItem("xmlReciboData", JSON.stringify(xmlData))
+      sessionStorage.setItem("xmlReciboFolio", folio)
+
+      router.push(`/xml`)
     }
   }
 
@@ -390,10 +393,14 @@ export default function SeleccionTipoPremium() {
             >
               <div className="p-6 flex flex-col items-center text-center space-y-4">
                 <div className={`p-4 rounded-full ${selectedType === "EXCEL" ? "bg-black-500" : "bg-black-100"}`}>
-                  <FileSpreadsheet className={`h-8 w-8 ${selectedType === "EXCEL" ? "text-white" : "text-black-700"}`} />
+                  <FileSpreadsheet
+                    className={`h-8 w-8 ${selectedType === "EXCEL" ? "text-white" : "text-black-700"}`}
+                  />
                 </div>
                 <div>
-                  <h3 className={`text-xl font-bold mb-2 ${selectedType === "EXCEL" ? "text-white" : "text-black-900"}`}>
+                  <h3
+                    className={`text-xl font-bold mb-2 ${selectedType === "EXCEL" ? "text-white" : "text-black-900"}`}
+                  >
                     EXCEL
                   </h3>
                   <p className={`text-sm ${selectedType === "EXCEL" ? "text-black-100" : "text-black-700"}`}>

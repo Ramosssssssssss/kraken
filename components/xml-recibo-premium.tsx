@@ -441,10 +441,10 @@ export default function XmlReciboPremium({ xmlData, folio }: XmlReciboProps) {
       <div className="flex h-[calc(100vh-80px)]">
         {/* Main Content - 75% */}
         <div className="flex-1 w-3/4 overflow-y-auto">
-          <div className="max-w-5xl mx-auto px-6 py-8">
+          <div className="max-w-5xl mx-auto px-6 pt-8 pb-0">
             {/* Products List */}
             {detalles.length > 0 && !receptionComplete && (
-              <div className="space-y-3">
+              <div className="space-y-3 pb-24">
                 <h3 className="text-lg font-semibold text-slate-900 mb-4">Productos</h3>
                 {detalles.map((item, index) => {
                   const req = item.CANTIDAD
@@ -556,40 +556,6 @@ export default function XmlReciboPremium({ xmlData, folio }: XmlReciboProps) {
                     </div>
                   )
                 })}
-              </div>
-            )}
-
-            {/* Action Button */}
-            {!receptionComplete && (
-              <div className="sticky bottom-6 mt-8">
-                <button
-                  className={`w-full flex items-center justify-center gap-3 py-4 rounded-xl font-semibold text-white transition-all duration-200 shadow-lg hover:shadow-xl ${
-                    listo
-                      ? "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                      : "bg-gradient-to-r from-slate-400 to-slate-500 cursor-not-allowed"
-                  }`}
-                  onClick={() => {
-                    if (listo) recepcionar()
-                  }}
-                  disabled={!listo || isProcessing}
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Procesando recepción...
-                    </>
-                  ) : listo ? (
-                    <>
-                      <CheckCircle className="w-5 h-5" />
-                      Aplicar Recepción
-                    </>
-                  ) : (
-                    <>
-                      <AlertCircle className="w-5 h-5" />
-                      Completa el escaneo para continuar
-                    </>
-                  )}
-                </button>
               </div>
             )}
           </div>
@@ -779,6 +745,42 @@ export default function XmlReciboPremium({ xmlData, folio }: XmlReciboProps) {
                 Aceptar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Action Button */}
+      {!receptionComplete && (
+        <div className="fixed bottom-0 left-0 right-1/4 bg-gradient-to-t from-white via-white to-transparent pt-4 pb-0 px-6">
+          <div className="max-w-5xl mx-auto">
+            <button
+              className={`w-full flex items-center justify-center gap-3 py-4 rounded-xl font-semibold text-white transition-all duration-200 shadow-lg hover:shadow-xl ${
+                listo
+                  ? "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                  : "bg-gradient-to-r from-slate-400 to-slate-500 cursor-not-allowed"
+              }`}
+              onClick={() => {
+                if (listo) recepcionar()
+              }}
+              disabled={!listo || isProcessing}
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Procesando recepción...
+                </>
+              ) : listo ? (
+                <>
+                  <CheckCircle className="w-5 h-5" />
+                  Aplicar Recepción
+                </>
+              ) : (
+                <>
+                  <AlertCircle className="w-5 h-5" />
+                  Completa el escaneo para continuar
+                </>
+              )}
+            </button>
           </div>
         </div>
       )}
