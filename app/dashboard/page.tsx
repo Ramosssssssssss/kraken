@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { Suspense, useEffect, useMemo, useState } from "react"
 import { Loader2 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 
@@ -17,6 +17,9 @@ import IntegrationsSection from "@/components/dashboard/integrations-section"
 import ConfigurationSection from "@/components/dashboard/configuration-section"
 import PerfilPage from "@/components/dashboard/profile-section"
 
+// Opcional: evita pre-render estático de esta página
+export const dynamic = "force-dynamic"
+
 interface UserData {
   PIKER_ID: number
   NOMBRE: string
@@ -28,7 +31,6 @@ interface UserData {
   MODULOS_KRKN: string
   MODULOS_KRKN_ARRAY: number[]
 }
-
 interface CompanyData {
   id: number
   codigo: string
@@ -50,7 +52,23 @@ const ALLOWED_SECTIONS = new Set([
   "CONFIGURACION",
 ])
 
+/* ---------- Wrapper con Suspense ---------- */
 export default function DashboardPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-black flex items-center justify-center overflow-hidden">
+          <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+        </div>
+      }
+    >
+      <DashboardPageInner />
+    </Suspense>
+  )
+}
+
+/* ---------- Todo tu código va aquí dentro ---------- */
+function DashboardPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -59,11 +77,9 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [activeSection, setActiveSection] = useState<string>("PERFIL")
 
-  // sidebar
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const onToggleSidebar = () => setSidebarOpen((s) => !s)
 
-  // Resuelve la sección inicial: query → localStorage → default
   useEffect(() => {
     const storedUserData = localStorage.getItem("userData")
     const storedCompanyData = localStorage.getItem("companyData")
@@ -77,7 +93,7 @@ export default function DashboardPage() {
       return
     }
 
-    // 1) query param ?section=...
+    // 1) ?section=...
     const qp = searchParams.get("section")
     const candidate = (qp || "").toUpperCase()
     if (candidate && ALLOWED_SECTIONS.has(candidate)) {
@@ -91,18 +107,16 @@ export default function DashboardPage() {
       const last = localStorage.getItem("dashboard:lastSection")
       if (last && ALLOWED_SECTIONS.has(last)) {
         setActiveSection(last)
-        // refleja en URL de una vez (opcional)
         router.replace(`/dashboard?section=${last}`)
         return
       }
     } catch {}
 
-    // 3) default ya es PERFIL
+    // 3) default
     router.replace(`/dashboard?section=PERFIL`)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router, searchParams])
 
-  // Mantén la URL y el storage sincronizados al cambiar sección desde el sidebar
   const handleSectionChange = (section: string) => {
     const s = section.toUpperCase()
     setActiveSection(s)
