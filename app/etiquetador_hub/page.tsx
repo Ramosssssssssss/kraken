@@ -82,7 +82,8 @@ function EtiquetadorHubInner() {
       </section>
 
       {/* Contenido (Tabs + iframe) */}
-      <section className="w-full max-w-[100%] mx-auto px-6 pb-4 flex-1 flex min-h-0 sm:px-[10px]">
+      <section className="w-full max-w-[100%] mx-auto px-0 sm:px-[10px] pb-4 flex-1 flex min-h-0">
+
         <Tabs
           value={active}
           onValueChange={(v) => setActive(v as TabId)}
@@ -130,7 +131,7 @@ function EtiquetadorHubInner() {
                   className="bg-gray-900 text-white border-t border-gray-700 rounded-t-2xl"
                 >
                   <SheetHeader>
-                    <SheetTitle className="text-white">Atajos</SheetTitle>
+                    <SheetTitle className="text-white">Sistema de etiquetador</SheetTitle>
                   </SheetHeader>
                   <nav className="mt-4 grid gap-2">
                     {tiles.map((t) => {
@@ -168,7 +169,7 @@ function EtiquetadorHubInner() {
               value={t.id}
               className="mt-3 flex-1 min-h-0 flex flex-col"
             >
-              <div className="flex-1 min-h-0 rounded-xl border border-gray-700 overflow-hidden">
+              <div className="flex-1 min-h-0 overflow-hidden md:rounded-xl md:border md:border-gray-700">
                 <iframe
                   src={t.id === active ? src : "about:blank"}
                   title={t.title}
