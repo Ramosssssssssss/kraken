@@ -300,14 +300,22 @@ ${template.css(w, h, pad)}
     d.open(); d.write(html); d.close()
     const cleanup = () => { try { document.body.removeChild(f) } catch { } }
     setTimeout(cleanup, 10000)
-    ;(f.contentWindow as any)?.addEventListener?.("afterprint", cleanup)
+      ; (f.contentWindow as any)?.addEventListener?.("afterprint", cleanup)
   }
 
   // ====== IMPRESIÓN DIRECTA ZPL ======
-  const [zebraHost, setZebraHost] = useState<string>(() => localStorage.getItem("zebraHost") || "")
-  const [zebraPort, setZebraPort] = useState<string>(() => localStorage.getItem("zebraPort") || "9100")
-  const [zebraDpi, setZebraDpi] = useState<"203" | "300" | "600">(() => (localStorage.getItem("zebraDpi") as any) || "203")
+  const [zebraHost, setZebraHost] = useState<string>("")
+  const [zebraPort, setZebraPort] = useState<string>("9100")
+  const [zebraDpi, setZebraDpi] = useState<"203" | "300" | "600">("203")
   const [printingZpl, setPrintingZpl] = useState(false)
+  // Cargar valores guardados una vez que el componente ya está en el cliente
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    setZebraHost(localStorage.getItem("zebraHost") || "")
+    setZebraPort(localStorage.getItem("zebraPort") || "9100")
+    setZebraDpi((localStorage.getItem("zebraDpi") as "203" | "300" | "600") || "203")
+  }, [])
+
 
   useEffect(() => { localStorage.setItem("zebraHost", zebraHost) }, [zebraHost])
   useEffect(() => { localStorage.setItem("zebraPort", zebraPort) }, [zebraPort])
@@ -410,7 +418,7 @@ ${template.css(w, h, pad)}
       } catch {
         return ""
       } finally {
-        try { await reader.reset() } catch {}
+        try { await reader.reset() } catch { }
       }
     } catch {
       return ""
@@ -473,7 +481,7 @@ ${template.css(w, h, pad)}
             try { navigator.vibrate?.(80) } catch { }
             stopCamera()
             setUbicTab("manual")
-            new Noty({ type: "success", layout: "topRight", theme: "mint", text: `Ubicación: ${n2}` , timeout: 1800 }).show()
+            new Noty({ type: "success", layout: "topRight", theme: "mint", text: `Ubicación: ${n2}`, timeout: 1800 }).show()
             return
           }
         }
