@@ -78,67 +78,6 @@ function normalizeCandidate(raw: string) {
 }
 const isLikelyUbic = (s: string) => UBIC_REGEX.test(s)
 
-
-// === Helpers: detección y HTML a imprimir ===
-function isMobileUA() {
-  if (typeof navigator === "undefined") return false
-  return /Android|iPhone|iPad|iPod|Mobile|IEMobile/i.test(navigator.userAgent)
-}
-
-function buildPrintHTML(template: LabelTemplate, labelsHTML: string) {
-  const w = template.width
-  const h = template.height
-  const pad = template.id === "original-69x25" ? 3 : 0
-  return `<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"/>
-  <title>Etiquetas</title>
-  <style>
-    ${template.css(w, h, pad)}
-    html, body { margin: 0; padding: 0; }
-    @page { margin: 0; }
-    @media print {
-      .p{ break-after: page; }
-      .p:last-of-type{ break-after: auto; }
-      *{ font-family: Arial, Helvetica, sans-serif; }
-    }
-  </style>
-  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
-</head>
-<body id="__PRINT_ONLY__">
-  ${labelsHTML}
-  <script>
-    (function(){
-      function render(){
-        try{
-          document.querySelectorAll('.jsb').forEach(function(el){
-            var code = el.getAttribute('data-code')||'';
-            var box = el.closest('.bc-fit') || el.closest('.q3');
-            var hPx = 80;
-            if (box) { var r = box.getBoundingClientRect(); hPx = Math.max(20, Math.round(r.height)); }
-            JsBarcode(el, code, { format:'CODE128', displayValue:false, margin:0, height:hPx });
-            el.removeAttribute('width'); el.removeAttribute('height');
-            el.style.width='100%'; el.style.height='100%';
-          });
-        }catch(e){}
-      }
-      window.addEventListener('load', function(){
-        render();
-        setTimeout(function(){
-          try { window.focus(); } catch(e){}
-          try { window.print(); } catch(e){}
-          // Cerrar la pestaña/ventana si el user agent lo permite:
-          try { window.close(); } catch(e){}
-        }, 0);
-      });
-    })();
-  </script>
-</body>
-</html>`;
-}
-
 // ===========================================
 export default function Page() {
   // Sucursal
@@ -264,80 +203,110 @@ export default function Page() {
     new Noty({ type: "success", layout: "topRight", theme: "mint", text: "Excel descargado.", timeout: 1800 }).show()
   }
 
-  // Print
-// Reemplaza COMPLETO tu handlePrint por este:
-const handlePrint = () => {
-  if (!articles.length) return
+  // ====== IMPRESIÓN ======
+  // Modal-only print para móvil
+  const [printOpen, setPrintOpen] = useState(false)
+  const printRef = useRef<HTMLDivElement | null>(null)
 
-  // 👇 Intenta abrir la ventana ANTES de cualquier otra cosa
-  const printWin = window.open("about:blank", "_blank")  // sin 3er argumento/flags
-  // (algunos navegadores bloquean si usas "noopener,noreferrer" o si no es lo primero)
+  const handlePrintMobile = async () => {
+    if (!articles.length) return
 
-  // Genera SOLO el HTML de etiquetas
-  const labelsHTML = articles
-    .flatMap(a => Array.from({ length: a.quantity }, () => template.renderHTML(a)))
-    .join("")
-  const html = buildPrintHTML(template, labelsHTML)
+    const w = template.width
+    const h = template.height
+    const pad = template.id === "original-69x25" ? 3 : 0
+    const labelsHTML = articles.flatMap(a =>
+      Array.from({ length: a.quantity }, () => template.renderHTML(a))
+    ).join("")
 
-  if (isMobileUA() && printWin) {
-    // Ventana abierta correctamente → escribir y listo
-    printWin.document.open()
-    // Un HTML mínimo inmediato ayuda a “anclar” el popup al gesto
-    printWin.document.write("<!doctype html><title>Imprimiendo…</title>")
-    printWin.document.close()
+    setPrintOpen(true)
+    await ensureJsBarcodeLoaded()
 
-    // Ahora ponemos el HTML completo
-    printWin.document.open()
-    printWin.document.write(html)
-    printWin.document.close()
-    return
+    requestAnimationFrame(() => {
+      const container = printRef.current
+      if (container) {
+        // limpiar por si quedó algo previo
+        container.innerHTML = `<div class="print-body"></div>`
+        // inyectar CSS de plantilla
+        const styleTag = document.createElement("style")
+        styleTag.textContent = template.css(w, h, pad) + `
+@media print {
+  .p{ break-after: page; }
+  .p:last-of-type{ break-after: auto; }
+  *{ font-family: Arial, Helvetica, sans-serif; }
+}`
+        container.prepend(styleTag)
+        // inyectar HTML dinámico
+        const bodyEl = container.querySelector(".print-body") as HTMLDivElement | null
+        if (bodyEl) {
+          bodyEl.innerHTML = labelsHTML
+        }
+        // renderizar códigos
+        renderAllBarcodes(container)
+      }
+      setTimeout(() => {
+        window.print()
+        setTimeout(() => setPrintOpen(false), 300)
+      }, 50)
+    })
   }
 
-  if (isMobileUA() && !printWin) {
-    // 2) FALLBACK SIN POPUPS: navega en la MISMA pestaña a un Blob URL
-    //    Así evitas el bloqueador de popups y solo imprimes las etiquetas.
-    try {
-      const blob = new Blob([html], { type: "text/html" })
-      const url = URL.createObjectURL(blob)
-      window.location.href = url // navega a la página de impresión
-      // El propio HTML llama a window.print() y luego intenta window.close()
-      return
-    } catch {
-      new Noty({
-        type: "error",
-        layout: "topRight",
-        theme: "mint",
-        text: "No pude abrir la vista de impresión. Revisa permisos de popups.",
-        timeout: 3000
-      }).show()
-      return
-    }
-  }
-
-  // Desktop → iframe oculto (lo que ya tenías)
-  const f = document.createElement("iframe")
-  Object.assign(f.style, {
-    position: "fixed",
-    right: "0",
-    bottom: "0",
-    width: "0",
-    height: "0",
-    border: "0",
-    opacity: "0",
-    pointerEvents: "none",
-    visibility: "hidden",
-  })
-  document.body.appendChild(f)
-  const d = (f.contentDocument || (f as any).ownerDocument) as Document
-  d.open(); d.write(html); d.close()
-  const cleanup = () => { try { document.body.removeChild(f) } catch {} }
-  setTimeout(cleanup, 15000)
-  ;(f.contentWindow as any)?.addEventListener?.("afterprint", cleanup)
+  // Tu impresión existente (iframe) – se usa para desktop
+  const handlePrint = () => {
+    if (!articles.length) return
+    const w = template.width
+    const h = template.height
+    const pad = template.id === "original-69x25" ? 3 : 0
+    const labelsHTML = articles.flatMap(a => Array.from({ length: a.quantity }, () => template.renderHTML(a))).join("")
+    const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"/><title>Etiquetas</title>
+<style>
+${template.css(w, h, pad)}
+@media print {
+  .p{ break-after: page; }
+  .p:last-of-type{ break-after: auto; }
+  *{ font-family: Arial, Helvetica, sans-serif; }
 }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script>
+  window.addEventListener('load', function(){
+    try{
+      document.querySelectorAll('.jsb').forEach(function(el){
+        var code = el.getAttribute('data-code')||'';
+        var box = el.closest('.bc-fit') || el.closest('.q3');
+        var hPx = 80;
+        if (box) { var r = box.getBoundingClientRect(); hPx = Math.max(20, Math.round(r.height)); }
+        JsBarcode(el, code, { format:'CODE128', displayValue:false, margin:0, height:hPx });
+        el.removeAttribute('width'); el.removeAttribute('height');
+        el.style.width='100%'; el.style.height='100%';
+      });
+    }catch(e){}
+    setTimeout(function(){ window.print(); }, 0);
+  });
+</script>
+</head><body>${labelsHTML}</body></html>`
+    const f = document.createElement("iframe")
+    Object.assign(f.style, { position: "fixed", right: "0", bottom: "0", width: "0", height: "0", border: "0", opacity: "0" })
+    document.body.appendChild(f)
+    const d = (f.contentDocument || (f as any).ownerDocument) as Document
+    d.open(); d.write(html); d.close()
+    const cleanup = () => { try { document.body.removeChild(f) } catch { } }
+    setTimeout(cleanup, 10000)
+    ;(f.contentWindow as any)?.addEventListener?.("afterprint", cleanup)
+  }
 
+  const isMobile = useMemo(() => {
+    if (typeof window === "undefined") return false
+    return (window.matchMedia?.("(pointer: coarse)").matches ||
+      /Android|iPhone|iPad|iPod/i.test(navigator.userAgent))
+  }, [])
 
+  const onPrintClick = () => {
+    if (isMobile) handlePrintMobile()
+    else handlePrint()
+  }
 
-  // Preview barcodes when list/template changes
+  // Preview barcodes cuando lista/plantilla cambian
   useEffect(() => {
     (async () => {
       try { await ensureJsBarcodeLoaded(); renderAllBarcodes() } catch { }
@@ -511,6 +480,13 @@ const handlePrint = () => {
         @supports (-webkit-touch-callout: none) {
           input, select, textarea, button { font-size: 16px; }
         }
+        /* ====== IMPRESIÓN SOLO DEL MODAL ====== */
+        @media print {
+          body * { visibility: hidden !important; }
+          #print-area, #print-area * { visibility: visible !important; }
+          #print-area { position: fixed; inset: 0; background: white; }
+          .no-print { display: none !important; }
+        }
       `}</style>
 
       {/* Dialog sucursal */}
@@ -645,6 +621,29 @@ const handlePrint = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Dialog: Vista de impresión SOLO para móvil */}
+      <Dialog open={printOpen} onOpenChange={setPrintOpen}>
+        <DialogContent className="bg-white text-black border-gray-300 w-[96vw] max-w-[96vw] h-[90vh] sm:max-w-3xl overflow-hidden">
+          <DialogHeader className="no-print">
+            <DialogTitle>Vista de impresión</DialogTitle>
+          </DialogHeader>
+
+          {/* Área que SÍ se imprime */}
+          <div id="print-area" ref={printRef} className="relative">
+            {/* Se inyecta CSS + HTML dinámico en handlePrintMobile */}
+            <div className="print-body p-2" />
+          </div>
+
+          {/* Controles que NO se imprimen */}
+          <div className="no-print mt-3 flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setPrintOpen(false)}>Cerrar</Button>
+            <Button onClick={() => window.print()} className="bg-purple-600 hover:bg-purple-700">
+              <Printer className="w-4 h-4 mr-2" /> Imprimir
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Contenido principal */}
       <div className="min-h-screen p-4 sm:p-6">
         <div className="max-w-7xl mx-auto">
@@ -662,7 +661,7 @@ const handlePrint = () => {
                 <CardTitle className="flex items-center gap-2 text-white">
                   <Settings className="w-5 h-5 text-purple-300" />Configuración
                 </CardTitle>
-                <CardTitle className="flex items-center gap-2 text-white font-light text-xs">v2.3.2</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-white font-light text-xs">v2.3.1</CardTitle>
               </CardHeader>
 
               <CardContent className="p-4 sm:p-6 space-y-6">
@@ -752,7 +751,7 @@ const handlePrint = () => {
                   />
 
                   <Button
-                    onClick={handlePrint}
+                    onClick={onPrintClick}
                     className="col-span-full w-full justify-center h-11 bg-gray-600 hover:bg-gray-700 text-white border-0"
                     disabled={!sucursalId || articles.length === 0}
                     title="Imprimir etiquetas"
