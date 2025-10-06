@@ -78,6 +78,67 @@ function normalizeCandidate(raw: string) {
 }
 const isLikelyUbic = (s: string) => UBIC_REGEX.test(s)
 
+
+// === Helpers: detección y HTML a imprimir ===
+function isMobileUA() {
+  if (typeof navigator === "undefined") return false
+  return /Android|iPhone|iPad|iPod|Mobile|IEMobile/i.test(navigator.userAgent)
+}
+
+function buildPrintHTML(template: LabelTemplate, labelsHTML: string) {
+  const w = template.width
+  const h = template.height
+  const pad = template.id === "original-69x25" ? 3 : 0
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"/>
+  <title>Etiquetas</title>
+  <style>
+    ${template.css(w, h, pad)}
+    html, body { margin: 0; padding: 0; }
+    @page { margin: 0; }
+    @media print {
+      .p{ break-after: page; }
+      .p:last-of-type{ break-after: auto; }
+      *{ font-family: Arial, Helvetica, sans-serif; }
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+</head>
+<body id="__PRINT_ONLY__">
+  ${labelsHTML}
+  <script>
+    (function(){
+      function render(){
+        try{
+          document.querySelectorAll('.jsb').forEach(function(el){
+            var code = el.getAttribute('data-code')||'';
+            var box = el.closest('.bc-fit') || el.closest('.q3');
+            var hPx = 80;
+            if (box) { var r = box.getBoundingClientRect(); hPx = Math.max(20, Math.round(r.height)); }
+            JsBarcode(el, code, { format:'CODE128', displayValue:false, margin:0, height:hPx });
+            el.removeAttribute('width'); el.removeAttribute('height');
+            el.style.width='100%'; el.style.height='100%';
+          });
+        }catch(e){}
+      }
+      window.addEventListener('load', function(){
+        render();
+        setTimeout(function(){
+          try { window.focus(); } catch(e){}
+          try { window.print(); } catch(e){}
+          // Cerrar la pestaña/ventana si el user agent lo permite:
+          try { window.close(); } catch(e){}
+        }, 0);
+      });
+    })();
+  </script>
+</body>
+</html>`;
+}
+
 // ===========================================
 export default function Page() {
   // Sucursal
@@ -204,49 +265,54 @@ export default function Page() {
   }
 
   // Print
-  const handlePrint = () => {
-    if (!articles.length) return
-    const w = template.width
-    const h = template.height
-    const pad = template.id === "original-69x25" ? 3 : 0
-    const labelsHTML = articles.flatMap(a => Array.from({ length: a.quantity }, () => template.renderHTML(a))).join("")
-    const html = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"/><title>Etiquetas</title>
-<style>
-${template.css(w, h, pad)}
-@media print {
-  .p{ break-after: page; }
-  .p:last-of-type{ break-after: auto; }
-  *{ font-family: Arial, Helvetica, sans-serif; }
-}
-</style>
-<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
-<script>
-  window.addEventListener('load', function(){
-    try{
-      document.querySelectorAll('.jsb').forEach(function(el){
-        var code = el.getAttribute('data-code')||'';
-        var box = el.closest('.bc-fit') || el.closest('.q3');
-        var hPx = 80;
-        if (box) { var r = box.getBoundingClientRect(); hPx = Math.max(20, Math.round(r.height)); }
-        JsBarcode(el, code, { format:'CODE128', displayValue:false, margin:0, height:hPx });
-        el.removeAttribute('width'); el.removeAttribute('height');
-        el.style.width='100%'; el.style.height='100%';
-      });
-    }catch(e){}
-    setTimeout(function(){ window.print(); }, 0);
-  });
-</script>
-</head><body>${labelsHTML}</body></html>`
+// Reemplaza COMPLETO tu handlePrint por este:
+const handlePrint = () => {
+  if (!articles.length) return
+
+  // 1) Genera SOLO el HTML de etiquetas
+  const labelsHTML = articles
+    .flatMap(a => Array.from({ length: a.quantity }, () => template.renderHTML(a)))
+    .join("")
+  const html = buildPrintHTML(template, labelsHTML) // usa tu helper
+
+  // 2) Móvil => ventana temporal; Desktop => iframe oculto
+  if (isMobileUA()) {
+    const printWin = window.open("", "_blank", "noopener,noreferrer")
+    if (!printWin) {
+      new Noty({
+        type: "error",
+        layout: "topRight",
+        theme: "mint",
+        text: "El navegador bloqueó la ventana de impresión. Permite popups.",
+        timeout: 3000
+      }).show()
+      return
+    }
+    printWin.document.open()
+    printWin.document.write(html) // este HTML ya trae CSS, JsBarcode y el script que hace focus/print/close
+    printWin.document.close()
+  } else {
     const f = document.createElement("iframe")
-    Object.assign(f.style, { position: "fixed", right: "0", bottom: "0", width: "0", height: "0", border: "0", opacity: "0" })
+    Object.assign(f.style, {
+      position: "fixed",
+      right: "0",
+      bottom: "0",
+      width: "0",
+      height: "0",
+      border: "0",
+      opacity: "0",
+      pointerEvents: "none",
+      visibility: "hidden",
+    })
     document.body.appendChild(f)
     const d = (f.contentDocument || (f as any).ownerDocument) as Document
     d.open(); d.write(html); d.close()
-    const cleanup = () => { try { document.body.removeChild(f) } catch { } }
-    setTimeout(cleanup, 10000)
+    const cleanup = () => { try { document.body.removeChild(f) } catch {} }
+    setTimeout(cleanup, 15000)
     ;(f.contentWindow as any)?.addEventListener?.("afterprint", cleanup)
   }
+}
+
 
   // Preview barcodes when list/template changes
   useEffect(() => {
