@@ -78,6 +78,33 @@ function normalizeCandidate(raw: string) {
 }
 const isLikelyUbic = (s: string) => UBIC_REGEX.test(s)
 
+// ========= PDF helpers =========
+// Conversión: 1 mm = 2.83465 pt
+const mmToPt = (mm: number) => mm * 2.8346456693
+
+// Genera un PNG de código de barras en canvas y regresa sus bytes
+async function barcodePngBytes(code: string, widthPx = 1000, heightPx = 260) {
+  await ensureJsBarcodeLoaded()
+  const canvas = document.createElement("canvas")
+  canvas.width = widthPx
+  canvas.height = heightPx
+  const ctx = canvas.getContext("2d")!
+  ctx.fillStyle = "#FFFFFF"
+  ctx.fillRect(0, 0, widthPx, heightPx)
+  try {
+    window.JsBarcode(canvas, code, {
+      format: "CODE128",
+      displayValue: false,
+      margin: 0,
+      width: 2,
+      height: heightPx - 10,
+    })
+  } catch { /* noop */ }
+  const dataUrl = canvas.toDataURL("image/png")
+  const res = await fetch(dataUrl)
+  return new Uint8Array(await res.arrayBuffer())
+}
+
 // ===========================================
 export default function Page() {
   // Sucursal
@@ -293,6 +320,97 @@ ${template.css(w, h, pad)}
     const cleanup = () => { try { document.body.removeChild(f) } catch { } }
     setTimeout(cleanup, 10000)
     ;(f.contentWindow as any)?.addEventListener?.("afterprint", cleanup)
+  }
+
+  // ====== Generación de PDF (tamaño real y copias) ======
+  const handleGeneratePDF = async () => {
+    if (!articles.length) {
+      new Noty({ type: "warning", layout: "topRight", theme: "mint", text: "No hay artículos para generar PDF.", timeout: 1800 }).show()
+      return
+    }
+
+    const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib")
+
+    // Tamaño de página = tamaño de la etiqueta
+    const pageWidthPt = mmToPt(template.width)
+    const pageHeightPt = mmToPt(template.height)
+    const padPt = mmToPt(2) // margen interno ≈ 2 mm
+
+    const pdfDoc = await PDFDocument.create()
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
+
+    // Tipografías base
+    const fontTitle = 9
+    const fontSmall = 7
+
+    for (const a of articles) {
+      const copies = Math.max(1, Number(a.quantity || 1))
+      // PNG del barcode una vez por artículo
+      const pngBytes = await barcodePngBytes(a.codigo, 1000, 260)
+      const pngImage = await pdfDoc.embedPng(pngBytes)
+      const pngW = pngImage.width
+      const pngH = pngImage.height
+
+      // Área disponible para el barcode dentro de la etiqueta
+      const availW = pageWidthPt - padPt * 2
+      const availH = pageHeightPt - padPt * 2 - 20 // deja espacio p/ textos
+
+      const scale = Math.min(availW / pngW, availH / pngH)
+      const drawW = pngW * scale
+      const drawH = pngH * scale
+
+      for (let i = 0; i < copies; i++) {
+        const page = pdfDoc.addPage([pageWidthPt, pageHeightPt])
+
+        // Fondo blanco
+        page.drawRectangle({ x: 0, y: 0, width: pageWidthPt, height: pageHeightPt, color: rgb(1,1,1) })
+
+        // Nombre
+        const title = (a.nombre || "").toString()
+        page.drawText(title, {
+          x: padPt,
+          y: pageHeightPt - padPt - fontTitle,
+          size: fontTitle,
+          font,
+          color: rgb(0, 0, 0),
+          maxWidth: pageWidthPt - padPt * 2,
+        })
+
+        // Info secundaria
+        const info = `Cód: ${a.codigo}  •  Precio: ${money(a.precio)}  •  ${a.unidad || ""}`
+        page.drawText(info, {
+          x: padPt,
+          y: pageHeightPt - padPt - fontTitle - 10,
+          size: fontSmall,
+          font,
+          color: rgb(0, 0, 0),
+          maxWidth: pageWidthPt - padPt * 2,
+        })
+
+        // Código de barras centrado
+        const x = (pageWidthPt - drawW) / 2
+        const y = padPt + ((availH - drawH) / 2)
+        page.drawImage(pngImage, { x, y, width: drawW, height: drawH })
+      }
+    }
+
+    const pdfBytes = await pdfDoc.save()
+    const blob = new Blob([pdfBytes], { type: "application/pdf" })
+    const fecha = new Date().toISOString().slice(0, 10)
+    const suc = (sucursalActual?.nombre || "sucursal").replace(/[^\w\-]+/g, "_")
+    const filename = `etiquetas_${suc}_${fecha}.pdf`
+
+    // Descarga directa
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+
+    new Noty({ type: "success", layout: "topRight", theme: "mint", text: "PDF generado.", timeout: 1800 }).show()
   }
 
   const isMobile = useMemo(() => {
@@ -758,6 +876,17 @@ ${template.css(w, h, pad)}
                   >
                     <Printer className="w-4 h-4 mr-2" />
                     Imprimir ({totalLabels})
+                  </Button>
+
+                  {/* NUEVO: Generar PDF con tamaño real y copias */}
+                  <Button
+                    onClick={handleGeneratePDF}
+                    className="col-span-full w-full justify-center h-11 bg-purple-700 hover:bg-purple-800 text-white border-0"
+                    disabled={!sucursalId || articles.length === 0}
+                    title="Generar PDF de etiquetas"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Generar PDF ({totalLabels})
                   </Button>
 
                   <Button
