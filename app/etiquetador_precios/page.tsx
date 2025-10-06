@@ -203,77 +203,7 @@ export default function Page() {
     new Noty({ type: "success", layout: "topRight", theme: "mint", text: "Excel descargado.", timeout: 1800 }).show()
   }
 
-  // ====== IMPRESIÓN ======
-  // Modal-only print para móvil
-  const [printOpen, setPrintOpen] = useState(false)
-  const printRef = useRef<HTMLDivElement | null>(null)
-
-  // Candado para evitar prints duplicados en móvil
-  const printingRef = useRef(false)
-
-  // Helper: dispara impresión una sola vez por sesión (auto o botón)
-  function triggerPrintOnce() {
-    if (printingRef.current) return
-    printingRef.current = true
-
-    const onAfter = () => {
-      printingRef.current = false
-      setPrintOpen(false) // cierra el modal tras imprimir
-      window.removeEventListener("afterprint", onAfter)
-    }
-
-    window.addEventListener("afterprint", onAfter)
-
-    // pequeño tiempo para asegurar DOM listo
-    setTimeout(() => {
-      try { window.print() } catch { printingRef.current = false }
-    }, 100)
-  }
-
-  const handlePrintMobile = async () => {
-    if (!articles.length || printingRef.current) return
-
-    const w = template.width
-    const h = template.height
-    const pad = template.id === "original-69x25" ? 3 : 0
-
-    const labelsHTML = articles
-      .flatMap(a => Array.from({ length: (a.quantity as number) | 0 }, () => template.renderHTML(a)))
-      .join("")
-
-    setPrintOpen(true)
-    await ensureJsBarcodeLoaded()
-
-    requestAnimationFrame(() => {
-      const container = printRef.current
-      if (container) {
-        // limpiar por si quedó algo previo
-        container.innerHTML = `<div class="print-body"></div>`
-        // inyectar CSS de plantilla
-        const styleTag = document.createElement("style")
-        styleTag.textContent = template.css(w, h, pad) + `
-@page { size: ${w}mm ${h}mm; margin: 0; }
-@media print {
-  .p{ break-after: page; }
-  .p:last-of-type{ break-after: auto; }
-  *{ font-family: Arial, Helvetica, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-}`
-        container.prepend(styleTag)
-
-        // inyectar HTML dinámico
-        const bodyEl = container.querySelector(".print-body") as HTMLDivElement | null
-        if (bodyEl) bodyEl.innerHTML = labelsHTML
-
-        // renderizar códigos
-        renderAllBarcodes(container)
-      }
-
-      // Dispara la impresión UNA sola vez
-      triggerPrintOnce()
-    })
-  }
-
-  // Tu impresión existente (iframe) – se usa para desktop
+  // Print
   const handlePrint = () => {
     if (!articles.length) return
     const w = template.width
@@ -318,18 +248,7 @@ ${template.css(w, h, pad)}
     ;(f.contentWindow as any)?.addEventListener?.("afterprint", cleanup)
   }
 
-  const isMobile = useMemo(() => {
-    if (typeof window === "undefined") return false
-    return (window.matchMedia?.("(pointer: coarse)").matches ||
-      /Android|iPhone|iPad|iPod/i.test(navigator.userAgent))
-  }, [])
-
-  const onPrintClick = () => {
-    if (isMobile) handlePrintMobile()
-    else handlePrint()
-  }
-
-  // Preview barcodes cuando lista/plantilla cambian
+  // Preview barcodes when list/template changes
   useEffect(() => {
     (async () => {
       try { await ensureJsBarcodeLoaded(); renderAllBarcodes() } catch { }
@@ -503,13 +422,6 @@ ${template.css(w, h, pad)}
         @supports (-webkit-touch-callout: none) {
           input, select, textarea, button { font-size: 16px; }
         }
-        /* ====== IMPRESIÓN SOLO DEL MODAL ====== */
-        @media print {
-          body * { visibility: hidden !important; }
-          #print-area, #print-area * { visibility: visible !important; }
-          #print-area { position: fixed; inset: 0; background: white; }
-          .no-print { display: none !important; }
-        }
       `}</style>
 
       {/* Dialog sucursal */}
@@ -644,39 +556,6 @@ ${template.css(w, h, pad)}
         </DialogContent>
       </Dialog>
 
-      {/* Dialog: Vista de impresión SOLO para móvil */}
-      <Dialog
-        open={printOpen}
-        onOpenChange={(open) => {
-          setPrintOpen(open)
-          if (!open) {
-            // reset candado y limpia contenido para evitar restos en siguiente sesión
-            printingRef.current = false
-            if (printRef.current) printRef.current.innerHTML = `<div class="print-body"></div>`
-          }
-        }}
-      >
-        <DialogContent className="bg-white text-black border-gray-300 w-[96vw] max-w-[96vw] h-[90vh] sm:max-w-3xl overflow-hidden">
-          <DialogHeader className="no-print">
-            <DialogTitle>Vista de impresión</DialogTitle>
-          </DialogHeader>
-
-          {/* Área que SÍ se imprime */}
-          <div id="print-area" ref={printRef} className="relative">
-            {/* Se inyecta CSS + HTML dinámico en handlePrintMobile */}
-            <div className="print-body p-2" />
-          </div>
-
-          {/* Controles que NO se imprimen */}
-          <div className="no-print mt-3 flex gap-2 justify-end">
-            <Button variant="outline" onClick={() => setPrintOpen(false)}>Cerrar</Button>
-            <Button onClick={triggerPrintOnce} className="bg-purple-600 hover:bg-purple-700" disabled={printingRef.current}>
-              <Printer className="w-4 h-4 mr-2" /> Imprimir
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
       {/* Contenido principal */}
       <div className="min-h-screen p-4 sm:p-6">
         <div className="max-w-7xl mx-auto">
@@ -694,7 +573,7 @@ ${template.css(w, h, pad)}
                 <CardTitle className="flex items-center gap-2 text-white">
                   <Settings className="w-5 h-5 text-purple-300" />Configuración
                 </CardTitle>
-                <CardTitle className="flex items-center gap-2 text-white font-light text-xs">v2.3.3</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-white font-light text-xs">v2.3.2</CardTitle>
               </CardHeader>
 
               <CardContent className="p-4 sm:p-6 space-y-6">
@@ -784,7 +663,7 @@ ${template.css(w, h, pad)}
                   />
 
                   <Button
-                    onClick={onPrintClick}
+                    onClick={handlePrint}
                     className="col-span-full w-full justify-center h-11 bg-gray-600 hover:bg-gray-700 text-white border-0"
                     disabled={!sucursalId || articles.length === 0}
                     title="Imprimir etiquetas"
