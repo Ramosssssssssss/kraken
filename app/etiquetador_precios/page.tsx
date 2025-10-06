@@ -269,49 +269,72 @@ export default function Page() {
 const handlePrint = () => {
   if (!articles.length) return
 
-  // 1) Genera SOLO el HTML de etiquetas
+  // 👇 Intenta abrir la ventana ANTES de cualquier otra cosa
+  const printWin = window.open("about:blank", "_blank")  // sin 3er argumento/flags
+  // (algunos navegadores bloquean si usas "noopener,noreferrer" o si no es lo primero)
+
+  // Genera SOLO el HTML de etiquetas
   const labelsHTML = articles
     .flatMap(a => Array.from({ length: a.quantity }, () => template.renderHTML(a)))
     .join("")
-  const html = buildPrintHTML(template, labelsHTML) // usa tu helper
+  const html = buildPrintHTML(template, labelsHTML)
 
-  // 2) Móvil => ventana temporal; Desktop => iframe oculto
-  if (isMobileUA()) {
-    const printWin = window.open("", "_blank", "noopener,noreferrer")
-    if (!printWin) {
+  if (isMobileUA() && printWin) {
+    // Ventana abierta correctamente → escribir y listo
+    printWin.document.open()
+    // Un HTML mínimo inmediato ayuda a “anclar” el popup al gesto
+    printWin.document.write("<!doctype html><title>Imprimiendo…</title>")
+    printWin.document.close()
+
+    // Ahora ponemos el HTML completo
+    printWin.document.open()
+    printWin.document.write(html)
+    printWin.document.close()
+    return
+  }
+
+  if (isMobileUA() && !printWin) {
+    // 2) FALLBACK SIN POPUPS: navega en la MISMA pestaña a un Blob URL
+    //    Así evitas el bloqueador de popups y solo imprimes las etiquetas.
+    try {
+      const blob = new Blob([html], { type: "text/html" })
+      const url = URL.createObjectURL(blob)
+      window.location.href = url // navega a la página de impresión
+      // El propio HTML llama a window.print() y luego intenta window.close()
+      return
+    } catch {
       new Noty({
         type: "error",
         layout: "topRight",
         theme: "mint",
-        text: "El navegador bloqueó la ventana de impresión. Permite popups.",
+        text: "No pude abrir la vista de impresión. Revisa permisos de popups.",
         timeout: 3000
       }).show()
       return
     }
-    printWin.document.open()
-    printWin.document.write(html) // este HTML ya trae CSS, JsBarcode y el script que hace focus/print/close
-    printWin.document.close()
-  } else {
-    const f = document.createElement("iframe")
-    Object.assign(f.style, {
-      position: "fixed",
-      right: "0",
-      bottom: "0",
-      width: "0",
-      height: "0",
-      border: "0",
-      opacity: "0",
-      pointerEvents: "none",
-      visibility: "hidden",
-    })
-    document.body.appendChild(f)
-    const d = (f.contentDocument || (f as any).ownerDocument) as Document
-    d.open(); d.write(html); d.close()
-    const cleanup = () => { try { document.body.removeChild(f) } catch {} }
-    setTimeout(cleanup, 15000)
-    ;(f.contentWindow as any)?.addEventListener?.("afterprint", cleanup)
   }
+
+  // Desktop → iframe oculto (lo que ya tenías)
+  const f = document.createElement("iframe")
+  Object.assign(f.style, {
+    position: "fixed",
+    right: "0",
+    bottom: "0",
+    width: "0",
+    height: "0",
+    border: "0",
+    opacity: "0",
+    pointerEvents: "none",
+    visibility: "hidden",
+  })
+  document.body.appendChild(f)
+  const d = (f.contentDocument || (f as any).ownerDocument) as Document
+  d.open(); d.write(html); d.close()
+  const cleanup = () => { try { document.body.removeChild(f) } catch {} }
+  setTimeout(cleanup, 15000)
+  ;(f.contentWindow as any)?.addEventListener?.("afterprint", cleanup)
 }
+
 
 
   // Preview barcodes when list/template changes
