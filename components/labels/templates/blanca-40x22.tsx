@@ -70,42 +70,50 @@ export const Blanca40x22: LabelTemplate = {
   // NUEVO: layout ZPL equivalente al grid anterior (sin código de barras, solo textos)
   renderZPL: (a, dpi) => {
     const W = 39.9, H = 22.8
-    const padX = 2;   // padding lateral (mm)
-    const padY = 2;   // padding superior (mm)
-    const colGap = 8; // gap visual entre columna izquierda y derecha (mm) solo a efectos de layout
+    const padX = 2   // padding lateral (mm)
+    const padY = 2   // padding superior (mm)
+    const colGap = 8 // separación visual entre columnas (mm)
 
     const start = zplStart(W, H, dpi)
 
-    // Descripción: filas 1-2, cubre todo el ancho menos padding
+    // Formateador de moneda seguro (evita texto vacío)
+    const fmtMoney = (v) => {
+      const n = Number(v)
+      return Number.isFinite(n) ? money(n) : money(0)
+    }
+
+    // Descripción (ancho completo)
     const desc = textBox(padX, padY, W - padX * 2, 2.8, 2, "L", dpi, a.nombre ?? "", 0.6)
 
-    // “G - invMax”, “estatus”, “unidad”, “codigo” (columna izquierda, 4 filas)
+    // Columna izquierda
     const leftX = padX
-    const leftW = (W - padX * 2 - colGap) / 2 // aprox 50% para izq
-    const rowH = 3.6 // alto aproximado por fila (mm) para 4 filas
-    const leftY0 = padY + 7.2 // debajo de descripción
+    const leftW = (W - padX * 2 - colGap) / 2
+    const rowH = 3.4                  // antes 3.6 (da un poco más de aire vertical)
+    const leftY0 = padY + 6.8         // antes 7.2 (sube ligeramente todo)
 
-    const invMax = textBox(leftX, leftY0 + rowH * 0, leftW, 2.0, 1, "L", dpi,
+    const invMax = textBox(leftX, leftY0 + rowH * 0, leftW, 2.3, 1, "L", dpi,
       `G - ${Number.isFinite(a.inventarioMaximo) ? a.inventarioMaximo : 0}`)
-    const estatus = textBox(leftX, leftY0 + rowH * 1, leftW, 2.0, 1, "L", dpi, a.estatus ?? "-")
-    const unidad  = textBox(leftX, leftY0 + rowH * 2, leftW, 2.0, 1, "L", dpi, a.unidad ?? "")
-    const codigo  = textBox(leftX, leftY0 + rowH * 3, leftW, 2.0, 1, "L", dpi, a.codigo ?? "")
+    const estatus = textBox(leftX, leftY0 + rowH * 1, leftW, 2.3, 1, "L", dpi, a.estatus ?? "-")
+    const unidad = textBox(leftX, leftY0 + rowH * 2, leftW, 2.3, 1, "L", dpi, a.unidad ?? "")
+    const codigo = textBox(leftX, leftY0 + rowH * 3, leftW, 2.3, 1, "L", dpi, a.codigo ?? "")
 
-    // Fecha (derecha arriba, fila 3)
+    // Columna derecha
     const rightX = padX + leftW + colGap
     const rightW = W - rightX - padX
-    const fecha  = textBox(rightX, leftY0, rightW, 2.7, 1, "R", dpi, a.fecha ?? "")
 
-    // Precio (grande, filas 4-5 derecha)
-    const price  = textBox(
+    // Fecha
+    const fecha = textBox(rightX, leftY0, rightW, 2.7, 1, "R", dpi, a.fecha ?? "")
+
+    // Precio principal (grande)
+    const price = textBox(
       rightX, leftY0 + rowH * 1.2, rightW, 5.8, 1, "R", dpi,
-      money(a.precio ?? 0)
+      fmtMoney(a.precio ?? 0)
     )
 
-    // Distribuidor (fila 6 derecha)
-    const dist   = textBox(
-      rightX, leftY0 + rowH * 3, rightW, 2.9, 1, "R", dpi,
-      `Dist: ${money(a.distribuidor ?? 0)}`
+    // Distribuidor (subido y más bajo para no salirse)
+    const dist = textBox(
+      rightX, leftY0 + rowH * 2.8, rightW, 2.3, 1, "R", dpi,
+      `Dist: ${fmtMoney(a.distribuidor ?? 0)}`
     )
 
     return `${start}
@@ -119,6 +127,7 @@ ${price}
 ${dist}
 ${zplEnd}`
   },
+
 
   preview: (a) => (
     <div className="w-full h-full grid"
