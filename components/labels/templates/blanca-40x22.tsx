@@ -69,7 +69,7 @@ export const Blanca40x22: LabelTemplate = {
 
   // NUEVO: layout ZPL equivalente al grid anterior (sin código de barras, solo textos)
   renderZPL: (a, dpi) => {
-    const W = 39.9, H = 23.8
+    const W = 39.9, H = 22.8
     const padX = 2;   // padding lateral (mm)
     const padY = 2;   // padding superior (mm)
     const colGap = 8; // gap visual entre columna izquierda y derecha (mm) solo a efectos de layout
@@ -83,7 +83,7 @@ export const Blanca40x22: LabelTemplate = {
     const leftX = padX
     const leftW = (W - padX * 2 - colGap) / 2 // aprox 50% para izq
     const rowH = 3.6 // alto aproximado por fila (mm) para 4 filas
-    const leftY0 = padY + 10.5 // debajo de descripción
+    const leftY0 = padY + 5 // debajo de descripción
 
     const invMax = textBox(leftX, leftY0 + rowH * 0, leftW, 2.7, 1, "L", dpi,
       `G - ${Number.isFinite(a.inventarioMaximo) ? a.inventarioMaximo : 0}`)
