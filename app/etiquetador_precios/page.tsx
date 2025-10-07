@@ -8,10 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import {
-  Eye, Settings, Printer, Plus, Trash2, Minus, Loader2, AlertCircle,
-  Upload, Download, LayoutTemplate, RotateCcw, Search, Camera, Keyboard
-} from "lucide-react"
+import {Eye, Settings, Printer, Plus, Trash2, Minus, Loader2, AlertCircle,Upload, Download, LayoutTemplate, RotateCcw, Search, Camera, Keyboard} from "lucide-react"
 import * as XLSX from "xlsx"
 import Noty from "noty"
 import "noty/lib/noty.css"
@@ -94,32 +91,62 @@ function buildZplForItem(
   template: { width: number; height: number },
   dpi: 203 | 300 | 600
 ) {
-  const W = mmToDots(template.width, dpi)
-  const H = mmToDots(template.height, dpi)
-  const ML = mmToDots(3, dpi)                 // margen izq 3mm
-  const TOP = mmToDots(3, dpi)                // margen sup 3mm
-  const BC_H = mmToDots(Math.min(16, Math.max(8, template.height * 0.45)), dpi)
+  const wDots = mmToDots(template.width, dpi)
+  const hDots = mmToDots(template.height, dpi)
 
-  const descY = TOP + BC_H + mmToDots(2, dpi)
-  const priceY = descY + mmToDots(8, dpi)
+  // Márgenes físicos (mm → dots). Ajusta a tu gusto.
+  const marginL = mmToDots(2, dpi)
+  const marginT = mmToDots(2, dpi)
+  const innerW = wDots - marginL - mmToDots(2, dpi)
+
+  // ¿Tu diseño es vertical? rota 90° (R) y permuta PW/LL visualmente
+  const isPortrait = template.height > template.width
+  const ori = isPortrait ? "R" : "N" // N=normal, R=rotado 90°
+  const PW = isPortrait ? hDots : wDots
+  const LL = isPortrait ? wDots : hDots
+
+  // Alturas (en mm → dots) pensadas para que escale según la etiqueta
+  const bcHeight = mmToDots(Math.min(16, Math.max(8, template.height * 0.45)), dpi)
+  const gap = mmToDots(1.5, dpi)
+
+  // Tipografías (alto en dots, ZPL escalará el ancho)
+  const fontDesc = mmToDots(Math.min(4, Math.max(2.3, template.height * 0.16)), dpi)
+  const fontPrice = mmToDots(Math.min(6.5, Math.max(3.5, template.height * 0.26)), dpi)
+
+  // Posiciones Y relativas
+  const yBarcode = marginT
+  const yDesc = yBarcode + bcHeight + gap
+  const yPrice = yDesc + fontDesc + gap
 
   const desc = escapeZplText(a.nombre)
   const price = a.precio != null ? `$${a.precio.toFixed(2)}` : ""
+  const code = escapeZplText(a.codigo)
+
+  // ^FB para envolver descripción dentro del ancho disponible
+  //  ^FB<width>,<maxLines>,<lineSpacing>,<alignment>,<hangIndent>
+  const fbWidth = Math.max(40, innerW)
 
   return `
 ^XA
-^PW${W}
-^LL${H}
-^LH0,0
 ^CI28
-^FO${ML},${TOP}
+^PW${PW}
+^LL${LL}
+^LT0
+^LS0
+^PRB
+^MD10
+^LH0,0
+^FO${marginL},${yBarcode}
 ^BY2,2
-^BCN,${BC_H},N,N,N
-^FD${escapeZplText(a.codigo)}^FS
-^CF0,${dpi === 203 ? 22 : 28}
-^FO${ML},${descY}^FD${desc}^FS
-^CF0,${dpi === 203 ? 34 : 44}
-^FO${ML},${priceY}^FD${price}^FS
+^BC${ori},${bcHeight},N,N,N
+^FD${code}^FS
+^FO${marginL},${yDesc}
+^CF0,${fontDesc}
+^FB${fbWidth},2,${mmToDots(0.6, dpi)},L,0
+^FD${desc}^FS
+^FO${marginL},${yPrice}
+^CF0,${fontPrice}
+^FD${price}^FS
 ^XZ`.trim()
 }
 
@@ -128,15 +155,19 @@ function buildZplJob(
   template: { width: number; height: number },
   dpi: 203 | 300 | 600
 ) {
+  // Usa ^PQ para cantidad por artículo: 1 etiqueta = 1 ^XA…^XZ + ^PQn
+  // (alternativa a concatenar N veces el mismo bloque)
   let out = ""
   for (const a of articles) {
     const unit = { codigo: a.codigo, nombre: a.nombre, precio: a.precio }
-    for (let i = 0; i < Math.max(1, a.quantity); i++) {
-      out += buildZplForItem(unit, template, dpi) + "\n"
-    }
+    const body = buildZplForItem(unit, template, dpi)
+    const qty = Math.max(1, a.quantity)
+    // Inserta ^PQ justo antes de ^XZ
+    out += body.replace("^XZ", `^PQ${qty}\n^XZ`) + "\n"
   }
   return out
 }
+
 
 // Compartir/descargar el ZPL en Android para abrir con Zebra Print Station
 async function shareZplOnAndroid(zpl: string) {
