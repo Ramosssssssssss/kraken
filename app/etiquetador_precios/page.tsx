@@ -196,55 +196,50 @@ function buildZplJobSmart(
 
 // Compartir/descargar el ZPL en Android para abrir con Zebra Print Station
 // Reemplaza tu shareZplToZebra por esta versión SIN async/await
-function shareZplToZebra(zpl: string, name = `job_${Date.now()}.zpl`) {
-  if (typeof window === "undefined") return
-  const isSecure = window.isSecureContext || ["localhost", "127.0.0.1"].includes(location.hostname)
+function shareZplToZebra(zpl: string, name = `etiquetas_${Date.now()}.zpl`) {
+  if (typeof window === "undefined") return;
+
+  // 1) HTTPS / localhost obligatorio
+  const isSecure = window.isSecureContext || ["localhost","127.0.0.1"].includes(location.hostname);
   if (!isSecure) {
-    throw new Error("Comparte desde HTTPS (o localhost).")
+    alert("Esta función requiere HTTPS o localhost.");
+    return;
   }
 
-  // usa una extensión .zpl y un MIME típico para ZPL
-  const mimeTypes = [
-    "application/vnd.zebra-zpl",
-    "application/zpl",
-    "text/plain",
-    "application/octet-stream",
-  ]
-  const blob = new Blob([zpl], { type: mimeTypes[0] })
-  const file = new File([blob], name, { type: blob.type })
+  // 2) Construir archivo (prueba con text/plain primero por compatibilidad)
+  const blob = new Blob([zpl], { type: "text/plain" }); // <- IMPORTANTE
+  const file = new File([blob], name, { type: "text/plain" });
 
-  const nav: any = navigator
+  const nav: any = navigator;
 
-  // Llama share() inmediatamente (sin await). Si falla, cae a descarga.
   try {
     if (nav?.canShare && nav.canShare({ files: [file] }) && typeof nav.share === "function") {
+      // LLAMADA DIRECTA, SIN await (user gesture)
       nav.share({
         title: "Zebra ZPL",
         text: "Abrir con Zebra Print",
         files: [file],
       }).catch(() => {
-        // usuario canceló o no hay destino => fallback descarga
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement("a")
-        a.href = url
-        a.download = name
-        a.click()
-        URL.revokeObjectURL(url)
-      })
-      return
+        // usuario canceló o no hubo destino => descarga
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = name; a.click();
+        URL.revokeObjectURL(url);
+      });
+      return;
     }
-  } catch {
-    // si share lanza sin promesa, caemos a descarga
+  } catch (_) {
+    // continúa al fallback
   }
 
-  // Fallback: descarga
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement("a")
-  a.href = url
-  a.download = name
-  a.click()
-  URL.revokeObjectURL(url)
+  // 3) Fallback: descarga, luego abrir con “Zebra Print” desde el gestor
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name; a.click();
+  URL.revokeObjectURL(url);
 }
+
+
 
 
 /* ==================================================================== */
