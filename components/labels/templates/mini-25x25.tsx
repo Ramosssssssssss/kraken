@@ -35,10 +35,29 @@ body{
 /* Puedes aplicarlo selectivamente */
 .g{width:${w}mm;height:${h}mm;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(6,minmax(0,auto));
 gap:1px;font-size:8px;font-weight:bold;padding:1mm;}
-.desc{grid-area:1/1/2/4;font-weight:bold;text-align:left;font-size:8px;display:flex;margin-top:1.5mm;justify-content:center;line-height:1.05;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.im{grid-area:4/1/5/2}.es{grid-area:5/3/6/4}.un{grid-area:5/1/6/2}.co{grid-area:6/1/7/2}.fe{grid-area:4/3/5/4;text-align:right}
-.pm{grid-area:2/1/3/4;display:flex;align-items:center;justify-content:flex-end;font-weight:bold;font-size:15px}
-.pl{grid-area:6/2/7/4;text-align:right}
+.desc{
+grid-area: 1 / 1 / 3 / 4;             /* ocupa 2 filas: 1 y 2 */
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;             /* máximo 2 líneas */
+  overflow:hidden;
+  padding:0 0.6mm;
+  font-weight:bold;
+  font-size:7.6px;                  /* un pelito menor para 25×25 */
+  line-height:1.05;
+  text-align:left;
+  word-break:break-word;            /* corta palabras largas si es necesario */
+  hyphens:auto;                     /* guiones auto si el navegador soporta */
+}
+
+
+.im{grid-area: 3 / 1 / 4 / 2; }
+.es{grid-area: 4 / 1 / 5 / 2;}
+.un{grid-area: 5 / 1 / 6 / 2;}
+.co{grid-area: 6 / 1 / 7 / 2;}
+.fe{grid-area: 3 / 2 / 4 / 4;text-align:right}
+.pm{grid-area: 4 / 2 / 6 / 4;display:flex;align-items:center;justify-content:flex-end;font-weight:bold;font-size:15px}
+.pl{grid-area: 6 / 2 / 7 / 4;text-align:right}
 .b{font-weight:bold;font-size:7px}
 `,
 
