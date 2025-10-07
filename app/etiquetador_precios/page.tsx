@@ -195,36 +195,49 @@ function buildZplJobSmart(
 
 
 // Compartir/descargar el ZPL en Android para abrir con Zebra Print Station
-async function shareZplToZebra(zpl: string, name = `job_${Date.now()}.zpl`) {
-  // Debe ser contexto seguro (https o localhost)
+// Reemplaza tu shareZplToZebra por esta versión SIN async/await
+function shareZplToZebra(zpl: string, name = `job_${Date.now()}.zpl`) {
   if (typeof window === "undefined") return
   const isSecure = window.isSecureContext || ["localhost", "127.0.0.1"].includes(location.hostname)
   if (!isSecure) {
     throw new Error("Comparte desde HTTPS (o localhost).")
   }
 
-  // Preparamos el archivo ZPL
-  const tryTypes = [
+  // usa una extensión .zpl y un MIME típico para ZPL
+  const mimeTypes = [
     "application/vnd.zebra-zpl",
     "application/zpl",
     "text/plain",
     "application/octet-stream",
   ]
-  const blob = new Blob([zpl], { type: tryTypes[0] })
+  const blob = new Blob([zpl], { type: mimeTypes[0] })
   const file = new File([blob], name, { type: blob.type })
 
-  // 1) Web Share Level 2 con archivo (ideal)
   const nav: any = navigator
-  if (nav?.canShare && nav.canShare({ files: [file] }) && typeof nav.share === "function") {
-    await nav.share({
-      title: "Zebra ZPL",
-      text: "Enviar a Zebra PrintConnect",
-      files: [file],
-    })
-    return
+
+  // Llama share() inmediatamente (sin await). Si falla, cae a descarga.
+  try {
+    if (nav?.canShare && nav.canShare({ files: [file] }) && typeof nav.share === "function") {
+      nav.share({
+        title: "Zebra ZPL",
+        text: "Abrir con Zebra Print",
+        files: [file],
+      }).catch(() => {
+        // usuario canceló o no hay destino => fallback descarga
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = name
+        a.click()
+        URL.revokeObjectURL(url)
+      })
+      return
+    }
+  } catch {
+    // si share lanza sin promesa, caemos a descarga
   }
 
-  // 2) Fallback: descarga directa (el usuario toca y elige “Abrir con PrintConnect”)
+  // Fallback: descarga
   const url = URL.createObjectURL(blob)
   const a = document.createElement("a")
   a.href = url
@@ -232,6 +245,7 @@ async function shareZplToZebra(zpl: string, name = `job_${Date.now()}.zpl`) {
   a.click()
   URL.revokeObjectURL(url)
 }
+
 
 /* ==================================================================== */
 
@@ -398,18 +412,22 @@ export default function Page() {
   const [printOpen, setPrintOpen] = useState(false)
   const printRef = useRef<HTMLDivElement | null>(null)
 
-const handlePrintMobile = async () => {
-  if (!articles.length) return
-  try {
-    const zpl = buildZplJobSmart(articles, template, 203) // ZQ511 = 203dpi
-    await shareZplToZebra(zpl, "etiquetas.zpl")
-    new Noty({ type: "success", layout: "topRight", theme: "mint",
-      text: "Enviado a Zebra. Si PrintConnect tiene Auto Print, saldrá directo.", timeout: 2200 }).show()
-  } catch (e:any) {
-    new Noty({ type: "error", layout: "topRight", theme: "mint",
-      text: `No se pudo compartir: ${e?.message || e}`, timeout: 3500 }).show()
+  const handlePrintMobile = async () => {
+    if (!articles.length) return
+    try {
+      const zpl = buildZplJobSmart(articles, template, 203) // ZQ511 = 203dpi
+      await shareZplToZebra(zpl, "etiquetas.zpl")
+      new Noty({
+        type: "success", layout: "topRight", theme: "mint",
+        text: "Enviado a Zebra. Si PrintConnect tiene Auto Print, saldrá directo.", timeout: 2200
+      }).show()
+    } catch (e: any) {
+      new Noty({
+        type: "error", layout: "topRight", theme: "mint",
+        text: `No se pudo compartir: ${e?.message || e}`, timeout: 3500
+      }).show()
+    }
   }
-}
 
 
 
@@ -465,9 +483,32 @@ ${template.css(w, h, pad)}
   }, [])
 
   const onPrintClick = () => {
-    if (isMobile) handlePrintMobile()
-    else handlePrint()
+    if (!articles.length) return
+    if (isMobile) {
+      const zpl = buildZplJobSmart(articles, template, 203) // ZQ511 = 203 dpi
+      try {
+        shareZplToZebra(zpl, "etiquetas.zpl")
+        new Noty({
+          type: "success",
+          layout: "topRight",
+          theme: "mint",
+          text: "Abre 'Zebra Print' en el panel de compartir para imprimir.",
+          timeout: 2200,
+        }).show()
+      } catch (e: any) {
+        new Noty({
+          type: "error",
+          layout: "topRight",
+          theme: "mint",
+          text: e?.message || "No se pudo compartir el ZPL.",
+          timeout: 3500,
+        }).show()
+      }
+    } else {
+      handlePrint() // tu flujo HTML para desktop
+    }
   }
+
 
   // Preview barcodes cuando lista/plantilla cambian
   useEffect(() => {
