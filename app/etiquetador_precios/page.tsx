@@ -78,28 +78,17 @@ function normalizeCandidate(raw: string) {
 }
 const isLikelyUbic = (s: string) => UBIC_REGEX.test(s)
 
-
-/************************************************/
-// ====== ZPL helpers ======
+/* ==================================================================== */
+/* ========================  ZPL helpers  ============================== */
+/* ==================================================================== */
 function mmToDots(mm: number, dpi: 203 | 300 | 600) {
   return Math.round((mm / 25.4) * dpi)
 }
 
 function escapeZplText(s: string) {
-  // Evita caracteres que rompan ^FD (como ^, ~, \, etc.)
-  return (s || "")
-    .replace(/[\^~\\]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
+  return (s || "").replace(/[\^~\\]/g, " ").replace(/\s+/g, " ").trim()
 }
 
-/**
- * Genera una etiqueta ZPL simple con 3 elementos:
- * - Código de barras CODE128 (a.codigo)
- * - Descripción (a.nombre)
- * - Precio (a.precio)
- * Se posiciona en milímetros según template.width/height
- */
 function buildZplForItem(
   a: { codigo: string; nombre: string; precio: number },
   template: { width: number; height: number },
@@ -107,15 +96,9 @@ function buildZplForItem(
 ) {
   const W = mmToDots(template.width, dpi)
   const H = mmToDots(template.height, dpi)
-
-  // Márgenes y posiciones básicas en mm
-  const marginLeftMm = 3
-  const topMm = 3
-  const barcodeHeightMm = Math.max(8, Math.min(template.height * 0.45, 16)) // 8–16 mm
-
-  const ML = mmToDots(marginLeftMm, dpi)
-  const TOP = mmToDots(topMm, dpi)
-  const BC_H = mmToDots(barcodeHeightMm, dpi)
+  const ML = mmToDots(3, dpi)                 // margen izq 3mm
+  const TOP = mmToDots(3, dpi)                // margen sup 3mm
+  const BC_H = mmToDots(Math.min(16, Math.max(8, template.height * 0.45)), dpi)
 
   const descY = TOP + BC_H + mmToDots(2, dpi)
   const priceY = descY + mmToDots(8, dpi)
@@ -123,11 +106,7 @@ function buildZplForItem(
   const desc = escapeZplText(a.nombre)
   const price = a.precio != null ? `$${a.precio.toFixed(2)}` : ""
 
-  // ^CI28 para UTF-8 si tu firmware lo soporta (ante problemas, eliminar)
-  // ^PW ancho total; ^LL largo total
-  // ^BY ancho módulo/ratio/altura (altura la sobreescribimos con ^BC)
-  // ^BCN = Code 128, orientación normal, imprimir texto (N), Altura la pasamos en ^BC
-  const zpl = `
+  return `
 ^XA
 ^PW${W}
 ^LL${H}
@@ -137,21 +116,13 @@ function buildZplForItem(
 ^BY2,2
 ^BCN,${BC_H},N,N,N
 ^FD${escapeZplText(a.codigo)}^FS
-
 ^CF0,${dpi === 203 ? 22 : 28}
 ^FO${ML},${descY}^FD${desc}^FS
-
 ^CF0,${dpi === 203 ? 34 : 44}
 ^FO${ML},${priceY}^FD${price}^FS
-^XZ
-`.trim()
-
-  return zpl
+^XZ`.trim()
 }
 
-/**
- * Compone todas las etiquetas (repite por cantidad) en un solo string ZPL
- */
 function buildZplJob(
   articles: Array<{ codigo: string; nombre: string; precio: number; quantity: number }>,
   template: { width: number; height: number },
@@ -167,40 +138,28 @@ function buildZplJob(
   return out
 }
 
-/**
- * Envía ZPL:
- * 1) Si existe window.BrowserPrint => usa Zebra BrowserPrint
- * 2) Si no, intenta POST a http://127.0.0.1:9100 (servicio local)
- */
-async function sendZpl(zpl: string) {
-  // Opción A: BrowserPrint (recomendada para BT)
-  const bp: any = (window as any).BrowserPrint
-  if (bp && bp.getDefaultDevice) {
-    const device = await new Promise<any>((resolve, reject) => {
-      bp.getDefaultDevice("printer", (d: any) => resolve(d), (e: any) => reject(e))
-    })
-    if (!device) throw new Error("No se encontró impresora BrowserPrint.")
-    await new Promise<void>((resolve, reject) => {
-      device.send(zpl, () => resolve(), (err: any) => reject(err))
-    })
-    return
-  }
+// Compartir/descargar el ZPL en Android para abrir con Zebra Print Station
+async function shareZplOnAndroid(zpl: string) {
+  const fileName = `etiquetas_${Date.now()}.zpl` // o .lbl
+  const blob = new Blob([zpl], { type: "text/plain" })
+  const file = new File([blob], fileName, { type: "text/plain" })
 
-  // Opción B: Servicio local (cuando existe un puente que escucha en 9100)
-  try {
-    const r = await fetch("http://127.0.0.1:9100/", {
-      method: "POST",
-      headers: { "Content-Type": "text/plain" },
-      body: zpl,
+  const anyNav = navigator as any
+  if (anyNav?.canShare && anyNav.canShare({ files: [file] })) {
+    await anyNav.share({
+      title: "ZPL para Zebra",
+      text: "Imprimir en Zebra Print Station",
+      files: [file],
     })
-    if (!r.ok) throw new Error(`HTTP ${r.status}`)
-    return
-  } catch (e) {
-    // Si no hay puente local, informa
-    throw new Error("No se pudo enviar el ZPL. Instala/activa BrowserPrint o un puente local 9100.")
+  } else {
+    const a = document.createElement("a")
+    a.href = URL.createObjectURL(blob)
+    a.download = fileName
+    a.click()
+    URL.revokeObjectURL(a.href)
   }
 }
-
+/* ==================================================================== */
 
 // ===========================================
 export default function Page() {
@@ -278,7 +237,7 @@ export default function Page() {
   const downloadTemplate = () => {
     const wb = XLSX.utils.book_new()
     const ws = XLSX.utils.aoa_to_sheet([["CODIGO", "CANTIDAD"], ["12500", 2], ["12501", 1]])
-    // @ts-ignore
+// @ts-ignore
     ws["!cols"] = [{ wch: 12 }, { wch: 10 }]
     XLSX.utils.book_append_sheet(wb, ws, "Plantilla")
     XLSX.writeFile(wb, "plantilla_etiquetas_codigos.xlsx")
@@ -317,7 +276,7 @@ export default function Page() {
     const data = [["CODIGO", "CANTIDAD"], ...articles.map(a => [a.codigo, a.quantity])]
     const wb = XLSX.utils.book_new()
     const ws = XLSX.utils.aoa_to_sheet(data)
-    // @ts-ignore
+// @ts-ignore
     ws["!cols"] = [{ wch: 16 }, { wch: 10 }]
     XLSX.utils.book_append_sheet(wb, ws, "Articulos")
     const suc = (sucursalActual?.nombre || "sucursal").replace(/[^\w\-]+/g, "_")
@@ -328,16 +287,14 @@ export default function Page() {
   }
 
   // ====== IMPRESIÓN ======
-  // Modal-only print para móvil
+  // Modal-only print para móvil (mantengo tu modal/preview por si lo usas)
   const [printOpen, setPrintOpen] = useState(false)
   const printRef = useRef<HTMLDivElement | null>(null)
-
-  const [zebraDpi, setZebraDpi] = useState<203 | 300 | 600>(203) // si quieres permitir 300/600
 
   const handlePrintMobile = async () => {
     if (!articles.length) return
     try {
-      // 1) Generar trabajo ZPL
+      // Generar ZPL (ZQ511-BUE = 203 dpi)
       const zpl = buildZplJob(
         articles.map(a => ({
           codigo: a.codigo,
@@ -346,32 +303,31 @@ export default function Page() {
           quantity: a.quantity,
         })),
         { width: template.width, height: template.height },
-        zebraDpi
+        203
       )
 
-      // 2) Enviar ZPL por BrowserPrint o puente local
-      await sendZpl(zpl)
+      // Compartir/descargar para abrir con Zebra Print Station
+      await shareZplOnAndroid(zpl)
 
       new Noty({
         type: "success",
         layout: "topRight",
         theme: "mint",
-        text: "Enviado a la Zebra.",
-        timeout: 1800,
+        text: "ZPL listo. Comparte/abre con Zebra Print Station para imprimir.",
+        timeout: 2200,
       }).show()
     } catch (e: any) {
       new Noty({
         type: "error",
         layout: "topRight",
         theme: "mint",
-        text: `No se pudo imprimir: ${e?.message || e}`,
-        timeout: 3500,
+        text: `No se pudo preparar el ZPL: ${e?.message || e}`,
+        timeout: 4000,
       }).show()
     }
   }
 
-
-  // Tu impresión existente (iframe) – se usa para desktop
+  // Tu impresión existente (iframe) – se usa para desktop (HTML->print)
   const handlePrint = () => {
     if (!articles.length) return
     const w = template.width
@@ -413,7 +369,7 @@ ${template.css(w, h, pad)}
     d.open(); d.write(html); d.close()
     const cleanup = () => { try { document.body.removeChild(f) } catch { } }
     setTimeout(cleanup, 10000)
-      ; (f.contentWindow as any)?.addEventListener?.("afterprint", cleanup)
+    ;(f.contentWindow as any)?.addEventListener?.("afterprint", cleanup)
   }
 
   const isMobile = useMemo(() => {
@@ -472,7 +428,7 @@ ${template.css(w, h, pad)}
       } catch {
         return ""
       } finally {
-        try { await reader.reset() } catch { }
+        try { await reader.reset() } catch {}
       }
     } catch {
       return ""
@@ -527,15 +483,15 @@ ${template.css(w, h, pad)}
         }
 
         // fallback periódico con ZXing
-        if (++missCount % 10 === 0 && videoRef.current) {
-          const z = await tryZXingOnce(videoRef.current)
+        if (++missCount % 10 === 0 && video.videoWidth > 0) {
+          const z = await tryZXingOnce(videoRef.current!)
           const n2 = normalizeCandidate(z)
           if (isLikelyUbic(n2)) {
             setUbicacion(n2)
             try { navigator.vibrate?.(80) } catch { }
             stopCamera()
             setUbicTab("manual")
-            new Noty({ type: "success", layout: "topRight", theme: "mint", text: `Ubicación: ${n2}`, timeout: 1800 }).show()
+            new Noty({ type: "success", layout: "topRight", theme: "mint", text: `Ubicación: ${n2}` , timeout: 1800 }).show()
             return
           }
         }
@@ -782,7 +738,7 @@ ${template.css(w, h, pad)}
                 <CardTitle className="flex items-center gap-2 text-white">
                   <Settings className="w-5 h-5 text-purple-300" />Configuración
                 </CardTitle>
-                <CardTitle className="flex items-center gap-2 text-white font-light text-xs">v2.3.3</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-white font-light text-xs">v2.3.1</CardTitle>
               </CardHeader>
 
               <CardContent className="p-4 sm:p-6 space-y-6">
