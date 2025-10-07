@@ -68,55 +68,60 @@ export const Blanca40x22: LabelTemplate = {
     </div></div></div>`,
 
   // NUEVO: layout ZPL equivalente al grid anterior (sin código de barras, solo textos)
-  renderZPL: (a, dpi) => {
-    const W = 39.9, H = 22.8
-    const padX = 2   // padding lateral (mm)
-    const padY = 2   // padding superior (mm)
-    const colGap = 8 // separación visual entre columnas (mm)
+renderZPL: (a, dpi) => {
+  const W = 39.9, H = 22.8
+  const padX = 2
+  const padY = 2
+  const colGap = 8
 
-    const start = zplStart(W, H, dpi)
+  const start = zplStart(W, H, dpi)  // agrega ^MD en zplStart (abajo te digo cómo)
 
-    // Formateador de moneda seguro (evita texto vacío)
-    const fmtMoney = (v) => {
-      const n = Number(v)
-      return Number.isFinite(n) ? money(n) : money(0)
-    }
+  const fmtMoney = (v) => {
+    const n = Number(v)
+    return Number.isFinite(n) ? money(n) : money(0)
+  }
 
-    // Descripción (ancho completo)
-    const desc = textBox(padX, padY, W - padX * 2, 2.8, 2, "L", dpi, a.nombre ?? "", 0.6)
+  // Descripción
+  const desc = textBox(padX, padY, W - padX * 2, 2.8, 2, "L", dpi, a.nombre ?? "", 0.6)
 
-    // Columna izquierda
-    const leftX = padX
-    const leftW = (W - padX * 2 - colGap) / 2
-    const rowH = 3.4                  // antes 3.6 (da un poco más de aire vertical)
-    const leftY0 = padY + 6.8         // antes 7.2 (sube ligeramente todo)
+  // Columna izquierda
+  const leftX = padX
+  const leftW = (W - padX * 2 - colGap) / 2
+  const rowH  = 3.4
+  const leftY0 = padY + 6.8
 
-    const invMax = textBox(leftX, leftY0 + rowH * 0, leftW, 2.3, 1, "L", dpi,
-      `G - ${Number.isFinite(a.inventarioMaximo) ? a.inventarioMaximo : 0}`)
-    const estatus = textBox(leftX, leftY0 + rowH * 1, leftW, 2.3, 1, "L", dpi, a.estatus ?? "-")
-    const unidad = textBox(leftX, leftY0 + rowH * 2, leftW, 2.3, 1, "L", dpi, a.unidad ?? "")
-    const codigo = textBox(leftX, leftY0 + rowH * 3, leftW, 2.3, 1, "L", dpi, a.codigo ?? "")
+  const invMax = textBox(leftX, leftY0 + rowH * 0, leftW, 2.3, 1, "L", dpi,
+    `G - ${Number.isFinite(a.inventarioMaximo) ? a.inventarioMaximo : 0}`)
+  const estatus = textBox(leftX, leftY0 + rowH * 1, leftW, 2.3, 1, "L", dpi, a.estatus ?? "-")
+  const unidad  = textBox(leftX, leftY0 + rowH * 2, leftW, 2.3, 1, "L", dpi, a.unidad ?? "")
+  const codigo  = textBox(leftX, leftY0 + rowH * 3, leftW, 2.3, 1, "L", dpi, a.codigo ?? "")
 
-    // Columna derecha
-    const rightX = padX + leftW + colGap
-    const rightW = W - rightX - padX
+  // Columna derecha
+  const rightX = padX + leftW + colGap
+  const rightW = W - rightX - padX
 
-    // Fecha
-    const fecha = textBox(rightX, leftY0, rightW, 2.7, 1, "R", dpi, a.fecha ?? "")
+  const fecha = textBox(rightX, leftY0, rightW, 2.4, 1, "R", dpi, a.fecha ?? "")
 
-    // Precio principal (grande)
-    const price = textBox(
-      rightX, leftY0 + rowH * 1.2, rightW, 5.8, 1, "R", dpi,
-      fmtMoney(a.precio ?? 0)
-    )
+  const price = textBox(
+    rightX, leftY0 + rowH * 1.15, rightW, 5.6, 1, "R", dpi,
+    fmtMoney(a.precio ?? 0)
+  )
 
-    // Distribuidor (subido y más bajo para no salirse)
-    const dist = textBox(
-      rightX, leftY0 + rowH * 2.8, rightW, 2.3, 1, "R", dpi,
-      `Dist: ${fmtMoney(a.distribuidor ?? 0)}`
-    )
+  // Dist en dos cajas: "Dist:" a la izq + monto a la derecha
+  const distY = leftY0 + rowH * 2.65   // más arriba que antes
+  const distLabelW = 10                // 10mm para la palabra "Dist:"
+  const distH = 2.0
 
-    return `${start}
+  const distLabel = textBox(
+    rightX, distY, distLabelW, distH, 1, "L", dpi, "Dist:"
+  )
+
+  const distValue = textBox(
+    rightX + distLabelW, distY, rightW - distLabelW, distH, 1, "R", dpi,
+    fmtMoney(a.distribuidor ?? 0)
+  )
+
+  return `${start}
 ${desc}
 ${invMax}
 ${estatus}
@@ -124,9 +129,10 @@ ${unidad}
 ${codigo}
 ${fecha}
 ${price}
-${dist}
+${distLabel}
+${distValue}
 ${zplEnd}`
-  },
+},
 
 
   preview: (a) => (
