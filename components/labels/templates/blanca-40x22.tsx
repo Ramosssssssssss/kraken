@@ -83,13 +83,13 @@ export const Blanca40x22: LabelTemplate = {
     const leftX = padX
     const leftW = (W - padX * 2 - colGap) / 2 // aprox 50% para izq
     const rowH = 3.6 // alto aproximado por fila (mm) para 4 filas
-    const leftY0 = padY + 5 // debajo de descripción
+    const leftY0 = padY + 7.2 // debajo de descripción
 
-    const invMax = textBox(leftX, leftY0 + rowH * 0, leftW, 2.7, 1, "L", dpi,
+    const invMax = textBox(leftX, leftY0 + rowH * 0, leftW, 2.0, 1, "L", dpi,
       `G - ${Number.isFinite(a.inventarioMaximo) ? a.inventarioMaximo : 0}`)
-    const estatus = textBox(leftX, leftY0 + rowH * 1, leftW, 2.7, 1, "L", dpi, a.estatus ?? "-")
-    const unidad  = textBox(leftX, leftY0 + rowH * 2, leftW, 2.7, 1, "L", dpi, a.unidad ?? "")
-    const codigo  = textBox(leftX, leftY0 + rowH * 3, leftW, 2.7, 1, "L", dpi, a.codigo ?? "")
+    const estatus = textBox(leftX, leftY0 + rowH * 1, leftW, 2.0, 1, "L", dpi, a.estatus ?? "-")
+    const unidad  = textBox(leftX, leftY0 + rowH * 2, leftW, 2.0, 1, "L", dpi, a.unidad ?? "")
+    const codigo  = textBox(leftX, leftY0 + rowH * 3, leftW, 2.0, 1, "L", dpi, a.codigo ?? "")
 
     // Fecha (derecha arriba, fila 3)
     const rightX = padX + leftW + colGap
