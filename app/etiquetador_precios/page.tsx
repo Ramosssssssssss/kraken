@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import {Eye, Settings, Printer, Plus, Trash2, Minus, Loader2, AlertCircle,Upload, Download, LayoutTemplate, RotateCcw, Search, Camera, Keyboard} from "lucide-react"
+import { Eye, Settings, Printer, Plus, Trash2, Minus, Loader2, AlertCircle, Upload, Download, LayoutTemplate, RotateCcw, Search, Camera, Keyboard } from "lucide-react"
 import * as XLSX from "xlsx"
 import Noty from "noty"
 import "noty/lib/noty.css"
@@ -183,10 +183,10 @@ function buildZplJobSmart(
     const zplOne = hasRenderZPL
       ? (template as any).renderZPL(a, dpi)
       : buildZplForItem(
-          { codigo: a.codigo, nombre: a.nombre, precio: a.precio ?? 0 },
-          { width: template.width, height: template.height },
-          dpi
-        )
+        { codigo: a.codigo, nombre: a.nombre, precio: a.precio ?? 0 },
+        { width: template.width, height: template.height },
+        dpi
+      )
 
     out += String(zplOne).replace("^XZ", `^PQ${qty}\n^XZ`) + "\n"
   }
@@ -195,60 +195,44 @@ function buildZplJobSmart(
 
 
 // Compartir/descargar el ZPL en Android para abrir con Zebra Print Station
-async function shareZplOnAndroid(zpl: string) {
-  // 0) Requisitos básicos
-  const isSecure = typeof window !== "undefined" && (window.isSecureContext || location.hostname === "localhost" || location.hostname === "127.0.0.1")
+async function shareZplToZebra(zpl: string, name = `job_${Date.now()}.zpl`) {
+  // Debe ser contexto seguro (https o localhost)
+  if (typeof window === "undefined") return
+  const isSecure = window.isSecureContext || ["localhost", "127.0.0.1"].includes(location.hostname)
   if (!isSecure) {
-    throw new Error("La compartición requiere HTTPS (o localhost). Abre esta página en https://")
+    throw new Error("Comparte desde HTTPS (o localhost).")
   }
 
-  // 1) Prepara archivo ZPL
-  const fileName = `etiquetas_${Date.now()}.zpl`
-  // Si Print Station no aparece como app asociada, prueba "text/plain"
-  const mime = "application/octet-stream" // o "text/plain"
-  const blob = new Blob([zpl], { type: mime })
-  const file = new File([blob], fileName, { type: mime })
+  // Preparamos el archivo ZPL
+  const tryTypes = [
+    "application/vnd.zebra-zpl",
+    "application/zpl",
+    "text/plain",
+    "application/octet-stream",
+  ]
+  const blob = new Blob([zpl], { type: tryTypes[0] })
+  const file = new File([blob], name, { type: blob.type })
 
-  // 2) Debe existir activación de usuario (clic directo)
-  const ua = (navigator as any).userActivation
-  if (ua && !ua.isActive) {
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = fileName
-    a.click()
-    URL.revokeObjectURL(url)
+  // 1) Web Share Level 2 con archivo (ideal)
+  const nav: any = navigator
+  if (nav?.canShare && nav.canShare({ files: [file] }) && typeof nav.share === "function") {
+    await nav.share({
+      title: "Zebra ZPL",
+      text: "Enviar a Zebra PrintConnect",
+      files: [file],
+    })
     return
   }
 
-  // 3) Intenta Web Share Level 2 con archivos
-  try {
-    const anyNav = navigator as any
-    if (anyNav?.canShare && anyNav.canShare({ files: [file] }) && typeof anyNav.share === "function") {
-      await anyNav.share({
-        title: "ZPL para Zebra",
-        text: "Abrir con Zebra Print Station",
-        files: [file],
-      })
-      return
-    }
-    // Si no soporta share con archivos, cae a descarga
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = fileName
-    a.click()
-    URL.revokeObjectURL(url)
-  } catch (err: any) {
-    // Permission denied / NotAllowedError / cancelaciones → fallback descarga
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = fileName
-    a.click()
-    URL.revokeObjectURL(url)
-  }
+  // 2) Fallback: descarga directa (el usuario toca y elige “Abrir con PrintConnect”)
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = name
+  a.click()
+  URL.revokeObjectURL(url)
 }
+
 /* ==================================================================== */
 
 // ===========================================
@@ -262,6 +246,39 @@ export default function Page() {
   // Plantilla (desde registry)
   const [tplId, setTplId] = useState<TemplateId>(LABEL_TEMPLATES[0].id)
   const template = useMemo<LabelTemplate>(() => getTemplate(tplId), [tplId])
+
+  const [printerIp, setPrinterIp] = useState<string>("")
+  const [printerPort, setPrinterPort] = useState<string>("9100")
+
+  useEffect(() => {
+    setPrinterIp(localStorage.getItem("printerIp") || "")
+    setPrinterPort(localStorage.getItem("printerPort") || "9100")
+  }, [])
+  useEffect(() => { if (printerIp) localStorage.setItem("printerIp", printerIp) }, [printerIp])
+  useEffect(() => { if (printerPort) localStorage.setItem("printerPort", printerPort) }, [printerPort])
+
+  // --- imprimir directo por LAN (ZPL) ---
+  const handlePrintDirectLan = async () => {
+    if (!articles.length) return
+    if (!printerIp) {
+      new Noty({ type: "warning", layout: "topRight", theme: "mint", text: "Configura la IP de la impresora", timeout: 2200 }).show()
+      return
+    }
+    try {
+      const zpl = buildZplJobSmart(articles, template, 203) // ZQ511 a 203 dpi
+      const r = await fetch("/api/print-zpl", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ zpl, ip: printerIp, port: Number(printerPort || 9100) })
+        // Si fijas IP/puerto en .env del backend, puedes mandar solo { zpl }
+      })
+      const j = await r.json()
+      if (!r.ok || !j?.ok) throw new Error(j?.error || "Fallo de impresión")
+      new Noty({ type: "success", layout: "topRight", theme: "mint", text: "Enviado a la Zebra.", timeout: 2000 }).show()
+    } catch (e: any) {
+      new Noty({ type: "error", layout: "topRight", theme: "mint", text: `Error al imprimir: ${e?.message || e}`, timeout: 3500 }).show()
+    }
+  }
 
   // Artículos
   const [articles, setArticles] = useState<ArticleItem[]>([])
@@ -381,28 +398,19 @@ export default function Page() {
   const [printOpen, setPrintOpen] = useState(false)
   const printRef = useRef<HTMLDivElement | null>(null)
 
- const handlePrintMobile = async () => {
+const handlePrintMobile = async () => {
   if (!articles.length) return
   try {
-    const zpl = buildZplJobSmart(articles, template, 203) // <-- ahora respeta el diseño del template
-    await shareZplOnAndroid(zpl)
-    new Noty({
-      type: "success",
-      layout: "topRight",
-      theme: "mint",
-      text: "ZPL listo. Comparte/abre con Zebra Print Station para imprimir.",
-      timeout: 2200,
-    }).show()
-  } catch (e: any) {
-    new Noty({
-      type: "error",
-      layout: "topRight",
-      theme: "mint",
-      text: `No se pudo preparar el ZPL: ${e?.message || e}`,
-      timeout: 4000,
-    }).show()
+    const zpl = buildZplJobSmart(articles, template, 203) // ZQ511 = 203dpi
+    await shareZplToZebra(zpl, "etiquetas.zpl")
+    new Noty({ type: "success", layout: "topRight", theme: "mint",
+      text: "Enviado a Zebra. Si PrintConnect tiene Auto Print, saldrá directo.", timeout: 2200 }).show()
+  } catch (e:any) {
+    new Noty({ type: "error", layout: "topRight", theme: "mint",
+      text: `No se pudo compartir: ${e?.message || e}`, timeout: 3500 }).show()
   }
 }
+
 
 
   // Tu impresión existente (iframe) – desktop (HTML->print)
@@ -447,7 +455,7 @@ ${template.css(w, h, pad)}
     d.open(); d.write(html); d.close()
     const cleanup = () => { try { document.body.removeChild(f) } catch { } }
     setTimeout(cleanup, 10000)
-    ;(f.contentWindow as any)?.addEventListener?.("afterprint", cleanup)
+      ; (f.contentWindow as any)?.addEventListener?.("afterprint", cleanup)
   }
 
   const isMobile = useMemo(() => {
@@ -506,7 +514,7 @@ ${template.css(w, h, pad)}
       } catch {
         return ""
       } finally {
-        try { await reader.reset() } catch {}
+        try { await reader.reset() } catch { }
       }
     } catch {
       return ""
@@ -569,7 +577,7 @@ ${template.css(w, h, pad)}
             try { navigator.vibrate?.(80) } catch { }
             stopCamera()
             setUbicTab("manual")
-            new Noty({ type: "success", layout: "topRight", theme: "mint", text: `Ubicación: ${n2}` , timeout: 1800 }).show()
+            new Noty({ type: "success", layout: "topRight", theme: "mint", text: `Ubicación: ${n2}`, timeout: 1800 }).show()
             return
           }
         }
