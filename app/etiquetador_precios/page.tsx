@@ -66,12 +66,12 @@ function renderAllBarcodes(root: HTMLElement | Document = document) {
 }
 
 // ========= Normalización/validación de ubicaciones =========
-const UBIC_REGEX = /^[A-Z0-9]{1,4}-(?:[A-Z0-9]{1,4}-){0,3}[A-Z0-9]{1,4}$/ // ajusta al patrón real
+const UBIC_REGEX = /^[A-Z0-9]{1,4}-(?:[A-Z0-9]{1,4}-){0,3}[A-Z0-9]{1,4}$/
 
 function normalizeCandidate(raw: string) {
   let s = (raw || "").trim().toUpperCase()
-  s = s.replace(/[–—_＋+]/g, "-")        // normaliza guiones
-  const map: Record<string, string> = { O: "0", I: "1", L: "1", S: "5", B: "8" } // parecidos visuales
+  s = s.replace(/[–—_＋+]/g, "-")        // normaliza guiones visualmente parecidos
+  const map: Record<string, string> = { O: "0", I: "1", L: "1", S: "5", B: "8" }
   s = s.replace(/[OILSB]/g, (c) => map[c] || c)
   s = s.replace(/-+/g, "-")
   return s
@@ -140,23 +140,57 @@ function buildZplJob(
 
 // Compartir/descargar el ZPL en Android para abrir con Zebra Print Station
 async function shareZplOnAndroid(zpl: string) {
-  const fileName = `etiquetas_${Date.now()}.zpl` // o .lbl
-  const blob = new Blob([zpl], { type: "text/plain" })
-  const file = new File([blob], fileName, { type: "text/plain" })
+  // 0) Requisitos básicos
+  const isSecure = typeof window !== "undefined" && (window.isSecureContext || location.hostname === "localhost" || location.hostname === "127.0.0.1")
+  if (!isSecure) {
+    throw new Error("La compartición requiere HTTPS (o localhost). Abre esta página en https://")
+  }
 
-  const anyNav = navigator as any
-  if (anyNav?.canShare && anyNav.canShare({ files: [file] })) {
-    await anyNav.share({
-      title: "ZPL para Zebra",
-      text: "Imprimir en Zebra Print Station",
-      files: [file],
-    })
-  } else {
+  // 1) Prepara archivo ZPL
+  const fileName = `etiquetas_${Date.now()}.zpl`
+  // Si Print Station no aparece como app asociada, prueba "text/plain"
+  const mime = "application/octet-stream" // o "text/plain"
+  const blob = new Blob([zpl], { type: mime })
+  const file = new File([blob], fileName, { type: mime })
+
+  // 2) Debe existir activación de usuario (clic directo)
+  const ua = (navigator as any).userActivation
+  if (ua && !ua.isActive) {
+    const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
-    a.href = URL.createObjectURL(blob)
+    a.href = url
     a.download = fileName
     a.click()
-    URL.revokeObjectURL(a.href)
+    URL.revokeObjectURL(url)
+    return
+  }
+
+  // 3) Intenta Web Share Level 2 con archivos
+  try {
+    const anyNav = navigator as any
+    if (anyNav?.canShare && anyNav.canShare({ files: [file] }) && typeof anyNav.share === "function") {
+      await anyNav.share({
+        title: "ZPL para Zebra",
+        text: "Abrir con Zebra Print Station",
+        files: [file],
+      })
+      return
+    }
+    // Si no soporta share con archivos, cae a descarga
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = fileName
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch (err: any) {
+    // Permission denied / NotAllowedError / cancelaciones → fallback descarga
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = fileName
+    a.click()
+    URL.revokeObjectURL(url)
   }
 }
 /* ==================================================================== */
@@ -237,7 +271,7 @@ export default function Page() {
   const downloadTemplate = () => {
     const wb = XLSX.utils.book_new()
     const ws = XLSX.utils.aoa_to_sheet([["CODIGO", "CANTIDAD"], ["12500", 2], ["12501", 1]])
-// @ts-ignore
+    // @ts-ignore
     ws["!cols"] = [{ wch: 12 }, { wch: 10 }]
     XLSX.utils.book_append_sheet(wb, ws, "Plantilla")
     XLSX.writeFile(wb, "plantilla_etiquetas_codigos.xlsx")
@@ -276,7 +310,7 @@ export default function Page() {
     const data = [["CODIGO", "CANTIDAD"], ...articles.map(a => [a.codigo, a.quantity])]
     const wb = XLSX.utils.book_new()
     const ws = XLSX.utils.aoa_to_sheet(data)
-// @ts-ignore
+    // @ts-ignore
     ws["!cols"] = [{ wch: 16 }, { wch: 10 }]
     XLSX.utils.book_append_sheet(wb, ws, "Articulos")
     const suc = (sucursalActual?.nombre || "sucursal").replace(/[^\w\-]+/g, "_")
@@ -287,7 +321,7 @@ export default function Page() {
   }
 
   // ====== IMPRESIÓN ======
-  // Modal-only print para móvil (mantengo tu modal/preview por si lo usas)
+  // Modal-only print para móvil (mantenemos el modal por si lo usas)
   const [printOpen, setPrintOpen] = useState(false)
   const printRef = useRef<HTMLDivElement | null>(null)
 
@@ -327,7 +361,7 @@ export default function Page() {
     }
   }
 
-  // Tu impresión existente (iframe) – se usa para desktop (HTML->print)
+  // Tu impresión existente (iframe) – desktop (HTML->print)
   const handlePrint = () => {
     if (!articles.length) return
     const w = template.width
@@ -482,9 +516,9 @@ ${template.css(w, h, pad)}
           return
         }
 
-        // fallback periódico con ZXing
-        if (++missCount % 10 === 0 && video.videoWidth > 0) {
-          const z = await tryZXingOnce(videoRef.current!)
+        // fallback periódico con ZXing (FIX: usar videoRef.current)
+        if (++missCount % 10 === 0 && videoRef.current && videoRef.current.videoWidth > 0) {
+          const z = await tryZXingOnce(videoRef.current)
           const n2 = normalizeCandidate(z)
           if (isLikelyUbic(n2)) {
             setUbicacion(n2)
