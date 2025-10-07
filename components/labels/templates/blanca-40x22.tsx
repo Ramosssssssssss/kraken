@@ -77,11 +77,7 @@ export const Blanca40x22: LabelTemplate = {
     const start = zplStart(W, H, dpi)
 
     // Descripción: filas 1-2, cubre todo el ancho menos padding
-    const desc = textBox(
-      padX, padY, W - padX * 2,
-      3.2, 2, "L", dpi,
-      a.nombre ?? "", 0.6
-    )
+    const desc = textBox(padX, padY, W - padX * 2, 2.8, 2, "L", dpi, a.nombre ?? "", 0.6)
 
     // “G - invMax”, “estatus”, “unidad”, “codigo” (columna izquierda, 4 filas)
     const leftX = padX
