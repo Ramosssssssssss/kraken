@@ -12,12 +12,18 @@ export type ArticleItem = {
   quantity: number
 }
 
-export type LabelTemplate = {
+// añade esto a tu interfaz LabelTemplate
+export type Dpi = 203 | 300 | 600
+
+export interface LabelTemplate {
   id: string
   name: string
-  width: number
-  height: number
-  css: (w: number, h: number, pad: number) => string
+  width: number // mm
+  height: number // mm
+  css: (w: number, h: number, pad?: number) => string
   renderHTML: (a: ArticleItem) => string
   preview: (a: ArticleItem) => React.ReactNode
+
+  // NUEVO: opcional. Si existe, la app lo usará para móvil/Zebra.
+  renderZPL?: (a: ArticleItem, dpi: Dpi) => string
 }

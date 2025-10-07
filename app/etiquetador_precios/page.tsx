@@ -167,6 +167,31 @@ function buildZplJob(
   }
   return out
 }
+// --- NUEVO: usa renderZPL del template si existe; si no, usa el fallback genérico ---
+function buildZplJobSmart(
+  articles: ArticleItem[],
+  template: LabelTemplate,
+  dpi: 203 | 300 | 600
+) {
+  const hasRenderZPL = typeof (template as any)?.renderZPL === "function"
+
+  let out = ""
+  for (const a of articles) {
+    const qty = Math.max(1, a.quantity)
+
+    // Si el template trae su propio ZPL, úsalo con el artículo completo
+    const zplOne = hasRenderZPL
+      ? (template as any).renderZPL(a, dpi)
+      : buildZplForItem(
+          { codigo: a.codigo, nombre: a.nombre, precio: a.precio ?? 0 },
+          { width: template.width, height: template.height },
+          dpi
+        )
+
+    out += String(zplOne).replace("^XZ", `^PQ${qty}\n^XZ`) + "\n"
+  }
+  return out
+}
 
 
 // Compartir/descargar el ZPL en Android para abrir con Zebra Print Station
@@ -356,41 +381,29 @@ export default function Page() {
   const [printOpen, setPrintOpen] = useState(false)
   const printRef = useRef<HTMLDivElement | null>(null)
 
-  const handlePrintMobile = async () => {
-    if (!articles.length) return
-    try {
-      // Generar ZPL (ZQ511-BUE = 203 dpi)
-      const zpl = buildZplJob(
-        articles.map(a => ({
-          codigo: a.codigo,
-          nombre: a.nombre,
-          precio: a.precio ?? 0,
-          quantity: a.quantity,
-        })),
-        { width: template.width, height: template.height },
-        203
-      )
-
-      // Compartir/descargar para abrir con Zebra Print Station
-      await shareZplOnAndroid(zpl)
-
-      new Noty({
-        type: "success",
-        layout: "topRight",
-        theme: "mint",
-        text: "ZPL listo. Comparte/abre con Zebra Print Station para imprimir.",
-        timeout: 2200,
-      }).show()
-    } catch (e: any) {
-      new Noty({
-        type: "error",
-        layout: "topRight",
-        theme: "mint",
-        text: `No se pudo preparar el ZPL: ${e?.message || e}`,
-        timeout: 4000,
-      }).show()
-    }
+ const handlePrintMobile = async () => {
+  if (!articles.length) return
+  try {
+    const zpl = buildZplJobSmart(articles, template, 203) // <-- ahora respeta el diseño del template
+    await shareZplOnAndroid(zpl)
+    new Noty({
+      type: "success",
+      layout: "topRight",
+      theme: "mint",
+      text: "ZPL listo. Comparte/abre con Zebra Print Station para imprimir.",
+      timeout: 2200,
+    }).show()
+  } catch (e: any) {
+    new Noty({
+      type: "error",
+      layout: "topRight",
+      theme: "mint",
+      text: `No se pudo preparar el ZPL: ${e?.message || e}`,
+      timeout: 4000,
+    }).show()
   }
+}
+
 
   // Tu impresión existente (iframe) – desktop (HTML->print)
   const handlePrint = () => {
