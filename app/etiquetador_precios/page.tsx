@@ -243,6 +243,81 @@ function shareZplToZebra(zpl: string, name = `etiquetas_${Date.now()}.zpl`) {
 
 
 /* ==================================================================== */
+// ====== BrowserPrint (Android) ======
+declare global {
+  interface Window {
+    BrowserPrint?: any
+  }
+}
+
+async function ensureBrowserPrintLoaded(): Promise<void> {
+  if (typeof window === "undefined") return
+  if (window.BrowserPrint) return
+  await new Promise<void>((resolve, reject) => {
+    const id = "bp-sdk"
+    if (document.getElementById(id)) return resolve()
+    const s = document.createElement("script")
+    s.id = id
+    // Si hosteas el JS tú mismo, ajusta la ruta:
+    s.src = "/browserprint/BrowserPrint-3.1.250.min.js"
+    s.async = true
+    s.onload = () => resolve()
+    s.onerror = () => reject(new Error("No se pudo cargar BrowserPrint SDK"))
+    document.head.appendChild(s)
+  })
+}
+
+type ZebraDevice = {
+  name: string
+  deviceType: "printer"
+  uid?: string
+  connection?: string
+  write: (data: string, onOk?: () => void, onErr?: (e: any) => void) => void
+}
+
+async function bpGetOrPickDevice(): Promise<ZebraDevice> {
+  await ensureBrowserPrintLoaded()
+  const BP = window.BrowserPrint
+  // 1) intenta la predeterminada
+  const dflt: ZebraDevice | null = await new Promise((res) =>
+    BP.getDefaultDevice("printer", (d: ZebraDevice | null) => res(d), () => res(null))
+  )
+  if (dflt) return dflt
+
+  // 2) lista y elige la primera que parezca Zebra (o la que guardaste)
+  const devices: ZebraDevice[] = await new Promise((res, rej) =>
+    BP.getDevices(
+      (list: ZebraDevice[]) => res(list || []),
+      (err: any) => rej(err),
+      "printer"
+    )
+  )
+
+  const savedUid = localStorage.getItem("zebra_bp_uid")
+  let dev = devices.find(d => d.uid && d.uid === savedUid)
+  if (!dev) dev = devices.find(d => /zq5|zebra|zq511/i.test(d.name || "")) || devices[0]
+
+  if (!dev) throw new Error("No se encontró ninguna impresora en BrowserPrint")
+  if (dev.uid) localStorage.setItem("zebra_bp_uid", dev.uid)
+  return dev
+}
+
+async function bpPrintZPL(zpl: string): Promise<void> {
+  const dev = await bpGetOrPickDevice()
+  await new Promise<void>((resolve, reject) => {
+    let done = false
+    const ok = () => { if (!done) { done = true; resolve() } }
+    const err = (e: any) => { if (!done) { done = true; reject(e) } }
+
+    // (opcional) “wake up” rápido con ~HS ó ~WC; suele no hacer falta
+    // dev.write("~HS\n", undefined, undefined)
+
+    dev.write(zpl, ok, err)
+
+    // timeout defensivo por si el bridge no responde
+    setTimeout(() => err(new Error("Timeout al enviar a BrowserPrint")), 8000)
+  })
+}
 
 // ===========================================
 export default function Page() {
@@ -288,6 +363,26 @@ export default function Page() {
       new Noty({ type: "error", layout: "topRight", theme: "mint", text: `Error al imprimir: ${e?.message || e}`, timeout: 3500 }).show()
     }
   }
+
+  const handlePrintBrowserPrint = async () => {
+  if (!articles.length) return
+  try {
+    const zpl = buildZplJobSmart(articles, template, 203) // ZQ511 = 203 dpi
+    await bpPrintZPL(zpl)
+    new Noty({ type: "success", layout: "topRight", theme: "mint", text: "Enviado a la Zebra (BrowserPrint).", timeout: 2200 }).show()
+  } catch (e: any) {
+    // Fallback a tu flujo de compartir si falla
+    console.warn("BP error:", e)
+    new Noty({ type: "warning", layout: "topRight", theme: "mint", text: "No se pudo usar BrowserPrint. Intentando compartir ZPL…", timeout: 1800 }).show()
+    try {
+      const zpl = buildZplJobSmart(articles, template, 203)
+      shareZplToZebra(zpl, "etiquetas.zpl")
+    } catch (e2: any) {
+      new Noty({ type: "error", layout: "topRight", theme: "mint", text: e2?.message || "Error al compartir ZPL.", timeout: 3200 }).show()
+    }
+  }
+}
+
 
   // Artículos
   const [articles, setArticles] = useState<ArticleItem[]>([])
@@ -958,6 +1053,17 @@ ${template.css(w, h, pad)}
                     <Printer className="w-4 h-4 mr-2" />
                     Imprimir ({totalLabels})
                   </Button>
+
+                  <Button
+  onClick={handlePrintBrowserPrint}
+  className="col-span-full w-full justify-center h-11 bg-purple-600 hover:bg-purple-700 text-white border-0"
+  disabled={!sucursalId || articles.length === 0}
+  title="Imprimir directo por BrowserPrint (Android)"
+>
+  <Printer className="w-4 h-4 mr-2" />
+  Imprimir (BrowserPrint)
+</Button>
+
 
                   <Button
                     type="button"
