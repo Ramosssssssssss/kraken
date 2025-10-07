@@ -12,35 +12,48 @@ height: 25,
 css: (w, h) => `
 @page{size:${w}mm ${h}mm;margin:0}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.p{width:${w}mm;height:${h}mm;page-break-after:always;display:flex;align-items:center;justify-content:center}
-.p:last-child{page-break-after:auto}
-.l{width:${w}mm;height:${h}mm;display:flex}
+body{
+  font-family: Arial, "Arial Black", sans-serif;
+  color:#000;
+  -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  -webkit-font-smoothing:none;      /* evita grises */
+  text-rendering:optimizeSpeed;     /* prioriza nitidez */
+}
 
+/* ---------- NUEVO: util para “negrita densa” ---------- */
+.dense{
+  font-weight:900;                  /* muy negrita */
+  -webkit-text-stroke:0.2px #000;   /* trazo finito negro */
+  text-shadow:
+    0  0   0.25px #000,
+    0.25px 0   0.25px #000,
+   -0.25px 0   0.25px #000,
+    0   0.25px 0.25px #000,
+    0  -0.25px 0.25px #000;         /* “faux bold” sin cambiar fuente */
+}
 
+/* Puedes aplicarlo selectivamente */
 .g{width:${w}mm;height:${h}mm;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(6,minmax(0,auto));
 gap:1px;font-size:8px;font-weight:bold;padding:1mm;}
-
-
 .desc{grid-area:1/1/2/4;font-weight:bold;text-align:left;font-size:8px;display:flex;margin-top:1.5mm;justify-content:center;line-height:1.05;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-
-
 .im{grid-area:4/1/5/2}.es{grid-area:5/3/6/4}.un{grid-area:5/1/6/2}.co{grid-area:6/1/7/2}.fe{grid-area:4/3/5/4;text-align:right}
 .pm{grid-area:2/1/3/4;display:flex;align-items:center;justify-content:flex-end;font-weight:bold;font-size:15px}
 .pl{grid-area:6/2/7/4;text-align:right}
 .b{font-weight:bold;font-size:7px}
 `,
+
 renderHTML: (a) => `
 <div class="p"><div class="l"><div class="g">
-<div class="desc">${escapeHTML(a.nombre)}</div>
-<div class="im"><span class="b">G - ${Number.isFinite(a.inventarioMaximo) ? a.inventarioMaximo : 0}</span></div>
-<div class="es"><span class="b">${escapeHTML(a.estatus ?? "-")}</span></div>
-<div class="un"><span class="b">${escapeHTML(a.unidad)}</span></div>
-<div class="co"><span class="b">${escapeHTML(a.codigo)}</span></div>
-<div class="fe"><span class="b">${escapeHTML(a.fecha)}</span></div>
-<div class="pm">${escapeHTML(money(a.precio))}</div>
-<div class="pl">Dist: ${escapeHTML(money(a.distribuidor))}</div>
-</div></div></div>`,
+  <div class="desc dense">${escapeHTML(a.nombre)}</div>
+  <div class="im"><span class="b dense">G - ${Number.isFinite(a.inventarioMaximo) ? a.inventarioMaximo : 0}</span></div>
+  <div class="es"><span class="b dense">${escapeHTML(a.estatus ?? "-")}</span></div>
+  <div class="un"><span class="b dense">${escapeHTML(a.unidad)}</span></div>
+  <div class="co"><span class="b dense">${escapeHTML(a.codigo)}</span></div>
+  <div class="fe"><span class="b dense">${escapeHTML(a.fecha)}</span></div>
+  <div class="pm dense">${escapeHTML(money(a.precio))}</div>
+  <div class="pl dense">Dist: ${escapeHTML(money(a.distribuidor))}</div>
+</div></div></div>`
+,
 preview: (a) => (
 <div className="w-full h-full grid bg-[#d2c600]"
 style={{ gridTemplateColumns: "repeat(3, 1fr)", gridTemplateRows: "repeat(6, minmax(0, auto))", gap: "3px 8px", lineHeight: 1.05 }}>
