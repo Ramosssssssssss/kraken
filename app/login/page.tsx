@@ -269,13 +269,13 @@ export default function LoginPage() {
                   )}
                 </button>
               </form>
-
+{/* FUNCION DE REESTABLECER CONTRASEÑA PROXIMA
               <div className="text-center space-y-3">
                 <button className="text-gray-500 hover:text-gray-300 text-sm transition-colors">
                   ¿Olvidaste tu contraseña?
                 </button>
               </div>
-
+ */}
               {(apiUrlFromCtx || derivedApiUrl) && (
                 <div className="text-center">
                   <p className="text-gray-600 text-xs">API: {apiUrlFromCtx || derivedApiUrl}</p>

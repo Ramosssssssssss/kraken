@@ -59,10 +59,12 @@ export default function CatalogsSection() {
     router.push("/almacenes")
   }
 
-  const handleArticulosClick = () => {
-    setShowArticulosModal(true)
-  }
-
+  // const handleArticulosClick = () => {
+  //   setShowArticulosModal(true)
+  // }
+ const handleArticulosClick = () => {
+   router.push("/articulos/ver")
+}
   const handlePickingClick = () => {
     router.push("/picking")
   }
@@ -103,34 +105,34 @@ export default function CatalogsSection() {
                 version="v2.1.0"
                 onClick={handleArticulosClick}
               />
-              <ModuleCard
+              {/* <ModuleCard
                 title="Clientes"
                 description="Prepara los productos solicitados tomando la mercancía de su ubicación en almacén."
                 icon={ScanBarcode}
                 version="v2.1.0"
                 onClick={handlePickingClick}
-              />
-              <ModuleCard
+              /> */}
+              {/* <ModuleCard
                 title="Empresas"
                 description="Empaca y consolida los productos seleccionados para el envío o entrega."
                 icon={Box}
                 version="v2.1.0"
                 onClick={handlePackingClick}
-              />
-               <ModuleCard
+              /> */}
+               {/* <ModuleCard
                 title="Ordenes de Compra"
                 description="Empaca y consolida los productos seleccionados para el envío o entrega."
                 icon={Box}
                 version="v2.1.0"
                 onClick={handlePackingClick}
-              />
-               <ModuleCard
+              /> */}
+               {/* <ModuleCard
                 title="Pedidos"
                 description="Empaca y consolida los productos seleccionados para el envío o entrega."
                 icon={Box}
                 version="v2.1.0"
                 onClick={handlePackingClick}
-              />
+              /> */}
                <ModuleCard
                 title="Proveedores"
                 description="Empaca y consolida los productos seleccionados para el envío o entrega."

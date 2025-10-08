@@ -16,6 +16,7 @@ import {
   Loader2,
   Clock,
   CheckCircle2,
+  Zap, 
 } from "lucide-react"
 
 type InventarioDetalle = {
@@ -34,6 +35,14 @@ interface Toast {
   message: string
   autoClose?: boolean
 }
+interface CompletionModal {
+  show: boolean
+  title: string
+  message: string
+  icon: any
+  color: string
+}
+
 
 export default function InventarioFisicoPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -67,6 +76,15 @@ export default function InventarioFisicoPage() {
   const [timerStarted, setTimerStarted] = useState(false)
   const [startTime, setStartTime] = useState<number | null>(null)
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
+
+  //modal completo
+    const [completionModal, setCompletionModal] = useState<CompletionModal>({
+      show: false,
+      title: "",
+      message: "",
+      icon: CheckCircle,
+      color: "",
+    })
   const [lastScannedProduct, setLastScannedProduct] = useState<{
     product: InventarioDetalle
     timestamp: Date
@@ -281,8 +299,8 @@ export default function InventarioFisicoPage() {
       UMED: null,
       CANTIDAD: cantidad,
       _key: `inv-${Date.now()}`,
-      packed: 0,
-      scanned: 0,
+      packed: 1,
+      scanned: 1,
     }
 
     setDetalles((prev) => {
@@ -331,6 +349,7 @@ export default function InventarioFisicoPage() {
       next[idx] = { ...d, packed: req, scanned: requireScan ? d.scanned : req }
       return next
     })
+    
     setTimeout(focusScanner, 50)
   }
 
@@ -402,6 +421,40 @@ export default function InventarioFisicoPage() {
     focusScanner()
   }, [focusScanner])
 
+  const getPerformanceMessage = (seconds: number, itemCount: number) => {
+    const secondsPerItem = itemCount > 0 ? seconds / itemCount : Number.POSITIVE_INFINITY
+
+    if (secondsPerItem < 3) {
+      return {
+        title: "¡Velocidad Increíble!",
+        message: `Completaste ${itemCount} productos en ${formatTime(seconds)}. ¡Eres un profesional!`,
+        icon: Zap,
+        color: "from-yellow-500 to-orange-500",
+      }
+    } else if (secondsPerItem < 6) {
+      return {
+        title: "¡Excelente Trabajo!",
+        message: `Tiempo total: ${formatTime(seconds)} para ${itemCount} productos. ¡Muy eficiente!`,
+        icon: Zap
+        ,
+        color: "from-green-500 to-emerald-500",
+      }
+    } else if (secondsPerItem < 10) {
+      return {
+        title: "¡Buen Ritmo!",
+        message: `Completaste la recepción en ${formatTime(seconds)}. ¡Sigue así!`,
+        icon: CheckCircle2,
+        color: "from-blue-500 to-indigo-500",
+      }
+    } else {
+      return {
+        title: "¡Recepción Completada!",
+        message: `Tiempo total: ${formatTime(seconds)}. La precisión es más importante que la velocidad.`,
+        icon: CheckCircle,
+        color: "from-slate-500 to-slate-600",
+      }
+    }
+  }
   const aplicarInventario = useCallback(async () => {
     if (isSubmitting) return
 
@@ -451,12 +504,17 @@ export default function InventarioFisicoPage() {
 
       setFolioGenerado(data.folio)
       setDoctoInvfisId(data.doctoInvfisId)
+  const performance = getPerformanceMessage(elapsedSeconds, totalLineas)
 
-      showToast(
-        `✅ Inventario Físico Completado\nFolio: ${data.folio || "N/A"}\nDOCTO_INVFIS_ID: ${data.doctoInvfisId}\nLíneas insertadas: ${data.inserted}`,
-        "success",
-        false,
-      )
+            let modalMessage = performance.message
+     
+       setCompletionModal({
+              show: true,
+              title: data.folio,
+              message: modalMessage,
+              icon: performance.icon,
+              color: performance.color,
+            })
 
       resetInventario()
     } catch (error) {
@@ -821,6 +879,8 @@ export default function InventarioFisicoPage() {
                   const req = item.CANTIDAD
                   const pk = item.packed
                   const sc = item.scanned
+                                    const am = item.scanned
+
                   const okLinea = requireScan ? sc >= req : pk >= req
                   const isFlash = flashIndex === index
 
@@ -859,14 +919,11 @@ export default function InventarioFisicoPage() {
                               <span className="text-slate-500">Requerido:</span>
                               <span className="font-bold text-slate-900 ml-1">{req}</span>
                             </div>
-                            <div>
-                              <span className="text-slate-500">Empacado:</span>
-                              <span className="font-bold text-slate-900 ml-1">{pk}</span>
-                            </div>
+                      
                             <div>
                               <span className="text-slate-500">Escaneado:</span>
                               <span className={`font-bold ml-1 ${okLinea ? "text-green-700" : "text-slate-900"}`}>
-                                {sc}
+                                {sc} 
                               </span>
                             </div>
                           </div>
@@ -898,6 +955,7 @@ export default function InventarioFisicoPage() {
                                   ? "bg-slate-200 text-slate-400 cursor-not-allowed"
                                   : "bg-purple-700 text-white hover:bg-purple-600 shadow-sm"
                               }`}
+                              
                               onClick={() => {
                                 if (!requireScan) {
                                   inc(index)
@@ -906,7 +964,8 @@ export default function InventarioFisicoPage() {
                               onMouseDown={(e) => {
                                 if (!requireScan) {
                                   const timer = setTimeout(() => fillToRequired(index), 250)
-                                  const handleMouseUp = () => {
+                                  const handleMouseUp = ( ) => {
+
                                     clearTimeout(timer)
                                     document.removeEventListener("mouseup", handleMouseUp)
                                   }
@@ -915,6 +974,7 @@ export default function InventarioFisicoPage() {
                               }}
                               disabled={requireScan}
                             >
+                              {/* funcion añadir manualmente*/}
                               <Plus className="w-4 h-4" />
                             </button>
                           </div>
@@ -967,6 +1027,36 @@ export default function InventarioFisicoPage() {
                 </button>
               </div>
             )}
+                  {completionModal.show && (
+        <div className="fixed  inset-0 bg-black/60 backdrop-blur-md z-[90] flex items-center justify-center p-4 animate-fade-in">
+          <div className="glass rounded-3xl bg-white/80 p-8 max-w-lg w-full border border-white/20 shadow-2xl animate-scale-in">
+            <div className="text-center">
+              <div
+                className={`w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br ${completionModal.color} flex items-center justify-center shadow-lg`}
+              >
+                <completionModal.icon className="w-10 h-10 text-white" />
+              </div>
+
+              <h2 className="text-3xl font-bold text-slate-900 mb-4">{completionModal.title}</h2>
+
+              <p className="text-slate-700 text-lg leading-relaxed mb-8 whitespace-pre-line">
+                {completionModal.message}
+              </p>
+
+              <button
+                onClick={() => {
+                  setCompletionModal({ ...completionModal, show: false })
+                  setTimeout(focusScanner, 100)
+                }}
+                className={`w-full py-4 rounded-xl font-bold text-white text-lg bg-gradient-to-r ${completionModal.color} hover:shadow-xl transition-all duration-200 shadow-lg`}
+              >
+                Aceptar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
           </div>
         </div>
 

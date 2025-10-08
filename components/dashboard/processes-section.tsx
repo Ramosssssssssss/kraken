@@ -65,16 +65,25 @@ export default function ProcessesSection() {
   const modules: ModuleDef[] = [
     {
       id: 1,
-      title: "Recibo",
+      title: "RECIBO",
       description: "Registra la entrada de mercancía, valida contra órdenes de compra y asegura cantidades correctas.",
       icon: Inbox,
       version: "v2.1.0",
       path: "/recibo",
       group: "principal",
     },
+       {
+      id: 5,
+      title: "RECIBO",
+      description: "Registra la entrada de mercancía sin integrar con Microsip.",
+      icon: Inbox,
+      version: "v2.1.0",
+      path: "/snMicro",
+      group: "principal",
+    },
     {
       id: 2,
-      title: "Acomodo",
+      title: "ACOMODO",
       description: "Ubica y organiza la mercancía recibida en su posición correcta dentro del almacén.",
       icon: LucideWarehouse,
       version: "v2.1.0",
@@ -83,7 +92,7 @@ export default function ProcessesSection() {
     },
     {
       id: 3,
-      title: "Picking",
+      title: "PICKING",
       description: "Prepara los productos solicitados tomando la mercancía de su ubicación en almacén.",
       icon: ScanBarcode,
       version: "v2.1.0",
@@ -92,22 +101,14 @@ export default function ProcessesSection() {
     },
     {
       id: 4,
-      title: "Packing",
+      title: "PACKING",
       description: "Empaca y consolida los productos seleccionados para el envío o entrega.",
       icon: BoxIcon,
       version: "v2.1.0",
       path: "/ordenes-packing",
       group: "principal",
     },
-    {
-      id: 5,
-      title: "Recibo Sin Microsip",
-      description: "Registra la entrada de mercancía sin integrar con Microsip.",
-      icon: Inbox,
-      version: "v2.1.0",
-      path: "/snMicro",
-      group: "alternativo",
-    },
+ 
   ]
 
   // Permisos desde el login (normalizados)

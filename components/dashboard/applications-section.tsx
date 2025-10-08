@@ -65,8 +65,8 @@ export default function CatalogsSection() {
     <div className="min-h-screen bg-black p-8">
       <div className="max-w-5xl mx-auto space-y-8">
         <div className="space-y-1 pb-4 border-b border-white/10">
-          <h2 className="text-2xl font-semibold text-white">Catálogos</h2>
-          <p className="text-sm text-white/40">Gestiona tus operaciones de almacén</p>
+          <h2 className="text-2xl font-semibold text-white">Aplicaciones</h2>
+          <p className="text-sm text-white/40">Gestiona tus aplicaciones en el almacén</p>
         </div>
 
         <div className="space-y-8">
@@ -76,8 +76,8 @@ export default function CatalogsSection() {
             </h3>
             <div className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
               <ModuleCard
-                title="Etiquetador"
-                description="Registra la entrada de mercancía, valida contra órdenes de compra y asegura cantidades correctas."
+                title="Centro de Etiquetado"
+                description="Etiqueta productos de manera rápida y eficiente para su identificación y gestión en el almacén."
                 icon={Inbox}
                 version="v2.1.0"
                 onClick={handleEtiquetadorClick}

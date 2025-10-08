@@ -17,10 +17,10 @@ interface UserProfile {
 
 const PREDEFINED_AVATARS = [
   "/a1.png",
-  "/a2.jpeg",
-  "/a3.jpeg",
-  "/a4.jpeg",
-  "/a5.jpeg",
+  "/a2.png",
+  "/a3.png",
+  "/a4.png",
+  "/a5.png",
 ]
 
 function ChangePhotoModal({
