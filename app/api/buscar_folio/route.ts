@@ -11,15 +11,41 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 export const revalidate = 0
 
-// ===== Config ===== CORREGIDO
-const fbConfig = {
+// ===== Config base (FYTTSA) =====
+const baseFbConfig: fb.Options = {
   host: process.env.FIREBIRD_HOST || "85.215.109.213",
   port: Number(process.env.FIREBIRD_PORT || 3050),
   database: process.env.FB_DATABASE || "D:\\Microsip datos\\GUIMAR.FDB",
   user: process.env.FIREBIRD_USER || "SYSDBA",
   password: process.env.FIREBIRD_PASSWORD || "BlueMamut$23",
-  encoding: 'UTF8', // 👈 CORRECCIÓN: usar 'encoding' en lugar de 'charset'
-} as fb.Options; 
+  encoding: "UTF8",
+}
+
+// ===== Config GOUMAM (override por hostname) =====
+const goumamFbConfig: fb.Options = {
+  host: process.env.GOUMAM_FIREBIRD_HOST || process.env.FIREBIRD_HOST || "85.215.109.213",
+  port: Number(process.env.GOUMAM_FIREBIRD_PORT || process.env.FIREBIRD_PORT || 3050),
+  database: process.env.GOUMAM_FB_DATABASE || "C:\\Microsip datos\\GOUMAM.FDB",
+  user: process.env.GOUMAM_FIREBIRD_USER || process.env.FIREBIRD_USER || "SYSDBA",
+  password: process.env.GOUMAM_FIREBIRD_PASSWORD || process.env.FIREBIRD_PASSWORD || "masterkeyBS",
+  encoding: "UTF8",
+}
+
+function hostnameFromReq(req: NextRequest): string {
+  const h =
+    req.headers.get("x-forwarded-host") ||
+    req.headers.get("host") ||
+    new URL(req.url).hostname ||
+    ""
+  return h.toLowerCase().replace(/:\d+$/, "")
+}
+
+// Selecciona config por hostname
+function selectFbConfigByHost(hostname: string): fb.Options {
+  if (hostname === "goumam.krkn.mx") return goumamFbConfig
+  // default/fyttsa
+  return baseFbConfig
+}
 
 const JWT_SECRET = process.env.JWT_SECRET || "elyssia-secret-key"
 const LOGS_DIR = process.env.LOGS_DIR || "./logs"
@@ -31,20 +57,30 @@ function nowMX(): string {
   try {
     const parts = new Intl.DateTimeFormat("es-MX", {
       timeZone: "America/Mexico_City",
-      year: "numeric", month: "2-digit", day: "2-digit",
-      hour: "2-digit", minute: "2-digit", second: "2-digit",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
       hour12: false,
     }).formatToParts(new Date())
     const m: Record<string, string> = {}
-    parts.forEach(p => (m[p.type] = p.value))
+    parts.forEach((p) => (m[p.type] = p.value))
     return `${m.year}-${m.month}-${m.day} ${m.hour}:${m.minute}:${m.second}`
-  } catch { return new Date().toISOString().replace("T", " ").substring(0, 19) }
+  } catch {
+    return new Date().toISOString().replace("T", " ").substring(0, 19)
+  }
 }
 
 function log(msg: string, level: "INFO" | "ERROR" | "DEBUG" | "WARN" = "INFO") {
   const file = path.join(LOGS_DIR, `buscar_folio-${new Date().toISOString().slice(0, 10)}.log`)
   const line = `[${nowMX()}] [${level}] ${msg}\n`
-  try { fs.appendFileSync(file, line, "utf8") } catch (e) { console.error(e) }
+  try {
+    fs.appendFileSync(file, line, "utf8")
+  } catch (e) {
+    console.error(e)
+  }
   if (level === "ERROR") console.error(line)
   else if (level === "DEBUG") console.debug(line)
   else if (level === "WARN") console.warn(line)
@@ -54,78 +90,73 @@ function log(msg: string, level: "INFO" | "ERROR" | "DEBUG" | "WARN" = "INFO") {
 // ===== Auth opcional =====
 function verifyToken(token?: string) {
   if (!token) return null
-  try { return jwt.verify(token, JWT_SECRET) }
-  catch (e) { log(`JWT inválido: ${e}`, "WARN"); return null }
-}
-
-// ===== NUEVO: Funciones mejoradas para decodificación =====
-function decodeField(v: any): string {
-  if (typeof v !== "string") return v == null ? "" : String(v)
-  
   try {
-    // Si ya está bien codificado, retornar tal cual
-    if (!v.includes('�')) return v;
-    
-    // Intentar diferentes codificaciones
-    const encodings = ['win1252', 'latin1', 'iso-8859-1', 'utf8'];
-    
-    for (const encoding of encodings) {
-      try {
-        const decoded = iconv.decode(Buffer.from(v, 'binary'), encoding);
-        if (!decoded.includes('�') && !decoded.includes('Ã')) {
-          return decoded;
-        }
-      } catch (e) {
-        // Continuar con el siguiente encoding
-      }
-    }
-    
-    // Si no funciona, aplicar mapeo manual de caracteres corruptos
-    return corregirCaracteresManualmente(v);
-  } catch { 
-    return v 
+    return jwt.verify(token, JWT_SECRET)
+  } catch (e) {
+    log(`JWT inválido: ${e}`, "WARN")
+    return null
   }
 }
 
-// ===== NUEVO: Mapeo manual de caracteres corruptos =====
-function corregirCaracteresManualmente(texto: string): string {
-  if (!texto) return texto;
-  
-  const mapeoCaracteres: { [key: string]: string } = {
-    '�': 'Ñ',
-    'Ã‘': 'Ñ',
-    'Ã±': 'ñ',
-    'Ã¡': 'á',
-    'Ã©': 'é',
-    'Ã­': 'í',
-    'Ã³': 'ó',
-    'Ãº': 'ú',
-    'Ã': 'Á',
-    'Ã‰': 'É',
-    'Ã': 'Í',
-    'Ã“': 'Ó',
-    'Ãš': 'Ú',
-    'Ã±': 'ñ',
-    'Ã‘': 'Ñ',
-    'Ã¼': 'ü',
-    'Ãœ': 'Ü',
-    'Ã': 'Ñ',
-    'Ã±': 'ñ',
-    'Ã': 'ß',
-    'Â¿': '¿',
-    'Â¡': '¡'
-  };
+// ===== Decodificación =====
+function decodeField(v: any): string {
+  if (typeof v !== "string") return v == null ? "" : String(v)
 
-  let textoCorregido = texto;
-  Object.keys(mapeoCaracteres).forEach(caracterCorrupto => {
-    const regex = new RegExp(caracterCorrupto, 'g');
-    textoCorregido = textoCorregido.replace(regex, mapeoCaracteres[caracterCorrupto]);
-  });
+  try {
+    if (!v.includes("�")) return v
 
-  return textoCorregido;
+    const encodings = ["win1252", "latin1", "iso-8859-1", "utf8"]
+    for (const encoding of encodings) {
+      try {
+        const decoded = iconv.decode(Buffer.from(v, "binary"), encoding)
+        if (!decoded.includes("�") && !decoded.includes("Ã")) {
+          return decoded
+        }
+      } catch {}
+    }
+    return corregirCaracteresManualmente(v)
+  } catch {
+    return v
+  }
 }
 
-function toNum(v: any, d = 0) { const n = Number(v); return Number.isFinite(n) ? n : d }
+function corregirCaracteresManualmente(texto: string): string {
+  if (!texto) return texto
+
+  const mapeoCaracteres: { [key: string]: string } = {
+    "�": "Ñ",
+    "Ã‘": "Ñ",
+    "Ã±": "ñ",
+    "Ã¡": "á",
+    "Ã©": "é",
+    "Ã­": "í",
+    "Ã³": "ó",
+    "Ãº": "ú",
+    "Ã": "Á",
+    "Ã‰": "É",
+    "Ã": "Í",
+    "Ã“": "Ó",
+    "Ãš": "Ú",
+    "Ã¼": "ü",
+    "Ãœ": "Ü",
+    "Ã": "ß",
+    "Â¿": "¿",
+    "Â¡": "¡",
+  }
+
+  let textoCorregido = texto
+  Object.keys(mapeoCaracteres).forEach((caracterCorrupto) => {
+    const regex = new RegExp(caracterCorrupto, "g")
+    textoCorregido = textoCorregido.replace(regex, mapeoCaracteres[caracterCorrupto])
+  })
+
+  return textoCorregido
+}
+
+function toNum(v: any, d = 0) {
+  const n = Number(v)
+  return Number.isFinite(n) ? n : d
+}
 
 // 🔧 Normalizador universal de folios
 function normalizeFolio(raw: string, lenTotal = 9): string {
@@ -139,7 +170,6 @@ function normalizeFolio(raw: string, lenTotal = 9): string {
   return `${pref}${numPadded}`
 }
 
-// Quita ceros a la izquierda de la parte numérica de un folio
 function denormalizeFolio(folio: string): string {
   const m = (folio || "").match(/^([^\d]*)(\d+)$/)
   if (!m) return folio
@@ -148,17 +178,21 @@ function denormalizeFolio(folio: string): string {
   return pref + num
 }
 
-// 🔧 Conexión/consulta Firebird
-function queryFirebird<T = any>(sql: string, params: any[] = []): Promise<T[]> {
+// 🔧 Conexión/consulta Firebird (usa config seleccionada)
+function queryFirebird<T = any>(fbOptions: fb.Options, sql: string, params: any[] = []): Promise<T[]> {
   return new Promise((resolve, reject) => {
-    fb.attach(fbConfig, (err, db) => {
+    fb.attach(fbOptions, (err, db) => {
       if (err || !db) return reject(err)
       db.query(sql, params, (qErr: any, rows: any[]) => {
         if (qErr) {
-          try { db.detach(() => { }) } catch { }
+          try {
+            db.detach(() => {})
+          } catch {}
           return reject(qErr)
         }
-        try { db.detach(() => { }) } catch { }
+        try {
+          db.detach(() => {})
+        } catch {}
         resolve(rows || [])
       })
     })
@@ -232,23 +266,26 @@ function buildQueryByTipo(tipo: TipoEtiqueta): { sql: string; mapper: (r: any) =
 
     case "traspaso":
       return {
-        sql: `SELECT TI.FOLIO, S1.NOMBRE AS SUCURSAL_DESTINO, S2.NOMBRE AS SUCURSAL_ORIGEN, VE.NOMBRE AS VIA_EMBARQUE, S3.CALLE, S3.CODIGO_POSTAL, C.NOMBRE AS CIUDAD  FROM TRASPASOS_IN TI
-INNER JOIN ALMACENES S1 ON S1.ALMACEN_ID = TI.ALMACEN_DESTINO_ID
-INNER JOIN ALMACENES S2 ON S2.ALMACEN_ID = TI.ALMACEN_ORIGEN_ID
-INNER JOIN SUCURSALES S3 ON S3.SUCURSAL_ID = TI.SUCURSAL_DESTINO_ID
-INNER JOIN VIAS_EMBARQUE VE ON VE.VIA_EMBARQUE_ID = TI.VIA_EMBARQUE_ID
-INNER JOIN DOCTOS_IN DI ON DI.DOCTO_IN_ID = TI.DOCTO_IN_ID
-INNER JOIN CIUDADES C ON C.CIUDAD_ID = S3.CIUDAD_ID
-WHERE TI.FOLIO = ?
+        sql: `
+          SELECT TI.FOLIO, S1.NOMBRE AS SUCURSAL_DESTINO, S2.NOMBRE AS SUCURSAL_ORIGEN, VE.NOMBRE AS VIA_EMBARQUE, 
+                 S3.CALLE, S3.CODIGO_POSTAL, C.NOMBRE AS CIUDAD  
+          FROM TRASPASOS_IN TI
+          INNER JOIN ALMACENES S1 ON S1.ALMACEN_ID = TI.ALMACEN_DESTINO_ID
+          INNER JOIN ALMACENES S2 ON S2.ALMACEN_ID = TI.ALMACEN_ORIGEN_ID
+          INNER JOIN SUCURSALES S3 ON S3.SUCURSAL_ID = TI.SUCURSAL_DESTINO_ID
+          INNER JOIN VIAS_EMBARQUE VE ON VE.VIA_EMBARQUE_ID = TI.VIA_EMBARQUE_ID
+          INNER JOIN DOCTOS_IN DI ON DI.DOCTO_IN_ID = TI.DOCTO_IN_ID
+          INNER JOIN CIUDADES C ON C.CIUDAD_ID = S3.CIUDAD_ID
+          WHERE TI.FOLIO = ?
         `,
         mapper: (r: any): Salida => ({
           folio: denormalizeFolio(decodeField(r.FOLIO)),
-          peso_embarque: toNum(r.PESO_EMBARQUE || 0), // 👈 Agregado valor por defecto
+          peso_embarque: toNum(r.PESO_EMBARQUE || 0),
           sucursal: decodeField(r.SUCURSAL_DESTINO),
           via_embarque: decodeField(r.VIA_EMBARQUE),
-          cliente: "TRASPASO", // 👈 Valor por defecto para traspasos
+          cliente: "TRASPASO",
           nombre_calle: decodeField(r.CALLE),
-          colonia: "", // 👈 Agregado valor por defecto
+          colonia: "",
           ciudad: decodeField(r.CIUDAD),
           codigo_postal: decodeField(r.CODIGO_POSTAL),
           Factura: decodeField(r.FOLIO),
@@ -259,18 +296,19 @@ WHERE TI.FOLIO = ?
     case "puntoVenta":
       return {
         sql: `
-SELECT FOLIO, C.NOMBRE AS CLIENTE ,S.NOMBRE AS SUCURSAL, DC.CALLE, DC.COLONIA, CI.NOMBRE, DC.CODIGO_POSTAL, DPV.PESO_EMBARQUE FROM DOCTOS_PV DPV
-LEFT JOIN SUCURSALES S ON S.SUCURSAL_ID = DPV.SUCURSAL_ID
-LEFT JOIN CLIENTES C ON C.CLIENTE_ID = DPV.CLIENTE_ID
-LEFT JOIN DIRS_CLIENTES DC ON DC.DIR_CLI_ID = DPV.DIR_CLI_ID
-LEFT JOIN CIUDADES CI ON CI.CIUDAD_ID = DC.CIUDAD_ID
-WHERE FOLIO = ?
+          SELECT FOLIO, C.NOMBRE AS CLIENTE ,S.NOMBRE AS SUCURSAL, DC.CALLE, DC.COLONIA, CI.NOMBRE, DC.CODIGO_POSTAL, DPV.PESO_EMBARQUE 
+          FROM DOCTOS_PV DPV
+          LEFT JOIN SUCURSALES S ON S.SUCURSAL_ID = DPV.SUCURSAL_ID
+          LEFT JOIN CLIENTES C ON C.CLIENTE_ID = DPV.CLIENTE_ID
+          LEFT JOIN DIRS_CLIENTES DC ON DC.DIR_CLI_ID = DPV.DIR_CLI_ID
+          LEFT JOIN CIUDADES CI ON CI.CIUDAD_ID = DC.CIUDAD_ID
+          WHERE FOLIO = ?
         `,
         mapper: (r: any): Salida => ({
           folio: denormalizeFolio(decodeField(r.FOLIO)),
           peso_embarque: toNum(r.PESO_EMBARQUE),
           sucursal: decodeField(r.SUCURSAL),
-          via_embarque: "", // 👈 Agregado valor por defecto
+          via_embarque: "",
           cliente: decodeField(r.CLIENTE),
           nombre_calle: decodeField(r.CALLE),
           colonia: decodeField(r.COLONIA),
@@ -283,18 +321,22 @@ WHERE FOLIO = ?
   }
 }
 
-// 🔧 intenta en orden varios tipos hasta encontrar resultados
-async function tryQueriesInOrder(folio: string, prefer?: TipoEtiqueta): Promise<Salida[] & { __tipo?: TipoEtiqueta }> {
+// 🔧 intenta en orden varios tipos hasta encontrar resultados (usa fbOptions)
+async function tryQueriesInOrder(
+  fbOptions: fb.Options,
+  folio: string,
+  prefer?: TipoEtiqueta
+): Promise<Salida[] & { __tipo?: TipoEtiqueta }> {
   const order: TipoEtiqueta[] = prefer
-    ? [prefer, ...(["factura", "traspaso", "puntoVenta"] as TipoEtiqueta[]).filter(t => t !== prefer)]
+    ? [prefer, ...(["factura", "traspaso", "puntoVenta"] as TipoEtiqueta[]).filter((t) => t !== prefer)]
     : ["factura", "traspaso", "puntoVenta"]
 
   for (const tipo of order) {
     const { sql, mapper } = buildQueryByTipo(tipo)
-    const rows = await queryFirebird(sql, [folio])
+    const rows = await queryFirebird(fbOptions, sql, [folio])
     if (rows.length > 0) {
       const data = rows.map(mapper) as Salida[]
-        ; (data as any).__tipo = tipo
+      ;(data as any).__tipo = tipo
       return data as any
     }
   }
@@ -305,7 +347,10 @@ async function tryQueriesInOrder(folio: string, prefer?: TipoEtiqueta): Promise<
 export async function GET(req: NextRequest) {
   const rid = Math.random().toString(36).slice(2, 10)
   try {
-    log(`[${rid}] GET /api/buscar_folio`)
+    const hostname = hostnameFromReq(req)
+    const fbOptions = selectFbConfigByHost(hostname)
+
+    log(`[${rid}] GET /api/buscar_folio host=${hostname}`)
 
     const authHeader = req.headers.get("authorization")
     if (authHeader?.startsWith("Bearer ")) verifyToken(authHeader.slice(7))
@@ -323,9 +368,12 @@ export async function GET(req: NextRequest) {
     }
 
     const folio = normalizeFolio(folioRaw, 9)
-    log(`[${rid}] folio='${folioRaw}' -> '${folio}' | tipoPreferido='${tipoRaw}' -> '${tipoPreferido}'`, "DEBUG")
+    log(
+      `[${rid}] folio='${folioRaw}' -> '${folio}' | tipoPreferido='${tipoRaw}' -> '${tipoPreferido}'`,
+      "DEBUG"
+    )
 
-    const resultados = await tryQueriesInOrder(folio, tipoRaw ? tipoPreferido : undefined)
+    const resultados = await tryQueriesInOrder(fbOptions, folio, tipoRaw ? tipoPreferido : undefined)
 
     if (resultados.length === 0) {
       log(`[${rid}] Sin resultados para folio=${folio}`, "WARN")
@@ -336,14 +384,16 @@ export async function GET(req: NextRequest) {
     }
 
     const tipoDetectado = (resultados as any).__tipo as TipoEtiqueta
-    
-    // 👇 NUEVO: Log para verificar la decodificación
+
     if (resultados.length > 0) {
-      const primerResultado = resultados[0];
-      log(`[${rid}] Cliente decodificado: '${primerResultado.cliente}'`, "DEBUG");
+      const primerResultado = resultados[0]
+      log(`[${rid}] Cliente decodificado: '${primerResultado.cliente}'`, "DEBUG")
     }
-    
-    log(`[${rid}] Resultados folio=${folio} tipoDetectado=${tipoDetectado}: ${resultados.length}`, "INFO")
+
+    log(
+      `[${rid}] Resultados folio=${folio} tipoDetectado=${tipoDetectado} usando host=${hostname}: ${resultados.length}`,
+      "INFO"
+    )
 
     return NextResponse.json(
       { ok: true, data: resultados, tipo: tipoDetectado },
