@@ -23,7 +23,7 @@ const CFG_TTL_MS = 5 * 60 * 1000
 
 // ========= Utilidades =========
 if (!fs.existsSync(LOGS_DIR)) {
-  fs.mkdirSync(LOGS_DIR, { recursive: true })
+  try { fs.mkdirSync(LOGS_DIR, { recursive: true }) } catch {}
 }
 
 function getDateTimeMX(): string {
@@ -64,7 +64,7 @@ function writeLog(
 function verifyToken(token: string): any {
   try { return jwt.verify(token, JWT_SECRET) }
   catch (error) {
-    writeLog(`Error verificando token: ${error}`, "ERROR")
+    writeLog(`Error verificando token: ${String((error as Error)?.message || error)}`, "ERROR")
     return null
   }
 }
@@ -103,15 +103,17 @@ async function getFbConfigForTenant(req: NextRequest): Promise<any> {
   const tenant = resolveTenantFromReq(req)
   if (!tenant) throw new Error("No se pudo resolver el tenant")
 
-  // Opción A: ENV JSON
+  // Opción A: ENV JSON (FIREBIRD_TENANTS)
   if (TENANTS_MAP[tenant]) {
     return TENANTS_MAP[tenant]
   }
 
-  // Opción B: Servicio de configuración (si no está en ENV)
-  // Recomendado usar un TOKEN de servicio (env) para autenticarte con ese backend.
-  const apiUrl = req.headers.get("x-company-apiurl") // opcional: puedes enviarlo desde el cliente
-                     || process.env.CONFIG_SERVICE_BASEURL // o un servicio central
+  // Opción B: Servicio de configuración (baseURL desde header, cookie o env)
+  const apiUrl =
+    req.headers.get("x-company-apiurl") ||
+    req.cookies.get("apiUrl")?.value ||
+    process.env.CONFIG_SERVICE_BASEURL
+
   if (!apiUrl) {
     throw new Error(`No hay config para tenant "${tenant}" y no hay servicio de configuración`)
   }
@@ -165,7 +167,7 @@ async function queryFirebirdWithConfig(
       }
 
       db.query(sql, params, (errQ: any, result: any[]) => {
-        db.detach()
+        try { db.detach() } catch {}
         if (errQ) {
           writeLog(`Error en consulta Firebird: ${errQ.message}`, "ERROR")
           return reject(errQ)
@@ -205,9 +207,9 @@ export async function GET(req: NextRequest) {
       writeLog(`[${requestId}] Solicitud sin token (endpoint público)`)
     }
 
-    // 1) Resolver config por tenant
+    // 1) Resolver config por tenant (headers/cookies/env)
     const fbConfig = await getFbConfigForTenant(req)
-    // Asegura defaults razonables
+    // Defaults razonables
     fbConfig.port = Number(fbConfig.port ?? 3050)
     fbConfig.charset = fbConfig.charset || "ISO8859_1" // o "UTF8" si aplica
 
@@ -231,9 +233,10 @@ export async function GET(req: NextRequest) {
     }))
 
     writeLog(`[${requestId}] Búsqueda OK. Coincidencias: ${data.length}`)
-    return NextResponse.json({ ok: true, data }, {
-      headers: { "Access-Control-Allow-Origin": "*" }
-    })
+    return NextResponse.json(
+      { ok: true, data },
+      { headers: { "Access-Control-Allow-Origin": "*" } }
+    )
   } catch (error: any) {
     writeLog(`[${requestId}] Error en GET /api/articulos: ${error?.message}`, "ERROR")
     writeLog(`[${requestId}] Stack: ${error?.stack}`, "DEBUG")
@@ -247,11 +250,15 @@ export async function GET(req: NextRequest) {
 // OPTIONS - CORS
 export async function OPTIONS() {
   writeLog("OPTIONS /api/articulos")
-  return NextResponse.json({}, {
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization, x-tenant, x-company-apiurl",
+  return NextResponse.json(
+    {},
+    {
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Headers":
+          "Content-Type, Authorization, x-tenant, x-company-apiurl",
+      },
     }
-  })
+  )
 }
