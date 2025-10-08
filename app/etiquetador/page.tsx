@@ -582,7 +582,6 @@ const addArticle = (claveOverride?: string) => {
           : `<svg class="barcode-svg" data-value="${a.barcode}" data-format="${fmt}"></svg>`
         }
           <div class="label-text">SKU ${a.text}</div>
-          <div class="label-text">TENIS PANAM 084 SINTETICO BLANCO 22</div>
 
         </div>
       </div>
