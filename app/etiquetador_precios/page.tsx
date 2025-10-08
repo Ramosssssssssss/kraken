@@ -318,6 +318,8 @@ async function bpPrintZPL(zpl: string): Promise<void> {
     setTimeout(() => err(new Error("Timeout al enviar a BrowserPrint")), 8000)
   })
 }
+/**************************************************************/
+
 
 // ===========================================
 export default function Page() {
@@ -983,7 +985,7 @@ ${template.css(w, h, pad)}
                 <CardTitle className="flex items-center gap-2 text-white">
                   <Settings className="w-5 h-5 text-purple-300" />Configuración
                 </CardTitle>
-                <CardTitle className="flex items-center gap-2 text-white font-light text-xs">v2.3.5</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-white font-light text-xs">v2.3.6</CardTitle>
               </CardHeader>
 
               <CardContent className="p-4 sm:p-6 space-y-6">

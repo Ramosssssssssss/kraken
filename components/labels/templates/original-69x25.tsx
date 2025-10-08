@@ -28,7 +28,7 @@ export const Original69x25: LabelTemplate = {
     
     .pl{grid-area:6/2/7/4;text-align:right;font-weight:600}
     
-    .b{ font-weight:900;                  /* muy negrita */
+    .b{ font-weight:700;                  /* muy negrita */
   -webkit-text-stroke:0.2px #000;   /* trazo finito negro */
   text-shadow:
     0  0   0.25px #000,
