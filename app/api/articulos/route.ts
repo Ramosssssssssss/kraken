@@ -15,7 +15,7 @@ const baseFbConfig: fb.Options = {
 const goumamFbConfig: fb.Options = {
   host: process.env.GOUMAM_FIREBIRD_HOST || process.env.FIREBIRD_HOST || "85.215.109.213",
   port: Number(process.env.GOUMAM_FIREBIRD_PORT || process.env.FIREBIRD_PORT || 3050),
-  database: process.env.GOUMAM_FB_DATABASE || "D:\\Microsip datos\\GOUMAM.FDB",
+  database: process.env.GOUMAM_FB_DATABASE || "C:\\Microsip datos\\GOUMAM.FDB",
   user: process.env.GOUMAM_FIREBIRD_USER || process.env.FIREBIRD_USER || "SYSDBA",
   password: process.env.GOUMAM_FIREBIRD_PASSWORD || process.env.FIREBIRD_PASSWORD || "masterkeyBS",
   encoding: "UTF8",
