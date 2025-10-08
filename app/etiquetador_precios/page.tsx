@@ -569,22 +569,46 @@ ${template.css(w, h, pad)}
 }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 <script>
-  window.addEventListener('load', function(){
-    try{
-      document.querySelectorAll('.jsb').forEach(function(el){
-        var code = el.getAttribute('data-code')||'';
-        var box = el.closest('.bc-fit') || el.closest('.q3');
-        var hPx = 80;
-        if (box) { var r = box.getBoundingClientRect(); hPx = Math.max(20, Math.round(r.height)); }
-        JsBarcode(el, code, { format:'CODE128', displayValue:false, margin:0, height:hPx });
-        el.removeAttribute('width'); el.removeAttribute('height');
-        el.style.width='100%'; el.style.height='100%';
-      });
-    }catch(e){}
-    setTimeout(function(){ window.print(); }, 0);
-  });
+  (function(){
+    function renderBarcodes(){
+      try{
+        document.querySelectorAll('.jsb').forEach(function(el){
+          var code = el.getAttribute('data-code')||'';
+          var box = el.closest('.bc-fit') || el.closest('.q3');
+          var hPx = 80;
+          if (box) {
+            var r = box.getBoundingClientRect();
+            hPx = Math.max(20, Math.round(r.height));
+          }
+          JsBarcode(el, code, { format:'CODE128', displayValue:false, margin:0, height:hPx });
+          el.removeAttribute('width'); el.removeAttribute('height');
+          el.style.width='100%'; el.style.height='100%';
+        });
+      }catch(e){}
+    }
+
+    function renderQRCodes(){
+      try{
+        document.querySelectorAll('canvas.qr').forEach(function(c){
+          var val = c.getAttribute('data-value') || '';
+          // Ancho real del canvas en pantalla; si no hay layout, usa 140px como fallback
+          var w = Math.max(40, Math.round((c.clientWidth || 0) || 140));
+          QRCode.toCanvas(c, val, { errorCorrectionLevel: 'M', margin: 0, width: w });
+        });
+      }catch(e){}
+    }
+
+    window.addEventListener('load', function(){
+      renderBarcodes();
+      renderQRCodes();
+      // Pequeño delay para asegurar layout antes de imprimir
+      setTimeout(function(){ window.print(); }, 0);
+    });
+  })();
 </script>
+
 </head><body>${labelsHTML}</body></html>`
     const f = document.createElement("iframe")
     Object.assign(f.style, { position: "fixed", right: "0", bottom: "0", width: "0", height: "0", border: "0", opacity: "0" })

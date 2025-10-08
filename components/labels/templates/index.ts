@@ -5,6 +5,8 @@ import { Blanca40x22 } from "./blanca-40x22"
 import { Mini25x25 } from "./mini-25x25"
 import { ColaRaton } from "./cola-raton"
 import { Chica50x25 } from "./chica50x25"
+import { Prueba } from "./Prueba"
+
 
 
 
@@ -15,6 +17,8 @@ export const LABEL_TEMPLATES: readonly LabelTemplate[] = [
   Mini25x25,
   ColaRaton,
   Chica50x25,
+  Prueba,
+  
 ] as const
 
 export type TemplateId = (typeof LABEL_TEMPLATES)[number]["id"]
