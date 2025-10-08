@@ -2,8 +2,9 @@
 
 import type React from "react"
 import { useRouter } from "next/navigation"
+import { useState } from "react"
 
-import { Inbox, LucideWarehouse, ScanBarcode, BoxIcon, ChevronRight } from "lucide-react"
+import { Inbox, LucideWarehouse, ScanBarcode, Box, ChevronRight, X, Plus, List } from "lucide-react"
 
 interface ModuleCardProps {
   title: string
@@ -52,13 +53,14 @@ function ModuleCard({ title, description, icon: Icon, version, onClick }: Module
 
 export default function CatalogsSection() {
   const router = useRouter()
+  const [showArticulosModal, setShowArticulosModal] = useState(false)
 
   const handleAlmacenesClick = () => {
     router.push("/almacenes")
   }
 
-  const handleEtiquetadorClick = () => {
-    router.push("/acomodo")
+  const handleArticulosClick = () => {
+    setShowArticulosModal(true)
   }
 
   const handlePickingClick = () => {
@@ -99,7 +101,7 @@ export default function CatalogsSection() {
                 description="Ubica y organiza la mercancía recibida en su posición correcta dentro del almacén."
                 icon={LucideWarehouse}
                 version="v2.1.0"
-                onClick={handleEtiquetadorClick}
+                onClick={handleArticulosClick}
               />
               <ModuleCard
                 title="Clientes"
@@ -111,28 +113,28 @@ export default function CatalogsSection() {
               <ModuleCard
                 title="Empresas"
                 description="Empaca y consolida los productos seleccionados para el envío o entrega."
-                icon={BoxIcon}
+                icon={Box}
                 version="v2.1.0"
                 onClick={handlePackingClick}
               />
                <ModuleCard
                 title="Ordenes de Compra"
                 description="Empaca y consolida los productos seleccionados para el envío o entrega."
-                icon={BoxIcon}
+                icon={Box}
                 version="v2.1.0"
                 onClick={handlePackingClick}
               />
                <ModuleCard
                 title="Pedidos"
                 description="Empaca y consolida los productos seleccionados para el envío o entrega."
-                icon={BoxIcon}
+                icon={Box}
                 version="v2.1.0"
                 onClick={handlePackingClick}
               />
                <ModuleCard
                 title="Proveedores"
                 description="Empaca y consolida los productos seleccionados para el envío o entrega."
-                icon={BoxIcon}
+                icon={Box}
                 version="v2.1.0"
                 onClick={handlePackingClick}
               />
@@ -141,6 +143,76 @@ export default function CatalogsSection() {
 
         </div>
       </div>
+
+      {/* Modal de Artículos */}
+      {showArticulosModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-black border border-white/10 rounded-xl max-w-md w-full overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-white/10">
+              <div>
+                <h3 className="text-lg font-semibold text-white">Artículos</h3>
+                <p className="text-sm text-white/40 mt-1">Selecciona una opción</p>
+              </div>
+              <button
+                onClick={() => setShowArticulosModal(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/5 transition-colors"
+              >
+                <X className="w-5 h-5 text-white/60" />
+              </button>
+            </div>
+
+            {/* Options */}
+            <div className="p-4">
+              <button
+                onClick={() => {
+                  setShowArticulosModal(false)
+                  router.push("/articulos/ver")
+                }}
+                className="w-full group bg-white/[0.02] hover:bg-white/5 border border-white/5 rounded-lg p-4 mb-3 transition-all duration-200"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-white/5 group-hover:bg-white/10 rounded-lg flex items-center justify-center transition-all">
+                    <List className="w-5 h-5 text-white/60 group-hover:text-white/90 transition-colors" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <h4 className="text-sm font-medium text-white/90 group-hover:text-white transition-colors">
+                      Ver Artículos
+                    </h4>
+                    <p className="text-xs text-white/40 group-hover:text-white/60 transition-colors mt-0.5">
+                      Lista de todos los artículos
+                    </p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-white/70 group-hover:translate-x-1 transition-all" />
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowArticulosModal(false)
+                  router.push("/articulos/crear")
+                }}
+                className="w-full group bg-white/[0.02] hover:bg-white/5 border border-white/5 rounded-lg p-4 transition-all duration-200"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-white/5 group-hover:bg-white/10 rounded-lg flex items-center justify-center transition-all">
+                    <Plus className="w-5 h-5 text-white/60 group-hover:text-white/90 transition-colors" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <h4 className="text-sm font-medium text-white/90 group-hover:text-white transition-colors">
+                      Crear Artículo
+                    </h4>
+                    <p className="text-xs text-white/40 group-hover:text-white/60 transition-colors mt-0.5">
+                      Agregar un nuevo artículo
+                    </p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-white/70 group-hover:translate-x-1 transition-all" />
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -26,31 +26,31 @@ export default function PersonalizeSection() {
   const logoInputRef = useRef<HTMLInputElement>(null)
   const backgroundInputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    if (!apiUrl || !companyData?.codigo) return
+  // useEffect(() => {
+  //   if (!apiUrl || !companyData?.codigo) return
 
-    const fetchBranding = async () => {
-      try {
-        const response = await fetch(`${apiUrl}/get-branding/${companyData.codigo}`)
-        const data = await response.json()
+  //   const fetchBranding = async () => {
+  //     try {
+  //       const response = await fetch(`${apiUrl}/get-branding/${companyData.codigo}`)
+  //       const data = await response.json()
 
-        if (data.ok && data.branding) {
-          if (data.branding.logo) {
-            setLogoPreview(data.branding.logo)
-          }
-          if (data.branding.background) {
-            setBackgroundPreview(data.branding.background)
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching branding:", error)
-      } finally {
-        setIsFetching(false)
-      }
-    }
+  //       if (data.ok && data.branding) {
+  //         if (data.branding.logo) {
+  //           setLogoPreview(data.branding.logo)
+  //         }
+  //         if (data.branding.background) {
+  //           setBackgroundPreview(data.branding.background)
+  //         }
+  //       }
+  //     } catch (error) {
+  //       console.error("Error fetching branding:", error)
+  //     } finally {
+  //       setIsFetching(false)
+  //     }
+  //   }
 
-    fetchBranding()
-  }, [apiUrl, companyData])
+  //   fetchBranding()
+  // }, [apiUrl, companyData])
 
   const showToast = (type: "success" | "error", message: string) => {
     const id = Date.now()

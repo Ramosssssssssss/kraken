@@ -41,20 +41,20 @@ export default function LoginPage() {
         return
       }
 
-      const brandingUrl = `${derivedApiUrl}/get-branding/${companyData.codigo}`
+      // const brandingUrl = `${derivedApiUrl}/get-branding/${companyData.codigo}`
 
       try {
-        const response = await fetch(brandingUrl)
-        const data = await response.json()
+        // const response = await fetch(brandingUrl)
+        // const data = await response.json()
 
-        if (data.ok && data.branding) {
-          if (data.branding.logo) {
-            setCustomLogo(data.branding.logo)
-          }
-          if (data.branding.background) {
-            setCustomBackground(data.branding.background)
-          }
-        }
+        // if (data.ok && data.branding) {
+        //   if (data.branding.logo) {
+        //     setCustomLogo(data.branding.logo)
+        //   }
+        //   if (data.branding.background) {
+        //     setCustomBackground(data.branding.background)
+        //   }
+        // }
       } catch (error) {
         console.error("Error fetching branding:", error)
       } finally {

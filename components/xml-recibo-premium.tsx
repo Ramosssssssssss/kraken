@@ -437,9 +437,10 @@ export default function XmlReciboPremium({ xmlData, folio }: XmlReciboProps) {
         autoComplete="off"
         tabIndex={-1}
       />
-
-      <div className="flex h-[calc(100vh-80px)]">
+{/* diseño a todos los recibos */}
+      <div className="flex h-[calc(90vh-80px)]">
         {/* Main Content - 75% */}
+        {/* mejor diseño scroll */}
         <div className="flex-1 w-3/4 overflow-y-auto">
           <div className="max-w-5xl mx-auto px-6 pt-8 pb-0">
             {/* Products List */}
@@ -751,7 +752,7 @@ export default function XmlReciboPremium({ xmlData, folio }: XmlReciboProps) {
 
       {/* Action Button */}
       {!receptionComplete && (
-        <div className="fixed bottom-0 left-0 right-1/4 bg-gradient-to-t from-white via-white to-transparent pt-4 pb-0 px-6">
+        <div className="fixed bottom-6 left-0 right-1/4 bg-gradient-to-t from-white via-white to-transparent pt-4 pb-0 px-6 ">
           <div className="max-w-5xl mx-auto">
             <button
               className={`w-full flex items-center justify-center gap-3 py-4 rounded-xl font-semibold text-white transition-all duration-200 shadow-lg hover:shadow-xl ${

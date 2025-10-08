@@ -183,11 +183,11 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         const url = `${companyData.apiUrl}/get-branding/${companyData.codigo}?_=${Date.now()}`
         const res = await fetch(url, { cache: "no-store", signal: controller.signal })
         const json = await res.json().catch(() => ({}) as any)
-        const branding: Branding | null = json?.branding || null
+        // const branding: Branding | null = json?.branding || null
 
         // actualiza companyData con el branding
-        const updated: CompanyData = { ...companyData, branding }
-        setCompanyData(updated) // esto persiste en LS
+        // const updated: CompanyData = { ...companyData, branding }
+        // setCompanyData(updated) // esto persiste en LS
       } catch (e) {
         if (!controller.signal.aborted) {
           // si falla, al menos deja branding en null para no entrar en bucle
