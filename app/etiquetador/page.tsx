@@ -65,6 +65,17 @@ const clampBarHeight = (barMm: number, labelH: number, marginMm: number) => {
   const maxBar = Math.max(4, labelH - marginMm * 2 - 4)
   return clampMm(barMm, maxBar)
 }
+// === Helper de normalización para entradas del escáner ===
+const normalizeCode = (s: string) =>
+  String(s ?? "")
+    // guiones Unicode (‐ - ‒ — ― −) → guion ASCII
+    .replace(/[\u2010-\u2015\u2212]/g, "-")
+    // apóstrofos/comillas sueltas → guion
+    .replace(/[’'`]/g, "-")
+    // colapsa espacios múltiples y recorta
+    .replace(/\s+/g, " ")
+    .trim();
+
 
 // === Componente de código de barras (preview) ===
 function BarcodeSVG({
@@ -367,29 +378,29 @@ export default function LabelGenerator() {
   }
 
   // === NUEVO: helper para insertar o acumular por código ===
-  function upsertArticleByCode(code: string, qty: number) {
-    const clean = String(code || '').trim()
-    const safeQty = Math.max(1, Math.floor(qty || 1))
-    if (!clean) return
+function upsertArticleByCode(code: string, qty: number) {
+  const clean = normalizeCode(code);
+  const safeQty = Math.max(1, Math.floor(qty || 1));
+  if (!clean) return;
 
-    setArticles(prev => {
-      const idx = prev.findIndex(a => a.barcode === clean)
-      if (idx !== -1) {
-        const next = [...prev]
-        next[idx] = { ...next[idx], quantity: next[idx].quantity + safeQty }
-        return next
-      }
-      return [
-        ...prev,
-        {
-          id: `${Date.now()}_${clean}_${Math.random().toString(36).slice(2, 7)}`,
-          text: clean,
-          barcode: clean,
-          quantity: safeQty,
-        },
-      ]
-    })
-  }
+  setArticles(prev => {
+    const idx = prev.findIndex(a => a.barcode === clean);
+    if (idx !== -1) {
+      const next = [...prev];
+      next[idx] = { ...next[idx], quantity: next[idx].quantity + safeQty };
+      return next;
+    }
+    return [
+      ...prev,
+      {
+        id: `${Date.now()}_${clean}_${Math.random().toString(36).slice(2, 7)}`,
+        text: clean,
+        barcode: clean,
+        quantity: safeQty,
+      },
+    ];
+  });
+}
 
   function mergeImportedArticles(rows: ImportRow[]) {
     // Reutilizamos el helper para evitar duplicar lógica.
@@ -531,24 +542,23 @@ export default function LabelGenerator() {
   }
 
   // === MODIFICADO: Agregar artículo (acumula si ya existe el código)
-  const addArticle = (claveOverride?: string) => {
-    const clave = (claveOverride ?? labelConfig.text).trim()
-    if (!clave) return
-    const qty = Number.parseInt(labelConfig.quantity, 10) || 1
+const addArticle = (claveOverride?: string) => {
+  const clave = normalizeCode(claveOverride ?? labelConfig.text);
+  if (!clave) return;
+  const qty = Number.parseInt(labelConfig.quantity, 10) || 1;
 
-    upsertArticleByCode(clave, qty)
+  upsertArticleByCode(clave, qty);
 
-    setLabelConfig((prev) => ({ ...prev, text: "", quantity: "1" }))
-    setSearchResults([])
-    setSearchError(null)
-  }
+  setLabelConfig((prev) => ({ ...prev, text: "", quantity: "1" }));
+  setSearchResults([]);
+  setSearchError(null);
+};
+
 
   const removeArticle = (id: string) => {
     setArticles((prev) => prev.filter((a) => a.id !== id))
   }
 
-  // 👉 Imprime en la MISMA pestaña (iframe oculto). Papel = etiqueta exacta.
-  // 👉 Imprimir etiquetas
   const isMobile = () =>
     /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
@@ -644,8 +654,6 @@ ${bodyHtml}
       setTimeout(cleanup, 10000);
     }
   };
-
-
 
   /******************************************************/
   const totalLabels = useMemo(() => articles.reduce((s, a) => s + a.quantity, 0), [articles])
@@ -757,7 +765,7 @@ return (
                     type="text"
                     placeholder="Busca por clave o nombre…"
                     value={labelConfig.text}
-                    onChange={(e) => handleConfigChange("text", e.target.value)}
+                   onChange={(e) => handleConfigChange("text", normalizeCode(e.target.value))}
                     onKeyDown={onArticleKeyDown}
                     className="bg-gray-700 border-gray-500 text-white placeholder-gray-300 flex-1 w-full"
                   />
