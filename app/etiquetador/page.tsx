@@ -769,7 +769,7 @@ ${bodyHtml}
                   </CardTitle>
 
                   <div className="flex items-center gap-2 text-white font-light text-xs sm:text-sm">
-                    <span className="shrink-0">v1.2.1</span>
+                    <span className="shrink-0">v1.3.0</span>
                     <Link
                       href="/actualizaciones"
                       className="text-purple-300 hover:text-purple-200"
