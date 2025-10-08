@@ -200,7 +200,7 @@ function shareZplToZebra(zpl: string, name = `etiquetas_${Date.now()}.zpl`) {
   if (typeof window === "undefined") return;
 
   // 1) HTTPS / localhost obligatorio
-  const isSecure = window.isSecureContext || ["localhost","127.0.0.1"].includes(location.hostname);
+  const isSecure = window.isSecureContext || ["localhost", "127.0.0.1"].includes(location.hostname);
   if (!isSecure) {
     alert("Esta función requiere HTTPS o localhost.");
     return;
@@ -364,24 +364,50 @@ export default function Page() {
     }
   }
 
+  // Sustituye TODO el handlePrintBrowserPrint por esto:
   const handlePrintBrowserPrint = async () => {
-  if (!articles.length) return
-  try {
-    const zpl = buildZplJobSmart(articles, template, 203) // ZQ511 = 203 dpi
-    await bpPrintZPL(zpl)
-    new Noty({ type: "success", layout: "topRight", theme: "mint", text: "Enviado a la Zebra (BrowserPrint).", timeout: 2200 }).show()
-  } catch (e: any) {
-    // Fallback a tu flujo de compartir si falla
-    console.warn("BP error:", e)
-    new Noty({ type: "warning", layout: "topRight", theme: "mint", text: "No se pudo usar BrowserPrint. Intentando compartir ZPL…", timeout: 1800 }).show()
+    if (!articles.length) return
     try {
+      // Genera ZPL (ZQ511 = 203 dpi)
       const zpl = buildZplJobSmart(articles, template, 203)
-      shareZplToZebra(zpl, "etiquetas.zpl")
-    } catch (e2: any) {
-      new Noty({ type: "error", layout: "topRight", theme: "mint", text: e2?.message || "Error al compartir ZPL.", timeout: 3200 }).show()
+
+      // Usa tu helper centralizado (carga SDK, elige device y hace write)
+      await bpPrintZPL(zpl)
+
+      new Noty({
+        type: "success",
+        layout: "topRight",
+        theme: "mint",
+        text: "Enviado a Zebra (BrowserPrint).",
+        timeout: 2200
+      }).show()
+    } catch (e: any) {
+      // Fallback a compartir ZPL
+      console.warn("BrowserPrint error:", e)
+      new Noty({
+        type: "warning",
+        layout: "topRight",
+        theme: "mint",
+        text: "No se pudo usar BrowserPrint. Intentando compartir ZPL…",
+        timeout: 2000
+      }).show()
+      try {
+        const zpl = buildZplJobSmart(articles, template, 203)
+        shareZplToZebra(zpl, "etiquetas.zpl")
+      } catch (e2: any) {
+        new Noty({
+          type: "error",
+          layout: "topRight",
+          theme: "mint",
+          text: e2?.message || "No se pudo compartir el ZPL.",
+          timeout: 3200
+        }).show()
+      }
     }
   }
-}
+
+
+
 
 
   // Artículos
@@ -506,7 +532,9 @@ export default function Page() {
     if (!articles.length) return
     try {
       const zpl = buildZplJobSmart(articles, template, 203) // ZQ511 = 203dpi
-      await shareZplToZebra(zpl, "etiquetas.zpl")
+      // DESPUÉS
+      shareZplToZebra(zpl, "etiquetas.zpl")
+
       new Noty({
         type: "success", layout: "topRight", theme: "mint",
         text: "Enviado a Zebra. Si PrintConnect tiene Auto Print, saldrá directo.", timeout: 2200
@@ -1055,14 +1083,14 @@ ${template.css(w, h, pad)}
                   </Button>
 
                   <Button
-  onClick={handlePrintBrowserPrint}
-  className="col-span-full w-full justify-center h-11 bg-purple-600 hover:bg-purple-700 text-white border-0"
-  disabled={!sucursalId || articles.length === 0}
-  title="Imprimir directo por BrowserPrint (Android)"
->
-  <Printer className="w-4 h-4 mr-2" />
-  Imprimir (BrowserPrint)
-</Button>
+                    onClick={handlePrintBrowserPrint}
+                    className="col-span-full w-full justify-center h-11 bg-purple-600 hover:bg-purple-700 text-white border-0"
+                    disabled={!sucursalId || articles.length === 0}
+                    title="Imprimir directo por BrowserPrint (Android)"
+                  >
+                    <Printer className="w-4 h-4 mr-2" />
+                    Imprimir (BrowserPrint)
+                  </Button>
 
 
                   <Button
