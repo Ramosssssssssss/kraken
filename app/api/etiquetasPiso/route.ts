@@ -10,27 +10,45 @@ export const dynamic = "force-dynamic"
 export const revalidate = 0
 
 // ================= Config ==========================
-const FB_ENCODING = (process.env.FB_ENCODING || "WIN1252").toUpperCase() as "WIN1252" | "UTF8"
+const FB_ENCODING = (process.env.FB_ENCODING || "UTF8").toUpperCase() as "WIN1252" | "UTF8"
 const FIX_SQL = (process.env.FIX_SQL || "1") === "1"
 
-const fbConfig: fb.Options = {
+const LOGS_DIR = process.env.LOGS_DIR || "./logs"
+
+// ===== Config base (FYTTSA) =====
+const baseFbConfig: fb.Options = {
   host: process.env.FIREBIRD_HOST || "85.215.109.213",
   port: Number(process.env.FIREBIRD_PORT || 3050),
   database: process.env.FB_DATABASE || "D:\\Microsip datos\\GUIMAR.FDB",
   user: process.env.FIREBIRD_USER || "SYSDBA",
   password: process.env.FIREBIRD_PASSWORD || "BlueMamut$23",
-  encoding: "UTF8",
+  encoding: FB_ENCODING, // usar 'encoding' (node-firebird)
 }
 
-const LOGS_DIR = process.env.LOGS_DIR || "./logs"
+// ===== Config GOUMAM =====
+const goumamFbConfig: fb.Options = {
+  host: process.env.GOUMAM_FIREBIRD_HOST || process.env.FIREBIRD_HOST || "85.215.109.213",
+  port: Number(process.env.GOUMAM_FIREBIRD_PORT || process.env.FIREBIRD_PORT || 3050),
+  database: process.env.GOUMAM_FB_DATABASE || "D:\\Microsip datos\\GOUMAM.FDB",
+  user: process.env.GOUMAM_FIREBIRD_USER || process.env.FIREBIRD_USER || "SYSDBA",
+  password: process.env.GOUMAM_FIREBIRD_PASSWORD || process.env.FIREBIRD_PASSWORD || "masterkeyBS",
+  encoding: FB_ENCODING,
+}
 
-// ======== Config de redondeo de precios ============
-type RoundMode = "ROUND" | "CEIL" | "FLOOR"
-const PRICE_ROUND_MODE = (process.env.PRICE_ROUND_MODE as RoundMode) || "ROUND"
-const _DEC_STR = process.env.PRICE_DECIMALS
-const PRICE_DECIMALS = _DEC_STR === undefined ? 0 : Number(_DEC_STR)
-if (!Number.isFinite(PRICE_DECIMALS) || PRICE_DECIMALS < 0) {
-  throw new Error("PRICE_DECIMALS inválido (use entero >= 0)")
+// ================= Hostname helpers =================
+function hostnameFromReq(req: NextRequest): string {
+  const h =
+    req.headers.get("x-forwarded-host") ||
+    req.headers.get("host") ||
+    new URL(req.url).hostname ||
+    ""
+  return h.toLowerCase().replace(/:\d+$/, "")
+}
+
+function selectFbConfigByHost(hostname: string): fb.Options {
+  if (hostname === "goumam.krkn.mx") return goumamFbConfig
+  // default/fyttsa
+  return baseFbConfig
 }
 
 // ================= Logs ============================
@@ -82,16 +100,22 @@ const toNum = (v: any, d = 0) => {
   const n = Number(v)
   return Number.isFinite(n) ? n : d
 }
+type RoundMode = "ROUND" | "CEIL" | "FLOOR"
+const PRICE_ROUND_MODE = (process.env.PRICE_ROUND_MODE as RoundMode) || "ROUND"
+const _DEC_STR = process.env.PRICE_DECIMALS
+const PRICE_DECIMALS = _DEC_STR === undefined ? 0 : Number(_DEC_STR)
+if (!Number.isFinite(PRICE_DECIMALS) || PRICE_DECIMALS < 0) {
+  throw new Error("PRICE_DECIMALS inválido (use entero >= 0)")
+}
 function roundPrice(v: any, decimals = PRICE_DECIMALS, mode: RoundMode = PRICE_ROUND_MODE): number {
   const n = toNum(v, 0)
-  if (!Number.isFinite(n)) return 0
   const factor = Math.pow(10, decimals)
   const scaled = Number((n * factor).toFixed(8))
   let roundedScaled: number
   switch (mode) {
-    case "CEIL": roundedScaled = Math.ceil(scaled); break
+    case "CEIL":  roundedScaled = Math.ceil(scaled); break
     case "FLOOR": roundedScaled = Math.floor(scaled); break
-    default: roundedScaled = Math.round(scaled)
+    default:      roundedScaled = Math.round(scaled)
   }
   const out = roundedScaled / factor
   return Number(out.toFixed(decimals))
@@ -111,10 +135,11 @@ const mapRow = (r: Row, rid: string): ApiRow => {
   return mapped
 }
 
-// ================= DB helper =======================
-function queryFirebird<T = any>(sql: string, params: any[] = []): Promise<T[]> {
+// ================= DB helper (dinámico) =============
+function queryFirebird<T = any>(fbOptions: fb.Options, sql: string, params: any[] = []): Promise<T[]> {
+  log(`FB[${fbOptions.database}] SQL: ${sql.replace(/\s+/g, " ").trim()} params=${JSON.stringify(params)}`, "DEBUG")
   return new Promise((resolve, reject) => {
-    fb.attach(fbConfig, (err, db) => {
+    fb.attach(fbOptions, (err, db) => {
       if (err || !db) return reject(err)
       db.query(sql, params, (qErr: any, rows: any[]) => {
         try { db.detach(() => {}) } catch {}
@@ -127,6 +152,19 @@ function queryFirebird<T = any>(sql: string, params: any[] = []): Promise<T[]> {
 
 // ================= SQL (con FIX) ===================
 function buildSQL() {
+  if (!FIX_SQL) {
+    return `
+      SELECT
+        R_CODIGO,
+        R_DESCRIPCION,
+        R_UNIDAD_VENTA,
+        R_INVENTARIO_MAXIMO,
+        R_PRECIO_LIST_IVA,
+        R_PRECIO_MAYOR_IVA,
+        R_ESTATUS
+      FROM DET_ART_ETIQUETAS(?, ?)
+    `
+  }
   const fix = (col: string, len = 200) => `
     CAST(
       CAST(
@@ -149,49 +187,44 @@ function buildSQL() {
 }
 
 // ============== Helpers de búsqueda =================
-
 // (1) Detalle por CÓDIGO usando tu SP existente
-async function searchByCodigo(codigo: string, almacen: number, rid: string): Promise<ApiRow[]> {
+async function searchByCodigo(fbOptions: fb.Options, codigo: string, almacen: number, rid: string): Promise<ApiRow[]> {
   const sql = buildSQL()
-  const rows = await queryFirebird<Row>(sql, [codigo, almacen])
+  const rows = await queryFirebird<Row>(fbOptions, sql, [codigo, almacen])
   return rows.map(r => mapRow(r, rid))
 }
 
-// (2) ARTICULO_IDs por ubicación (tu consulta base)
-async function getArticuloIdsPorUbicacion(almacenId: number, ubicacion: string): Promise<number[]> {
+// (2) ARTICULO_IDs por ubicación
+async function getArticuloIdsPorUbicacion(fbOptions: fb.Options, almacenId: number, ubicacion: string): Promise<number[]> {
   const sql = `
     SELECT ARTICULO_ID
     FROM NIVELES_ARTICULOS
     WHERE ALMACEN_ID = ? AND UPPER(LOCALIZACION) = UPPER(?)
   `
-  const rows = await queryFirebird<{ ARTICULO_ID: number }>(sql, [almacenId, ubicacion])
+  const rows = await queryFirebird<{ ARTICULO_ID: number }>(fbOptions, sql, [almacenId, ubicacion])
   return rows.map(r => Number(r.ARTICULO_ID)).filter(n => Number.isFinite(n))
 }
 
-// (3) CLAVE_ARTICULO(s) por ARTICULO_ID (tu segunda consulta)
-async function getClavesPorArticuloId(articuloId: number): Promise<string[]> {
+// (3) CLAVE_ARTICULO(s) por ARTICULO_ID
+async function getClavesPorArticuloId(fbOptions: fb.Options, articuloId: number): Promise<string[]> {
   const sql = `SELECT CLAVE_ARTICULO FROM CLAVES_ARTICULOS WHERE ARTICULO_ID = ?`
-  const rows = await queryFirebird<{ CLAVE_ARTICULO: string }>(sql, [articuloId])
+  const rows = await queryFirebird<{ CLAVE_ARTICULO: string }>(fbOptions, sql, [articuloId])
   return rows.map(r => (r.CLAVE_ARTICULO || "").trim()).filter(Boolean)
 }
 
-// (4) NUEVO: pipeline completo por ubicación -> ids -> claves -> SP
-async function searchByUbicacion(almacen: number, ubicacion: string, rid: string): Promise<ApiRow[]> {
+// (4) Pipeline por ubicación -> ids -> claves -> SP
+async function searchByUbicacion(fbOptions: fb.Options, almacen: number, ubicacion: string, rid: string): Promise<ApiRow[]> {
   log(`[${rid}] Buscar por ubicacion="${ubicacion}" almacen=${almacen}`, "INFO")
 
-  // A) obtener todos los ARTICULO_ID de esa ubicación
-  const articuloIds = await getArticuloIdsPorUbicacion(almacen, ubicacion)
+  const articuloIds = await getArticuloIdsPorUbicacion(fbOptions, almacen, ubicacion)
   if (articuloIds.length === 0) return []
 
-  // B) por cada articuloId, obtener TODAS las claves de CLAVES_ARTICULOS
-  //    (puede haber varias claves por artículo)
   const clavesSet = new Set<string>()
-  // controla lotes para no saturar (ajusta a tu gusto)
   const CONC_GET_CLAVES = 20
   for (let i = 0; i < articuloIds.length; i += CONC_GET_CLAVES) {
     const batch = articuloIds.slice(i, i + CONC_GET_CLAVES).map(async (id) => {
       try {
-        const claves = await getClavesPorArticuloId(id)
+        const claves = await getClavesPorArticuloId(fbOptions, id)
         claves.forEach(c => c && clavesSet.add(c))
       } catch (e) {
         log(`[${rid}] Error obteniendo claves para ARTICULO_ID=${id}: ${String(e)}`, "WARN")
@@ -203,13 +236,12 @@ async function searchByUbicacion(almacen: number, ubicacion: string, rid: string
   const claves = Array.from(clavesSet)
   if (claves.length === 0) return []
 
-  // C) con cada clave, invocar tu SP para traer el detalle homogéneo
   const results: ApiRow[] = []
   const CONC_SP = 5
   for (let i = 0; i < claves.length; i += CONC_SP) {
     const batch = claves.slice(i, i + CONC_SP).map(async (clave) => {
       try {
-        const detalle = await searchByCodigo(clave, almacen, rid)
+        const detalle = await searchByCodigo(fbOptions, clave, almacen, rid)
         results.push(...detalle)
       } catch (e) {
         log(`[${rid}] Error obteniendo detalle para CLAVE_ARTICULO=${clave}: ${String(e)}`, "WARN")
@@ -226,8 +258,11 @@ async function searchByUbicacion(almacen: number, ubicacion: string, rid: string
 export async function GET(req: NextRequest) {
   const rid = Math.random().toString(36).slice(2, 10)
   try {
-    const { searchParams } = new URL(req.url)
+    const hostname = hostnameFromReq(req)
+    const fbOptions = selectFbConfigByHost(hostname)
+    log(`[${rid}] GET /api/buscarArticulo host=${hostname} db=${fbOptions.database}`, "INFO")
 
+    const { searchParams } = new URL(req.url)
     const codigo = (searchParams.get("codigo") || req.headers.get("x-codigo") || "").trim()
     const ubicacion = (searchParams.get("ubicacion") || req.headers.get("x-ubicacion") || "").trim()
     const almacenStr = (searchParams.get("almacen") || req.headers.get("x-almacen") || "").trim()
@@ -239,16 +274,16 @@ export async function GET(req: NextRequest) {
 
     // 1) por CÓDIGO (comportamiento original)
     if (codigo) {
-      const data = await searchByCodigo(codigo, almacen, rid)
+      const data = await searchByCodigo(fbOptions, codigo, almacen, rid)
       if (data.length === 0) {
         return NextResponse.json({ ok: false, error: "Artículo no encontrado" }, { status: 404 })
       }
       return NextResponse.json({ ok: true, data })
     }
 
-    // 2) por UBICACIÓN (ahora con el pipeline ARTICULO_ID -> CLAVE_ARTICULO -> SP)
+    // 2) por UBICACIÓN (pipeline ARTICULO_ID -> CLAVE_ARTICULO -> SP)
     if (ubicacion) {
-      const data = await searchByUbicacion(almacen, ubicacion, rid)
+      const data = await searchByUbicacion(fbOptions, almacen, ubicacion, rid)
       if (data.length === 0) {
         return NextResponse.json({ ok: false, error: "Sin artículos en esa ubicación" }, { status: 404 })
       }
