@@ -9,13 +9,7 @@ import { Package, Tags, DollarSign, ArrowLeft, Menu } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 const tiles = [
   { id: "etiquetador", href: "/etiquetador", title: "Generador de Etiquetas", desc: "Crear y gestionar etiquetas estándar con código de barras y QR.", icon: Tags },
@@ -37,30 +31,63 @@ function EtiquetadorHubInner() {
   const router = useRouter();
   const sp = useSearchParams();
 
-  const initialTab = (sp.get("tab") as TabId) || tiles[0].id;
-  const [active, setActive] = useState<TabId>(initialTab);
+  // Detecta host en cliente
+  const [isGoumam, setIsGoumam] = useState(false);
+  useEffect(() => {
+    try {
+      const host = window.location.hostname;
+      setIsGoumam(host === "goumam.krkn.mx");
+    } catch {
+      setIsGoumam(false);
+    }
+  }, []);
+
+  // Filtra tiles visibles según host
+  const visibleTiles = useMemo(() => {
+    return isGoumam ? tiles.filter(t => t.id !== "etiquetador_precios") : tiles;
+  }, [isGoumam]);
+
+  // Pestaña inicial: respeta ?tab si existe y es válida, si no, primera visible
+  const spTab = sp.get("tab") as TabId | null;
+  const safeInitialTab: TabId = useMemo(() => {
+    const exists = visibleTiles.some(t => t.id === spTab);
+    return (exists ? (spTab as TabId) : (visibleTiles[0]?.id as TabId));
+  }, [spTab, visibleTiles]);
+
+  const [active, setActive] = useState<TabId>(safeInitialTab);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Mantén ?tab sincronizado y corrige si se vuelve inválido al cambiar visibleTiles
   useEffect(() => {
+    if (!visibleTiles.some(t => t.id === active)) {
+      const fallback = visibleTiles[0]?.id as TabId;
+      setActive(fallback);
+      const p = new URLSearchParams(window.location.search);
+      p.set("tab", fallback);
+      router.replace(`?${p.toString()}`);
+      return;
+    }
     const params = new URLSearchParams(window.location.search);
     if (params.get("tab") !== active) {
       params.set("tab", active);
       router.replace(`?${params.toString()}`);
     }
-  }, [active, router]);
+  }, [active, visibleTiles, router]);
 
+  // Atajos 1..N según tiles visibles
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "1") setActive(tiles[0].id);
-      if (e.key === "2") setActive(tiles[1].id);
-      if (e.key === "3") setActive(tiles[2].id);
+      const idx = Number(e.key) - 1;
+      if (!Number.isNaN(idx) && idx >= 0 && idx < visibleTiles.length) {
+        setActive(visibleTiles[idx].id as TabId);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [visibleTiles]);
 
-  const activeTile = useMemo(() => tiles.find((t) => t.id === active), [active]);
-  const src = useMemo(() => activeTile?.href ?? tiles[0].href, [activeTile]);
+  const activeTile = useMemo(() => visibleTiles.find((t) => t.id === active), [active, visibleTiles]);
+  const src = useMemo(() => activeTile?.href ?? visibleTiles[0].href, [activeTile, visibleTiles]);
 
   return (
     <main className="h-screen flex flex-col bg-gradient-to-br from-gray-900 via-gray-800 to-purple-900 text-white">
@@ -75,23 +102,19 @@ function EtiquetadorHubInner() {
           >
             {activeTile?.title ?? "Centro de Etiquetado"}
           </motion.h1>
-          {activeTile?.desc && (
-            <p className="text-gray-300 mt-1">{activeTile.desc}</p>
-          )}
+          {activeTile?.desc && <p className="text-gray-300 mt-1">{activeTile.desc}</p>}
         </header>
       </section>
 
       {/* Contenido (Tabs + iframe) */}
       <section className="w-full max-w-[100%] mx-auto px-0 sm:px-[10px] pb-4 flex-1 flex min-h-0">
-
         <Tabs
           value={active}
           onValueChange={(v) => setActive(v as TabId)}
           className="flex-1 flex flex-col min-h-0 overflow-hidden"
         >
-          {/* Barra superior: back + tabs (desktop) / back + hamburguesa (mobile) */}
+          {/* Barra superior */}
           <TabsList className="w-full bg-transparent flex items-center justify-between">
-            {/* Volver */}
             <Link
               href="/dashboard"
               className="flex items-center gap-2 text-purple-300 hover:text-purple-200 px-2 md:px-4"
@@ -100,9 +123,9 @@ function EtiquetadorHubInner() {
               <span className="hidden sm:inline">Volver</span>
             </Link>
 
-            {/* Accesos (versión escritorio) */}
+            {/* Accesos escritorio */}
             <div className="hidden md:flex space-x-2">
-              {tiles.map((t) => (
+              {visibleTiles.map((t) => (
                 <TabsTrigger
                   key={t.id}
                   value={t.id}
@@ -113,41 +136,29 @@ function EtiquetadorHubInner() {
               ))}
             </div>
 
-            {/* Hamburguesa (versión móvil/tablet) */}
+            {/* Menú móvil */}
             <div className="md:hidden">
               <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
                 <SheetTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Abrir menú"
-                    className="text-white"
-                  >
+                  <Button variant="ghost" size="icon" aria-label="Abrir menú" className="text-white">
                     <Menu className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent
-                  side="bottom"
-                  className="bg-gray-900 text-white border-t border-gray-700 rounded-t-2xl"
-                >
+                <SheetContent side="bottom" className="bg-gray-900 text-white border-t border-gray-700 rounded-t-2xl">
                   <SheetHeader>
                     <SheetTitle className="text-white">Sistema de etiquetador</SheetTitle>
                   </SheetHeader>
                   <nav className="mt-4 grid gap-2">
-                    {tiles.map((t) => {
+                    {visibleTiles.map((t) => {
                       const Icon = t.icon;
                       const isActive = t.id === active;
                       return (
                         <Button
                           key={t.id}
                           variant={isActive ? "default" : "secondary"}
-                          className={
-                            isActive
-                              ? "bg-purple-600 hover:bg-purple-600"
-                              : "bg-gray-800 hover:bg-gray-700"
-                          }
+                          className={isActive ? "bg-purple-600 hover:bg-purple-600" : "bg-gray-800 hover:bg-gray-700"}
                           onClick={() => {
-                            setActive(t.id);
+                            setActive(t.id as TabId);
                             setMenuOpen(false);
                           }}
                         >
@@ -159,22 +170,13 @@ function EtiquetadorHubInner() {
                   </nav>
                 </SheetContent>
               </Sheet>
-
             </div>
           </TabsList>
 
-          {tiles.map((t) => (
-            <TabsContent
-              key={t.id}
-              value={t.id}
-              className="mt-3 flex-1 min-h-0 flex flex-col"
-            >
+          {visibleTiles.map((t) => (
+            <TabsContent key={t.id} value={t.id} className="mt-3 flex-1 min-h-0 flex flex-col">
               <div className="flex-1 min-h-0 overflow-hidden md:rounded-xl md:border md:border-gray-700">
-                <iframe
-                  src={t.id === active ? src : "about:blank"}
-                  title={t.title}
-                  className="w-full h-full block"
-                />
+                <iframe src={t.id === active ? src : "about:blank"} title={t.title} className="w-full h-full block" />
               </div>
             </TabsContent>
           ))}
