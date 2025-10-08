@@ -16,9 +16,11 @@ import EmbarquesSection from "@/components/dashboard/embarques-section"
 import IntegrationsSection from "@/components/dashboard/integrations-section"
 import ConfigurationSection from "@/components/dashboard/configuration-section"
 import PerfilPage from "@/components/dashboard/profile-section"
+import PlaceholderSection from "@/components/dashboard/placeholder-section"
 
 // Opcional: evita pre-render estático de esta página
 export const dynamic = "force-dynamic"
+
 
 interface UserData {
   PIKER_ID: number
@@ -50,8 +52,22 @@ const ALLOWED_SECTIONS = new Set([
   "EMBARQUES",
   "INTEGRACIONES",
   "CONFIGURACION",
+  // nuevas que van a placeholder
+  "ADUANA",
+  "AUDITORÍA",
+  "KPI'S",
+  "LAYOUT",
+  "TABLEROS",
 ])
 
+const PLACEHOLDER_SECTIONS = new Set([
+  "ADUANA",
+  "AUDITORÍA",
+  "INTEGRACIONES",
+  "KPI'S",
+  "LAYOUT",
+  "TABLEROS",
+])
 /* ---------- Wrapper con Suspense ---------- */
 export default function DashboardPage() {
   return (
@@ -130,31 +146,38 @@ function DashboardPageInner() {
     router.replace("/login")
   }
 
-  const renderContent = useMemo(() => {
-    switch (activeSection) {
-      case "PERSONALIZAR":
-        return <PersonalizeSection />
-      case "USUARIOS":
-        return <UsersSection />
-      case "APLICACIONES":
-        return <ApplicationsSection />
-      case "CATÁLOGOS":
-        return <CatalogsSection />
-      case "PROCESOS":
-        return <ProcessesSection />
-      case "INVENTARIO":
-        return <InventorySection />
-      case "EMBARQUES":
-        return <EmbarquesSection />
-      case "INTEGRACIONES":
-        return <IntegrationsSection />
-      case "CONFIGURACION":
-        return <ConfigurationSection />
-      case "PERFIL":
-      default:
-        return <PerfilPage />
-    }
-  }, [activeSection])
+const renderContent = useMemo(() => {
+  // Si la sección clickeada está marcada como placeholder, renderízala acá
+  if (PLACEHOLDER_SECTIONS.has(activeSection)) {
+    return <PlaceholderSection title={activeSection} />
+  }
+
+  switch (activeSection) {
+    case "PERSONALIZAR":
+      return <PersonalizeSection />
+    case "USUARIOS":
+      return <UsersSection />
+    case "APLICACIONES":
+      return <ApplicationsSection />
+    case "CATÁLOGOS":
+      return <CatalogsSection />
+    case "PROCESOS":
+      return <ProcessesSection />
+    case "INVENTARIO":
+      return <InventorySection />
+    case "EMBARQUES":
+      return <EmbarquesSection />
+    // OJO: si quieres que INTEGRACIONES también sea placeholder,
+    // quita esta línea y lo manejará el guard clause de arriba.
+    // case "INTEGRACIONES":
+    //   return <IntegrationsSection />
+    case "CONFIGURACION":
+      return <ConfigurationSection />
+    case "PERFIL":
+    default:
+      return <PerfilPage />
+  }
+}, [activeSection])
 
   if (isLoading) {
     return (

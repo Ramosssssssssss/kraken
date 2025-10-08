@@ -23,6 +23,8 @@ interface UserData {
   password: string
   nombre?: string
   email?: string
+    MODULOS_KRKN?: string | number[] | null  // lo que venga del back (crudo)
+  modulosKrknArr?: number[] 
   [key: string]: any
 }
 

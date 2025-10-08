@@ -2,8 +2,8 @@
 
 import type React from "react"
 import { useRouter } from "next/navigation"
-
 import { Inbox, LucideWarehouse, ScanBarcode, BoxIcon, ChevronRight } from "lucide-react"
+import { useCompany } from "@/lib/company-context"
 
 interface ModuleCardProps {
   title: string
@@ -20,14 +20,12 @@ function ModuleCard({ title, description, icon: Icon, version, onClick }: Module
       className="group relative bg-black/40 hover:bg-black/60 border-b border-white/5 last:border-b-0 p-6 cursor-pointer transition-all duration-200"
     >
       <div className="flex items-center gap-6">
-        {/* Icon section */}
         <div className="flex-shrink-0">
           <div className="w-12 h-12 bg-white/5 group-hover:bg-white/10 rounded-lg flex items-center justify-center transition-all duration-200">
             <Icon className="w-6 h-6 text-white/60 group-hover:text-white/90 transition-colors" />
           </div>
         </div>
 
-        {/* Content section */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 mb-1">
             <h4 className="text-base font-medium text-white/90 group-hover:text-white transition-colors">{title}</h4>
@@ -38,7 +36,6 @@ function ModuleCard({ title, description, icon: Icon, version, onClick }: Module
           </p>
         </div>
 
-        {/* Action section */}
         <div className="flex-shrink-0">
           <div className="flex items-center gap-2 text-white/30 group-hover:text-white/70 transition-colors">
             <span className="text-xs font-medium">Abrir</span>
@@ -50,28 +47,80 @@ function ModuleCard({ title, description, icon: Icon, version, onClick }: Module
   )
 }
 
+type ModuleDef = {
+  id: number
+  title: string
+  description: string
+  icon: React.ComponentType<{ className?: string }>
+  version: string
+  path: string
+  group: "principal" | "alternativo"
+}
+
 export default function ProcessesSection() {
   const router = useRouter()
+  const { userData } = useCompany()
 
-  const handleReciboClick = () => {
-    router.push("/recibo")
-  }
+  // Módulos definidos con ID
+  const modules: ModuleDef[] = [
+    {
+      id: 1,
+      title: "Recibo",
+      description: "Registra la entrada de mercancía, valida contra órdenes de compra y asegura cantidades correctas.",
+      icon: Inbox,
+      version: "v2.1.0",
+      path: "/recibo",
+      group: "principal",
+    },
+    {
+      id: 2,
+      title: "Acomodo",
+      description: "Ubica y organiza la mercancía recibida en su posición correcta dentro del almacén.",
+      icon: LucideWarehouse,
+      version: "v2.1.0",
+      path: "/acomodo",
+      group: "principal",
+    },
+    {
+      id: 3,
+      title: "Picking",
+      description: "Prepara los productos solicitados tomando la mercancía de su ubicación en almacén.",
+      icon: ScanBarcode,
+      version: "v2.1.0",
+      path: "/picking",
+      group: "principal",
+    },
+    {
+      id: 4,
+      title: "Packing",
+      description: "Empaca y consolida los productos seleccionados para el envío o entrega.",
+      icon: BoxIcon,
+      version: "v2.1.0",
+      path: "/ordenes-packing",
+      group: "principal",
+    },
+    {
+      id: 5,
+      title: "Recibo Sin Microsip",
+      description: "Registra la entrada de mercancía sin integrar con Microsip.",
+      icon: Inbox,
+      version: "v2.1.0",
+      path: "/snMicro",
+      group: "alternativo",
+    },
+  ]
 
-  const handleEtiquetadorClick = () => {
-    router.push("/acomodo")
-  }
+  // Permisos desde el login (normalizados)
+  const allowed = new Set<number>(userData?.modulosKrknArr ?? [])
 
-  const handlePickingClick = () => {
-    router.push("/picking")
-  }
+  // Regla: si viene una lista no vacía, filtra; si no viene nada, muestra todo (para no bloquear)
+  const effectiveModules =
+    allowed.size > 0 ? modules.filter((m) => allowed.has(m.id)) : modules
 
-  const handlePackingClick = () => {
-    router.push("/ordenes-packing")
-  }
+  const principales = effectiveModules.filter((m) => m.group === "principal")
+  const alternativos = effectiveModules.filter((m) => m.group === "alternativo")
 
-  const handlesnMicroClick = () => {
-    router.push("/snMicro")
-  }
+  const go = (path: string) => () => router.push(path)
 
   return (
     <div className="min-h-screen bg-black p-8">
@@ -79,59 +128,57 @@ export default function ProcessesSection() {
         <div className="space-y-1 pb-4 border-b border-white/10">
           <h2 className="text-2xl font-semibold text-white">Procesos y Módulos</h2>
           <p className="text-sm text-white/40">Gestiona tus operaciones de almacén</p>
+          {allowed.size > 0 && (
+            <p className="text-xs text-white/30">Módulos permitidos: {[...allowed].sort().join(", ")}</p>
+          )}
         </div>
 
         <div className="space-y-8">
-          <div>
-            <h3 className="text-xs font-medium text-white/50 uppercase tracking-wider mb-3 px-6">
-              Módulos Principales
-            </h3>
-            <div className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
-              <ModuleCard
-                title="Recibo"
-                description="Registra la entrada de mercancía, valida contra órdenes de compra y asegura cantidades correctas."
-                icon={Inbox}
-                version="v2.1.0"
-                onClick={handleReciboClick}
-              />
-              <ModuleCard
-                title="Acomodo"
-                description="Ubica y organiza la mercancía recibida en su posición correcta dentro del almacén."
-                icon={LucideWarehouse}
-                version="v2.1.0"
-                onClick={handleEtiquetadorClick}
-              />
-              <ModuleCard
-                title="Picking"
-                description="Prepara los productos solicitados tomando la mercancía de su ubicación en almacén."
-                icon={ScanBarcode}
-                version="v2.1.0"
-                onClick={handlePickingClick}
-              />
-              <ModuleCard
-                title="Packing"
-                description="Empaca y consolida los productos seleccionados para el envío o entrega."
-                icon={BoxIcon}
-                version="v2.1.0"
-                onClick={handlePackingClick}
-              />
+          {principales.length > 0 && (
+            <div>
+              <h3 className="text-xs font-medium text-white/50 uppercase tracking-wider mb-3 px-6">
+                Módulos Principales
+              </h3>
+              <div className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
+                {principales.map((m) => (
+                  <ModuleCard
+                    key={m.id}
+                    title={m.title}
+                    description={m.description}
+                    icon={m.icon}
+                    version={m.version}
+                    onClick={go(m.path)}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          <div>
-            <h3 className="text-xs font-medium text-white/50 uppercase tracking-wider mb-3 px-6">
-              Módulos Alternativos
-            </h3>
-            <div className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
-              <ModuleCard
-                title="Recibo Sin Microsip"
-                description="Registra la entrada de mercancía, valida contra órdenes de compra y asegura cantidades correctas."
-                icon={Inbox}
-                version="v2.1.0"
-                onClick={handlesnMicroClick}
-              />
+          {alternativos.length > 0 && (
+            <div>
+              <h3 className="text-xs font-medium text-white/50 uppercase tracking-wider mb-3 px-6">
+                Módulos Alternativos
+              </h3>
+              <div className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
+                {alternativos.map((m) => (
+                  <ModuleCard
+                    key={m.id}
+                    title={m.title}
+                    description={m.description}
+                    icon={m.icon}
+                    version={m.version}
+                    onClick={go(m.path)}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
+          )}
+
+          {effectiveModules.length === 0 && (
+            <div className="text-center text-white/40 text-sm">
+              No tienes módulos habilitados. Contacta al administrador.
+            </div>
+          )}
         </div>
       </div>
     </div>

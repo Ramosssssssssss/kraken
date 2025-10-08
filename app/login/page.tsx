@@ -6,7 +6,7 @@ import { Eye, EyeOff, User, Lock, Loader2 } from "lucide-react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useCompany } from "@/lib/company-context"
-
+import { parseModulesCSV } from "@/lib/parse-mods"
 function getTenantFromHost(hostname: string) {
   const parts = hostname.split(".")
   return parts.length >= 3 ? (parts[0] || "").toLowerCase() : null
@@ -107,10 +107,14 @@ export default function LoginPage() {
       const data = await response.json()
 
       if (response.ok && data.message === "✅ Login exitoso") {
-        const userDataToSave = {
+       
+         const modulosArr = parseModulesCSV(data.user?.MODULOS_KRKN)
+ const userDataToSave = {
           ...data.user,
           user: email,
           password: password,
+            MODULOS_KRKN: data.user?.MODULOS_KRKN ?? null, // crudo por referencia
+    modulosKrknArr: modulosArr,  
         }
         setUserData(userDataToSave)
 

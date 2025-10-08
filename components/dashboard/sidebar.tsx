@@ -2,24 +2,26 @@
 
 import { useState } from "react";
 import {
-  User,
-  Settings,
-  LogOut,
-  ChevronDown,
-  Users2Icon,
-  FolderArchiveIcon,
-  ListStartIcon,
-  PackagePlusIcon,
-  LayoutDashboard,
-  Briefcase,
-  TrendingUp,
+  UserCircle, LogOut, ChevronDown, MoreVertical,
   Zap,
-  Share2,
-  DollarSign,
+  TrendingUp,
+  Briefcase,
   MoreHorizontal,
-  UserCircle,
-  MoreVertical,
-} from "lucide-react";
+  DollarSign,
+  FolderArchive,
+  LayoutDashboard,
+  BarChart3,
+  Settings,
+  Package,
+  Network,
+  ClipboardList,
+  Users2,
+  FileSearch,
+  Globe,
+  Box,
+  LineChart,
+  CalendarClock,
+} from "lucide-react"
 import { useRouter } from "next/navigation";
 interface SidebarProps {
   activeSection: string;
@@ -48,23 +50,24 @@ export default function Sidebar({
   const [showCollapsedMenu, setShowCollapsedMenu] = useState(false);
   const router = useRouter();
 
+
 const menuItems: MenuItem[] = [
-  { name: "ADUANA", icon: Zap },
-  { name: "APLICACIONES", icon: Zap },
-    { name: "AUDITORÍA", icon: TrendingUp },
+  { name: "ADUANA", icon: Globe }, // 🌎 temas de import/export
+  { name: "APLICACIONES", icon: LayoutDashboard }, // apps / módulos
+  { name: "AUDITORÍA", icon: FileSearch }, // 🔍 revisión o logs
 
-  { name: "CATÁLOGOS", icon: Zap },
-  { name: "INTEGRACIONES", icon: Zap },
-  { name: "INVENTARIO", icon: MoreHorizontal },
-  { name: "KPI's", icon: Zap },
-  { name: "LAYOUT", icon: Zap },
-  { name: "PERSONALIZAR", icon: Briefcase },
-  { name: "PLANEACIÓN", icon: Zap },
-  { name: "PROCESOS", icon: DollarSign },
-  { name: "TABLEROS", icon: Zap },
-  { name: "USUARIOS", icon: TrendingUp },
-
+  { name: "CATÁLOGOS", icon: FolderArchive }, // 📁 datos maestros
+  { name: "INTEGRACIONES", icon: Network }, // 🔗 conexiones externas
+  { name: "INVENTARIO", icon: Box }, // 📦 control de existencias
+  { name: "KPI's", icon: LineChart }, // 📊 métricas y desempeño
+  { name: "LAYOUT", icon: Package }, // 🏗️ estructura del almacén
+  { name: "PERSONALIZAR", icon: Briefcase }, // 🧩 ajustes de UI / branding
+  { name: "PLANEACIÓN", icon: CalendarClock }, // 📅 programación y forecast
+  { name: "PROCESOS", icon: ClipboardList }, // 🧾 operaciones WMS
+  { name: "TABLEROS", icon: BarChart3 }, // 📈 dashboards visuales
+  { name: "USUARIOS", icon: Users2 }, // 👥 gestión de personal
 ]
+
 
     // {
     //   name: "Social Media",
