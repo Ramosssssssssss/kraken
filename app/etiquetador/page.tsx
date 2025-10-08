@@ -121,9 +121,14 @@ function QRCodeSVG({ value, sizePx }: { value: string; sizePx: number }) {
         try {
           await QRCode.toCanvas(ref.current, value, {
             errorCorrectionLevel: "M",
-            margin: 0,
+            margin: 4,              // ← añade zona blanca de seguridad
+            color: {
+              dark: "#000000",
+              light: "#ffffff",     // ← fondo blanco
+            },
             width: sizePx,
           })
+
         } catch { }
       })()
     return () => { mounted = false }
@@ -613,12 +618,12 @@ export default function LabelGenerator() {
   <style>
     @page { size: ${labelW}mm ${labelH}mm; margin: 0; }
     body { margin:0; padding:0; font-family:${fontFamily}; }
-    .page { width:${labelW}mm; height:${labelH}mm; display:grid; place-items:center; page-break-after:always; }
+    .page { width:${labelW}mm; height:${labelH}mm; padding: ${padding};display:grid; place-items:center; page-break-after:always; }
     .label { width:${labelW}mm; height:${labelH}mm; display:flex; align-items:center; justify-content:center; gap:4px; }
     .label.column { flex-direction:column; }
     .label.row { flex-direction:column; }
     .barcode-svg { width:100%; height:${barH}mm; }
-    .qr-canvas { width:20mm; height:20mm; }
+    .qr-canvas { width:15mm; height:15mm; }
     .desc-text { font-size:${descFontPx}px; text-align:center; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
     .label-text { font-size:${fontPx}px; font-weight:bold; text-align:center; word-break:break-word; }
