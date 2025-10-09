@@ -244,28 +244,69 @@ function shareZplToZebra(zpl: string, name = `etiquetas_${Date.now()}.zpl`) {
 
 /* ==================================================================== */
 // ====== BrowserPrint (Android) ======
+// ====== BrowserPrint (Android) ======
 declare global {
   interface Window {
     BrowserPrint?: any
+    Zebra?: any
   }
 }
 
 async function ensureBrowserPrintLoaded(): Promise<void> {
   if (typeof window === "undefined") return
-  if (window.BrowserPrint) return
-  await new Promise<void>((resolve, reject) => {
-    const id = "bp-sdk"
-    if (document.getElementById(id)) return resolve()
-    const s = document.createElement("script")
-    s.id = id
-    // Si hosteas el JS tú mismo, ajusta la ruta:
-    s.src = "/browserprint/BrowserPrint-3.1.250.min.js"
-    s.async = true
-    s.onload = () => resolve()
-    s.onerror = () => reject(new Error("No se pudo cargar BrowserPrint SDK"))
-    document.head.appendChild(s)
-  })
+  // ¿ya está alguno disponible?
+  if (window.BrowserPrint || (window as any).Zebra?.BrowserPrint) return
+
+  // intentamos primero el namespaced y luego el legacy
+  const candidates = [
+    "/browserprint/BrowserPrint-Zebra-1.1.250.min.js",
+    "/browserprint/BrowserPrint-3.1.250.min.js",
+  ]
+
+  for (const src of candidates) {
+    // si ya lo cargamos, salimos
+    if (window.BrowserPrint || (window as any).Zebra?.BrowserPrint) return
+
+    // evita insertar dos veces el mismo script
+    if (document.querySelector(`script[data-bp="${src}"]`)) continue
+
+    await new Promise<void>((resolve) => {
+      const s = document.createElement("script")
+      s.async = true
+      s.dataset.bp = src
+      s.src = src
+      s.onload = () => resolve()
+      s.onerror = () => resolve() // seguimos al siguiente candidato
+      document.head.appendChild(s)
+    })
+  }
+
+  if (!(window.BrowserPrint || (window as any).Zebra?.BrowserPrint)) {
+    throw new Error("No se pudo cargar BrowserPrint (Zebra/legacy).")
+  }
 }
+
+// helper para obtener la API sin preocuparte por la variante
+async function getBP(): Promise<any> {
+  await ensureBrowserPrintLoaded()
+  const BP = window.BrowserPrint || (window as any).Zebra?.BrowserPrint
+  if (!BP) throw new Error("BrowserPrint no disponible")
+  return BP
+}
+
+
+async function bpIsAvailable(): Promise<boolean> {
+  try {
+    const BP = await getBP()
+    return await new Promise<boolean>((res) => {
+      try {
+        BP.getDefaultDevice("printer", (_d: any) => res(true), () => res(false))
+      } catch { res(false) }
+    })
+  } catch { return false }
+}
+
+
 
 type ZebraDevice = {
   name: string
@@ -276,48 +317,38 @@ type ZebraDevice = {
 }
 
 async function bpGetOrPickDevice(): Promise<ZebraDevice> {
-  await ensureBrowserPrintLoaded()
-  const BP = window.BrowserPrint
-  // 1) intenta la predeterminada
+  const BP = await getBP()
+
   const dflt: ZebraDevice | null = await new Promise((res) =>
     BP.getDefaultDevice("printer", (d: ZebraDevice | null) => res(d), () => res(null))
   )
   if (dflt) return dflt
 
-  // 2) lista y elige la primera que parezca Zebra (o la que guardaste)
   const devices: ZebraDevice[] = await new Promise((res, rej) =>
-    BP.getDevices(
-      (list: ZebraDevice[]) => res(list || []),
-      (err: any) => rej(err),
-      "printer"
-    )
+    BP.getDevices((list: ZebraDevice[]) => res(list || []), (err: any) => rej(err), "printer")
   )
 
   const savedUid = localStorage.getItem("zebra_bp_uid")
   let dev = devices.find(d => d.uid && d.uid === savedUid)
   if (!dev) dev = devices.find(d => /zq5|zebra|zq511/i.test(d.name || "")) || devices[0]
-
-  if (!dev) throw new Error("No se encontró ninguna impresora en BrowserPrint")
+  if (!dev) throw new Error("No se encontró impresora en BrowserPrint")
   if (dev.uid) localStorage.setItem("zebra_bp_uid", dev.uid)
   return dev
 }
 
+
 async function bpPrintZPL(zpl: string): Promise<void> {
   const dev = await bpGetOrPickDevice()
   await new Promise<void>((resolve, reject) => {
-    let done = false
-    const ok = () => { if (!done) { done = true; resolve() } }
-    const err = (e: any) => { if (!done) { done = true; reject(e) } }
-
-    // (opcional) “wake up” rápido con ~HS ó ~WC; suele no hacer falta
-    // dev.write("~HS\n", undefined, undefined)
-
-    dev.write(zpl, ok, err)
-
-    // timeout defensivo por si el bridge no responde
-    setTimeout(() => err(new Error("Timeout al enviar a BrowserPrint")), 8000)
+    let settled = false
+    const done = (fn: () => void) => { if (!settled) { settled = true; fn() } }
+    try { dev.write("~HS\n") } catch {}
+    dev.write(zpl, () => done(resolve), (e: any) => done(() => reject(e)))
+    setTimeout(() => done(() => reject(new Error("Timeout al enviar a BrowserPrint"))), 10000)
   })
 }
+
+
 /**************************************************************/
 
 
@@ -329,6 +360,7 @@ export default function Page() {
   useEffect(() => { if (sucursalId) localStorage.setItem("almacenId", sucursalId) }, [sucursalId])
   const sucursalActual = useMemo(() => SCS.find((s) => s.id === sucursalId) || null, [sucursalId])
 
+  const [hasBP, setHasBP] = useState(false)
   // Plantilla (desde registry)
   const [tplId, setTplId] = useState<TemplateId>(LABEL_TEMPLATES[0].id)
   const template = useMemo<LabelTemplate>(() => getTemplate(tplId), [tplId])
@@ -342,6 +374,13 @@ export default function Page() {
   }, [])
   useEffect(() => { if (printerIp) localStorage.setItem("printerIp", printerIp) }, [printerIp])
   useEffect(() => { if (printerPort) localStorage.setItem("printerPort", printerPort) }, [printerPort])
+  useEffect(() => {
+    (async () => {
+      const ok = await bpIsAvailable()
+      setHasBP(ok)
+    })()
+  }, [])
+
 
   // --- imprimir directo por LAN (ZPL) ---
   const handlePrintDirectLan = async () => {
@@ -1009,7 +1048,7 @@ ${template.css(w, h, pad)}
                 <CardTitle className="flex items-center gap-2 text-white">
                   <Settings className="w-5 h-5 text-purple-300" />Configuración
                 </CardTitle>
-                <CardTitle className="flex items-center gap-2 text-white font-light text-xs">v2.3.7</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-white font-light text-xs">v2.3.8</CardTitle>
               </CardHeader>
 
               <CardContent className="p-4 sm:p-6 space-y-6">
@@ -1117,6 +1156,7 @@ ${template.css(w, h, pad)}
                     <Printer className="w-4 h-4 mr-2" />
                     Imprimir (BrowserPrint)
                   </Button>
+
 
 
                   <Button
