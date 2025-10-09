@@ -225,7 +225,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                       className="w-[100px] h-[100px] object-contain"
                     />
                   ) : (
-                    <Image src="/logogm.png" alt="Kraken Logo" width={100} height={100} />
+                    <Image src="/FYTTSA.png" alt="Kraken Logo" width={100} height={100} />
                   )}
                 </div>
                 <p className="text-gray-500 text-3xl mt-2 font-bold">Inicia Sesión</p>

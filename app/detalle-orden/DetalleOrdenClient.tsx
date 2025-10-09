@@ -95,37 +95,6 @@ export default function DetalleOrden() {
     }, 10)
   }, [])
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (document.activeElement !== scannerRef.current && !showCompletionModal) {
-        focusScanner()
-      }
-    }, 100)
-
-    const handleClick = () => {
-      if (!showCompletionModal) {
-        focusScanner()
-      }
-    }
-
-    const handleVisibilityChange = () => {
-      if (!document.hidden && !showCompletionModal) {
-        focusScanner()
-      }
-    }
-
-    document.addEventListener("click", handleClick)
-    document.addEventListener("visibilitychange", handleVisibilityChange)
-    window.addEventListener("focus", focusScanner)
-
-    return () => {
-      clearInterval(interval)
-      document.removeEventListener("click", handleClick)
-      document.removeEventListener("visibilitychange", handleVisibilityChange)
-      window.removeEventListener("focus", focusScanner)
-    }
-  }, [focusScanner, showCompletionModal])
-
   const baseURL = useMemo(() => (apiUrl || "").trim().replace(/\/+$/, ""), [apiUrl])
 
   const showToast = (message: string, type: "success" | "error") => {
@@ -297,6 +266,12 @@ export default function DetalleOrden() {
     const code = (raw || "").trim().toUpperCase()
     if (!code) return
 
+    // "1" = caja chica, "2" = caja mediana, "3" = caja grande
+    if (code === "1" || code === "2" || code === "3") {
+      validarCaja(code)
+      return
+    }
+
     if (esperandoCaja || modoAgregarCaja) {
       validarCaja(code)
       return
@@ -450,6 +425,55 @@ export default function DetalleOrden() {
 
   const lastScannedItem = lastScannedIndex !== null ? detalles[lastScannedIndex] : null
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (document.activeElement !== scannerRef.current && !showCompletionModal) {
+        focusScanner()
+      }
+    }, 100)
+
+    const handleClick = () => {
+      if (!showCompletionModal) {
+        focusScanner()
+      }
+    }
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden && !showCompletionModal) {
+        focusScanner()
+      }
+    }
+
+    document.addEventListener("click", handleClick)
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+    window.addEventListener("focus", focusScanner)
+
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener("click", handleClick)
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
+      window.removeEventListener("focus", focusScanner)
+    }
+  }, [focusScanner, showCompletionModal])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // F4 key
+      if (e.key === "F4") {
+        e.preventDefault()
+        confirmarPacking()
+      }
+      // Alt + J
+      if (e.altKey && e.key === "j") {
+        e.preventDefault()
+        confirmarPacking()
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [todoListo, doctoId, sistema, baseURL, caratula?.folio])
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -490,8 +514,8 @@ export default function DetalleOrden() {
               key={toast.id}
               className={`px-6 py-4 rounded-xl shadow-lg border animate-in slide-in-from-right ${
                 toast.type === "success"
-                  ? "bg-white border-gray-900 text-gray-900"
-                  : "bg-gray-900 border-gray-900 text-white"
+                  ? "bg-white border-purple-600 text-purple-600"
+                  : "bg-purple-600 border-purple-600 text-white"
               }`}
             >
               <p className="font-semibold">{toast.message}</p>
@@ -500,7 +524,7 @@ export default function DetalleOrden() {
         </div>
 
         <div className="bg-white border border-gray-200 rounded-2xl shadow-xl max-w-2xl w-full p-12 text-center">
-          <div className="w-32 h-32 bg-gray-900 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg">
+          <div className="w-32 h-32 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg">
             <svg className="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
@@ -515,9 +539,15 @@ export default function DetalleOrden() {
             Antes de comenzar el empaque, escanea el código QR de la caja que utilizarás
           </p>
           <div className="flex items-center justify-center gap-3 text-gray-400">
-            <div className="w-3 h-3 bg-gray-900 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
-            <div className="w-3 h-3 bg-gray-900 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
-            <div className="w-3 h-3 bg-gray-900 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
+            <div className="w-3 h-3 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
+            <div
+              className="w-3 h-3 bg-purple-600 rounded-full animate-bounce"
+              style={{ animationDelay: "150ms" }}
+            ></div>
+            <div
+              className="w-3 h-3 bg-purple-600 rounded-full animate-bounce"
+              style={{ animationDelay: "300ms" }}
+            ></div>
           </div>
           <p className="text-sm text-gray-500 mt-8">Escáner activo - Esperando código...</p>
         </div>
@@ -554,8 +584,8 @@ export default function DetalleOrden() {
               key={toast.id}
               className={`px-6 py-4 rounded-xl shadow-lg border animate-in slide-in-from-right ${
                 toast.type === "success"
-                  ? "bg-white border-gray-900 text-gray-900"
-                  : "bg-gray-900 border-gray-900 text-white"
+                  ? "bg-white border-purple-600 text-purple-600"
+                  : "bg-purple-600 border-purple-600 text-white"
               }`}
             >
               <p className="font-semibold">{toast.message}</p>
@@ -564,7 +594,7 @@ export default function DetalleOrden() {
         </div>
 
         <div className="bg-white border border-gray-200 rounded-2xl shadow-xl max-w-2xl w-full p-12 text-center">
-          <div className="w-32 h-32 bg-gray-900 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg">
+          <div className="w-32 h-32 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg">
             <svg className="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
@@ -577,9 +607,15 @@ export default function DetalleOrden() {
           <h2 className="text-4xl font-bold text-gray-900 mb-4">Escanea Otra Caja</h2>
           <p className="text-xl text-gray-600 mb-8">Escanea el código QR de la caja adicional</p>
           <div className="flex items-center justify-center gap-3 text-gray-400 mb-8">
-            <div className="w-3 h-3 bg-gray-900 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
-            <div className="w-3 h-3 bg-gray-900 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
-            <div className="w-3 h-3 bg-gray-900 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
+            <div className="w-3 h-3 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
+            <div
+              className="w-3 h-3 bg-purple-600 rounded-full animate-bounce"
+              style={{ animationDelay: "150ms" }}
+            ></div>
+            <div
+              className="w-3 h-3 bg-purple-600 rounded-full animate-bounce"
+              style={{ animationDelay: "300ms" }}
+            ></div>
           </div>
           <button
             onClick={() => {
@@ -623,8 +659,8 @@ export default function DetalleOrden() {
             key={toast.id}
             className={`px-6 py-4 rounded-xl shadow-lg border animate-in slide-in-from-right ${
               toast.type === "success"
-                ? "bg-white border-gray-900 text-gray-900"
-                : "bg-gray-900 border-gray-900 text-white"
+                ? "bg-white border-purple-600 text-purple-600"
+                : "bg-purple-600 border-purple-600 text-white"
             }`}
           >
             <p className="font-semibold">{toast.message}</p>
@@ -647,7 +683,7 @@ export default function DetalleOrden() {
                 onClick={() => setShowOnlyMissing(!showOnlyMissing)}
                 className={`flex items-center gap-2 px-5 py-3 rounded-xl font-semibold transition-all shadow-sm ${
                   showOnlyMissing
-                    ? "bg-gray-900 text-white"
+                    ? "bg-purple-600 text-white"
                     : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                 }`}
               >
@@ -691,7 +727,11 @@ export default function DetalleOrden() {
                 <div
                   key={realIdx}
                   className={`bg-white border-2 rounded-2xl p-6 shadow-md transition-all duration-300 ${
-                    isLastScanned ? "border-gray-900 scale-[1.02]" : isComplete ? "border-gray-400" : "border-gray-200"
+                    isLastScanned
+                      ? "border-purple-600 scale-[1.02]"
+                      : isComplete
+                        ? "border-gray-400"
+                        : "border-gray-200"
                   }`}
                 >
                   <div className="flex items-center justify-between mb-4">
@@ -701,7 +741,7 @@ export default function DetalleOrden() {
                           {item.codigo || item.codbar || "Sin código"}
                         </span>
                         {isComplete && (
-                          <div className="flex items-center gap-1 px-3 py-1 bg-gray-900 text-white rounded-full text-sm font-semibold">
+                          <div className="flex items-center gap-1 px-3 py-1 bg-purple-600 text-white rounded-full text-sm font-semibold">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                             </svg>
@@ -719,7 +759,7 @@ export default function DetalleOrden() {
                       <button
                         onClick={() => dec(realIdx)}
                         disabled={pk === 0}
-                        className="w-12 h-12 rounded-xl bg-gray-900 hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold text-xl shadow-md transition-all"
+                        className="w-12 h-12 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold text-xl shadow-md transition-all"
                       >
                         −
                       </button>
@@ -732,14 +772,14 @@ export default function DetalleOrden() {
                       <button
                         onClick={() => inc(realIdx)}
                         disabled={pk >= req}
-                        className="w-12 h-12 rounded-xl bg-gray-900 hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold text-xl shadow-md transition-all"
+                        className="w-12 h-12 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold text-xl shadow-md transition-all"
                       >
                         +
                       </button>
                       <button
                         onClick={() => fillToRequired(realIdx)}
                         disabled={pk >= req}
-                        className="px-4 py-3 rounded-xl bg-gray-900 hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold text-sm shadow-md transition-all"
+                        className="px-4 py-3 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold text-sm shadow-md transition-all"
                       >
                         Llenar
                       </button>
@@ -748,7 +788,7 @@ export default function DetalleOrden() {
 
                   <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div
-                      className={`h-full transition-all duration-500 ${isComplete ? "bg-gray-900" : "bg-gray-600"}`}
+                      className={`h-full transition-all duration-500 ${isComplete ? "bg-purple-600" : "bg-purple-400"}`}
                       style={{ width: `${progress}%` }}
                     />
                   </div>
@@ -758,10 +798,10 @@ export default function DetalleOrden() {
           </div>
         </div>
 
-        <div className="w-1/4 min-w-[320px] p-8 pl-0 space-y-6 overflow-y-auto">
+        <div className="w-1/4 min-w-[320px] p-8 pl-0 space-y-6 flex flex-col">
           {/* Progress card */}
-          <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center shadow-lg">
-            <div className="text-7xl font-bold text-gray-900 mb-3">{Math.round(progreso * 100)}%</div>
+          <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center shadow-lg flex-shrink-0">
+            <div className="text-7xl font-bold text-purple-600 mb-3">{Math.round(progreso * 100)}%</div>
             <p className="text-gray-600 text-lg font-semibold mb-6">Progreso Total</p>
             <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
               <span>{lineasCompletas} completadas</span>
@@ -769,17 +809,17 @@ export default function DetalleOrden() {
             </div>
             <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gray-900 transition-all duration-500 shadow-sm"
+                className="h-full bg-purple-600 transition-all duration-500 shadow-sm"
                 style={{ width: `${progreso * 100}%` }}
               />
             </div>
           </div>
 
-          {/* Boxes section */}
+          {/* Boxes section with scroll */}
           {cajasSeleccionadas.length > 0 && (
-            <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-lg">
+            <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-lg flex-shrink-0 max-h-[400px] overflow-y-auto">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-gray-900 rounded-full flex items-center justify-center shadow-md">
+                <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center shadow-md">
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
@@ -826,13 +866,13 @@ export default function DetalleOrden() {
                               onClick={() => setCajaActivaId(caja.instanciaId)}
                               className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${
                                 isActive
-                                  ? "bg-gray-100 border-gray-900 shadow-md"
+                                  ? "bg-purple-50 border-purple-600 shadow-md"
                                   : "bg-gray-50 border-gray-200 hover:border-gray-300"
                               }`}
                             >
                               <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center gap-2">
-                                  {isActive && <div className="w-2 h-2 bg-gray-900 rounded-full"></div>}
+                                  {isActive && <div className="w-2 h-2 bg-purple-600 rounded-full"></div>}
                                   <span className="text-gray-900 font-semibold">
                                     {firstCaja.TIPO} #{idx + 1}
                                   </span>
@@ -845,7 +885,7 @@ export default function DetalleOrden() {
                                   e.stopPropagation()
                                   setModalCajaId(caja.instanciaId)
                                 }}
-                                className="w-full py-2 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-2 shadow-sm"
+                                className="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-2 shadow-sm"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path
@@ -865,7 +905,7 @@ export default function DetalleOrden() {
                               </button>
 
                               {isActive && (
-                                <div className="mt-2 text-xs text-gray-600 font-semibold flex items-center gap-1">
+                                <div className="mt-2 text-xs text-purple-600 font-semibold flex items-center gap-1">
                                   <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                     <path
                                       fillRule="evenodd"
@@ -887,7 +927,7 @@ export default function DetalleOrden() {
 
               <button
                 onClick={() => setModoAgregarCaja(true)}
-                className="w-full py-3 bg-gray-900 hover:bg-gray-800 text-white font-semibold rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
+                className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -899,9 +939,9 @@ export default function DetalleOrden() {
 
           {/* Last scanned item */}
           {lastScannedItem && (
-            <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-lg">
+            <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-lg flex-shrink-0">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-gray-900 rounded-full flex items-center justify-center shadow-md">
+                <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center shadow-md">
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                   </svg>
@@ -913,7 +953,7 @@ export default function DetalleOrden() {
                   {lastScannedItem.codigo || lastScannedItem.codbar}
                 </div>
                 <div className="text-sm text-gray-600">Artículo ID: {lastScannedItem.articuloId}</div>
-                <div className="text-3xl font-bold text-gray-900 mt-3">
+                <div className="text-3xl font-bold text-purple-600 mt-3">
                   {lastScannedItem.packed} / {lastScannedItem.unidades}
                 </div>
               </div>
@@ -924,11 +964,13 @@ export default function DetalleOrden() {
           <button
             onClick={handleRecibir}
             disabled={!todoListo}
-            className={`w-full py-6 rounded-2xl font-bold text-xl shadow-lg transition-all ${
-              todoListo ? "bg-gray-900 hover:bg-gray-800 text-white" : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            className={`w-full py-6 rounded-2xl font-bold text-xl shadow-lg transition-all flex-shrink-0 ${
+              todoListo
+                ? "bg-purple-600 hover:bg-purple-700 text-white"
+                : "bg-gray-300 text-gray-500 cursor-not-allowed"
             }`}
           >
-            {todoListo ? "✓ Confirmar Packing" : "Completa el empaque"}
+            {todoListo ? "✓ Confirmar Packing (F4 / Alt+J)" : "Completa el empaque"}
           </button>
         </div>
       </div>
@@ -945,7 +987,7 @@ export default function DetalleOrden() {
                 <>
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-gray-900 rounded-full flex items-center justify-center shadow-md">
+                      <div className="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center shadow-md">
                         <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path
                             strokeLinecap="round"
@@ -970,9 +1012,9 @@ export default function DetalleOrden() {
                     </button>
                   </div>
 
-                  <div className="mb-4 p-4 bg-gray-100 rounded-xl border border-gray-200">
+                  <div className="mb-4 p-4 bg-purple-50 rounded-xl border border-purple-200">
                     <div className="text-sm text-gray-600 mb-1">Total de artículos en esta caja:</div>
-                    <div className="text-3xl font-bold text-gray-900">{totalArticulos}</div>
+                    <div className="text-3xl font-bold text-purple-600">{totalArticulos}</div>
                   </div>
 
                   {articulosEnCaja.length > 0 ? (
@@ -986,7 +1028,7 @@ export default function DetalleOrden() {
                             <div className="font-bold text-gray-900">{art.codigo}</div>
                             <div className="text-sm text-gray-500">ID: {art.articuloId}</div>
                           </div>
-                          <div className="text-2xl font-bold text-gray-900">x{art.cantidad}</div>
+                          <div className="text-2xl font-bold text-purple-600">x{art.cantidad}</div>
                         </div>
                       ))}
                     </div>
@@ -1018,7 +1060,7 @@ export default function DetalleOrden() {
       {showCompletionModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl max-w-2xl w-full p-12 text-center">
-            <div className="w-32 h-32 bg-gray-900 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg">
+            <div className="w-32 h-32 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg">
               <svg className="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
               </svg>
@@ -1026,13 +1068,13 @@ export default function DetalleOrden() {
             <h2 className="text-4xl font-bold text-gray-900 mb-4">¡Empaque Completado!</h2>
             <p className="text-xl text-gray-600 mb-8">Todas las líneas han sido empacadas correctamente</p>
             <div className="space-y-4">
-              <div className="p-4 bg-gray-100 rounded-xl">
+              <div className="p-4 bg-purple-50 rounded-xl border border-purple-200">
                 <div className="text-sm text-gray-600 mb-1">Orden</div>
-                <div className="text-2xl font-bold text-gray-900">{caratula?.folio}</div>
+                <div className="text-2xl font-bold text-purple-600">{caratula?.folio}</div>
               </div>
-              <div className="p-4 bg-gray-100 rounded-xl">
+              <div className="p-4 bg-purple-50 rounded-xl border border-purple-200">
                 <div className="text-sm text-gray-600 mb-1">Total de cajas</div>
-                <div className="text-2xl font-bold text-gray-900">{cajasSeleccionadas.length}</div>
+                <div className="text-2xl font-bold text-purple-600">{cajasSeleccionadas.length}</div>
               </div>
             </div>
             <div className="flex gap-4 mt-8">
@@ -1049,7 +1091,7 @@ export default function DetalleOrden() {
               <button
                 onClick={handleRecibir}
                 disabled={isPrinting}
-                className="flex-1 py-4 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold text-lg rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
+                className="flex-1 py-4 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold text-lg rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
               >
                 {isPrinting ? (
                   <>
