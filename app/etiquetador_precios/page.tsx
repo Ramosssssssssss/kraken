@@ -258,8 +258,8 @@ async function ensureBrowserPrintLoaded(): Promise<void> {
 
   // intentamos primero el namespaced y luego el legacy
   const candidates = [
-    "/public/browserprint/BrowserPrint-3.1.250.min.js",
-    "/public/browserprint/BrowserPrint-Zebra-1.1.250.min.js",
+    "/browserprint/BrowserPrint-3.1.250.min.js",
+    "/browserprint/BrowserPrint-Zebra-1.1.250.min.js",
   ]
 
   for (const src of candidates) {
@@ -316,61 +316,106 @@ type ZebraDevice = {
 }
 
 async function bpGetOrPickDevice(): Promise<ZebraDevice> {
-  const BP = await getBP()
+  const BP = await getBP();
 
+  // 1) intenta default
   const dflt: ZebraDevice | null = await new Promise((res) =>
     BP.getDefaultDevice("printer", (d: ZebraDevice | null) => res(d), () => res(null))
-  )
-  if (dflt) return dflt
+  );
+  if (dflt) return dflt;
 
+  // 2) lista
   const devices: ZebraDevice[] = await new Promise((res, rej) =>
     BP.getDevices((list: ZebraDevice[]) => res(list || []), (err: any) => rej(err), "printer")
-  )
+  );
 
-  const savedUid = localStorage.getItem("zebra_bp_uid")
-  let dev = devices.find(d => d.uid && d.uid === savedUid)
-  if (!dev) dev = devices.find(d => /zq5|zebra|zq511/i.test(d.name || "")) || devices[0]
-  if (!dev) throw new Error("No se encontró impresora en BrowserPrint")
-  if (dev.uid) localStorage.setItem("zebra_bp_uid", dev.uid)
-  return dev
+  // 3) respeta UID guardado, pero si falla, lo ignoramos
+  const savedUid = localStorage.getItem("zebra_bp_uid");
+  let dev = savedUid ? devices.find(d => d.uid && d.uid === savedUid) : undefined;
+  if (!dev) dev = devices.find(d => /zq5|zebra|zq511/i.test(d.name || "")) || devices[0];
+
+  if (!dev) throw new Error("No se encontró impresora en BrowserPrint");
+
+  // guarda UID nuevo (si cambia)
+  if (dev.uid && dev.uid !== savedUid) localStorage.setItem("zebra_bp_uid", dev.uid);
+  return dev;
 }
 
 async function bpPrintZPL(zpl: string): Promise<void> {
-  const dev = await bpGetOrPickDevice()
+  let firstAttempt = true;
+  const tryOnce = async (): Promise<void> => {
+    const dev = await bpGetOrPickDevice();
 
-  // Normaliza terminadores y asegúrate de cerrar con CRLF
-  const payload = (zpl.endsWith("\r\n") ? zpl : zpl.replace(/\n/g, "\r\n") + "\r\n");
+    // selector de método send/write
+    const sendFn: (data: string, ok: () => void, err: (e: any) => void) => void =
+      typeof (dev as any).send === "function"
+        ? (data, ok, err) => (dev as any).send(data, ok, err)
+        : (data, ok, err) => dev.write(data, ok, err);
 
-  // Sender compatible con distintas versiones del SDK (send vs write)
-  const sender: (chunk: string, ok: () => void, err: (e:any)=>void) => void =
-    // @ts-ignore
-    typeof (dev as any).send === "function"
-      // @ts-ignore
-      ? (data, ok, err) => (dev as any).send(data, ok, err)
-      : (data, ok, err) => dev.write(data, ok, err);
+    // normaliza CRLF y fragmenta
+    const payload = (zpl.endsWith("\r\n") ? zpl : zpl.replace(/\n/g, "\r\n") + "\r\n");
+    const CHUNK = 8 * 1024;
+    const parts: string[] = [];
+    for (let i = 0; i < payload.length; i += CHUNK) parts.push(payload.slice(i, i + CHUNK));
 
-  // Fragmenta para SPP (BT clásico) – evita timeouts por tamaño
-  const CHUNK = 8 * 1024; // 8KB
-  const parts: string[] = [];
-  for (let i = 0; i < payload.length; i += CHUNK) parts.push(payload.slice(i, i + CHUNK));
-
-  await new Promise<void>((resolve, reject) => {
-    let settled = false;
-    const done = (f: () => void) => { if (!settled) { settled = true; f(); } };
-
-    const sendNext = (idx: number) => {
-      if (idx >= parts.length) return done(resolve);
-      sender(parts[idx], () => sendNext(idx + 1), (e:any) => done(() => reject(e)));
+    // envoltorios connect/open/close si existen en esta versión del SDK
+    const maybeConnect = (cb: () => void, onErr: (e: any) => void) => {
+      const fn = (dev as any).connect || (dev as any).open;
+      if (typeof fn === "function") {
+        try { fn.call(dev, cb, onErr); } catch (e) { onErr(e); }
+      } else cb();
+    };
+    const maybeClose = () => {
+      const fn = (dev as any).disconnect || (dev as any).close;
+      try { if (typeof fn === "function") fn.call(dev, () => { }, () => { }); } catch { }
     };
 
-    // “Wake up” y también diagnóstico rápido
-    try { sender("~HS\r\n", () => {}, () => {}); } catch {}
-    // Envía todo
-    sendNext(0);
-    // Timeout defensivo
-    setTimeout(() => done(() => reject(new Error("Timeout al enviar a BrowserPrint"))), 15000);
-  });
+    await new Promise<void>((resolve, reject) => {
+      let settled = false;
+      const done = (f: () => void) => { if (!settled) { settled = true; f(); } };
+
+      // cadena de envío
+      const sendNext = (i: number) => {
+        if (i >= parts.length) return done(() => { maybeClose(); resolve(); });
+        sendFn(parts[i], () => sendNext(i + 1), (e: any) => done(() => { maybeClose(); reject(e); }));
+      };
+
+      // wake + connect y luego enviar
+      try { sendFn("~HS\r\n", () => { }, () => { }); } catch { }
+      maybeConnect(() => {
+        sendNext(0);
+      }, (e: any) => done(() => { maybeClose(); reject(e); }));
+
+      setTimeout(() => done(() => { maybeClose(); reject(new Error("Timeout al enviar a BrowserPrint")); }), 15000);
+    });
+  };
+
+  try {
+    await tryOnce();
+  } catch (e: any) {
+    // si falla en el primer intento, limpia UID y reintenta una vez
+    if (firstAttempt) {
+      firstAttempt = false;
+      localStorage.removeItem("zebra_bp_uid");
+      await tryOnce();
+    } else {
+      throw e;
+    }
+  }
 }
+/******************************************/
+
+const testZPL = `^XA^CI28^FO40,40^A0N,40,40^FDTEST ZPL^FS^XZ`;
+async function handleTestPrint() {
+  try {
+    await bpPrintZPL(testZPL);
+    new Noty({ type: "success", layout: "topRight", theme: "mint", text: "Test ZPL enviado.", timeout: 1800 }).show();
+  } catch (e: any) {
+    new Noty({ type: "error", layout: "topRight", theme: "mint", text: "No se pudo conectar/enviar.", timeout: 2600 }).show();
+    console.warn("bpPrint error:", e);
+  }
+}
+
 
 
 
@@ -1180,6 +1225,14 @@ ${template.css(w, h, pad)}
                   >
                     <Printer className="w-4 h-4 mr-2" />
                     Imprimir (BrowserPrint)
+                  </Button>
+                  <Button
+                    onClick={handleTestPrint}
+                    className="col-span-full w-full justify-center h-11 bg-gray-700 hover:bg-gray-600 text-white border-0"
+                    disabled={!hasBP}
+                    title="Probar envío directo a BrowserPrint"
+                  >
+                    Probar impresión directa (TEST ZPL)
                   </Button>
 
 
