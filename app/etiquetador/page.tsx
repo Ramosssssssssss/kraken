@@ -66,6 +66,15 @@ const clampBarHeight = (barMm: number, labelH: number, marginMm: number) => {
   const maxBar = Math.max(4, labelH - marginMm * 2 - 4)
   return clampMm(barMm, maxBar)
 }
+// Debajo de clampBarHeight
+const clampQrSize = (qrMm: number, labelW: number, labelH: number, marginMm: number) => {
+  // área útil (restando márgenes)
+  const usableW = Math.max(4, labelW - marginMm * 2)
+  const usableH = Math.max(4, labelH - marginMm * 2)
+  // que el QR quepa como cuadrado y deja un “colchón” pequeñito
+  const maxQr = Math.max(4, Math.min(usableW, usableH) - 4)
+  return clampMm(qrMm, maxQr)
+}
 
 // === Componente de código de barras (preview) ===
 function BarcodeSVG({
@@ -473,37 +482,80 @@ export default function LabelGenerator() {
   }, [])
 
   // Cambios con límites
-  const handleConfigChange = (key: string, value: string | boolean) => {
-    setLabelConfig((prev) => {
-      if (key === "width") {
-        const w = clampMm(parseFloat(String(value)), MAX_W_MM)
-        return { ...prev, width: String(w) }
-      }
-      if (key === "height") {
-        const h = clampMm(parseFloat(String(value)), MAX_H_MM)
-        const bar = clampBarHeight(parseFloat(prev.barHeightMm || "20"), h, parseFloat(prev.margin || "0"))
-        return { ...prev, height: String(h), barHeightMm: String(bar) }
-      }
-      if (key === "barHeightMm") {
-        const h = clampBarHeight(
-          parseFloat(String(value)),
+ const handleConfigChange = (key: string, value: string | boolean) => {
+  setLabelConfig((prev) => {
+    if (key === "width") {
+      const w = clampMm(parseFloat(String(value)), MAX_W_MM)
+      // si estás en QR, re-clampa el QR porque cambia el ancho útil
+      if (barcodeFormat === "QR") {
+        const qr = clampQrSize(
+          parseFloat(prev.qrSizeMm || "16"),
+          w,
           parseFloat(prev.height || "25"),
           parseFloat(prev.margin || "0")
         )
-        return { ...prev, barHeightMm: String(h) }
+        return { ...prev, width: String(w), qrSizeMm: String(qr) }
       }
-      if (key === "margin") {
-        const margin = Math.max(0, parseFloat(String(value)))
-        const bar = clampBarHeight(
-          parseFloat(prev.barHeightMm || "20"),
+      return { ...prev, width: String(w) }
+    }
+
+    if (key === "height") {
+      const h = clampMm(parseFloat(String(value)), MAX_H_MM)
+      const bar = clampBarHeight(parseFloat(prev.barHeightMm || "20"), h, parseFloat(prev.margin || "0"))
+      if (barcodeFormat === "QR") {
+        const qr = clampQrSize(
+          parseFloat(prev.qrSizeMm || "16"),
+          parseFloat(prev.width || "50"),
+          h,
+          parseFloat(prev.margin || "0")
+        )
+        return { ...prev, height: String(h), barHeightMm: String(bar), qrSizeMm: String(qr) }
+      }
+      return { ...prev, height: String(h), barHeightMm: String(bar) }
+    }
+
+    if (key === "margin") {
+      const margin = Math.max(0, parseFloat(String(value)))
+      const bar = clampBarHeight(
+        parseFloat(prev.barHeightMm || "20"),
+        parseFloat(prev.height || "25"),
+        margin
+      )
+      if (barcodeFormat === "QR") {
+        const qr = clampQrSize(
+          parseFloat(prev.qrSizeMm || "16"),
+          parseFloat(prev.width || "50"),
           parseFloat(prev.height || "25"),
           margin
         )
-        return { ...prev, margin: String(margin), barHeightMm: String(bar) }
+        return { ...prev, margin: String(margin), barHeightMm: String(bar), qrSizeMm: String(qr) }
       }
-      return { ...prev, [key]: value }
-    })
-  }
+      return { ...prev, margin: String(margin), barHeightMm: String(bar) }
+    }
+
+    if (key === "barHeightMm") {
+      const h = clampBarHeight(
+        parseFloat(String(value)),
+        parseFloat(prev.height || "25"),
+        parseFloat(prev.margin || "0")
+      )
+      // 👇 sincroniza QR SOLO si estás en formato QR
+      if (barcodeFormat === "QR") {
+        const qr = clampQrSize(
+          h, // usa el alto de barra como base para el tamaño del QR
+          parseFloat(prev.width || "50"),
+          parseFloat(prev.height || "25"),
+          parseFloat(prev.margin || "0")
+        )
+        return { ...prev, barHeightMm: String(h), qrSizeMm: String(qr) }
+      }
+      return { ...prev, barHeightMm: String(h) }
+    }
+
+    return { ...prev, [key]: value }
+  })
+}
+
 
   const aplicarTamanoBD = (t: TamanoEtiqueta) => {
     const w = clampMm(t.width, MAX_W_MM)
@@ -621,44 +673,62 @@ export default function LabelGenerator() {
   <title>Etiquetas</title>
 <style>
   @page { size: ${labelW}mm ${labelH}mm; margin: 0; }
-  html, body { margin:0; padding:0; font-family:${fontFamily}; }
-  /* Incluye el padding dentro del box */
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: ${labelW}mm;     /* 👈 tamaño físico exacto */
+    height: ${labelH}mm;    /* 👈 tamaño físico exacto */
+    font-family: ${fontFamily};
+  }
+
+  /* Mejor consistencia de dimensiones */
   *, *::before, *::after { box-sizing: border-box; }
 
-  /* Página exacta al tamaño, con padding interno */
   .page {
-    width:${labelW}mm;
-    height:${labelH}mm;
-    padding:${padding}mm;
-    display:flex;
-    /* place-items es de grid; en flex usa align/justify */
-    align-items:center;
-    justify-content:center;
-    page-break-after:always;
+    width: ${labelW}mm;     /* 👈 NO 100% */
+    height: ${labelH}mm;    /* 👈 NO 100% */
+    padding: ${padding}mm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    break-after: page;      /* 👈 reemplaza page-break-after */
+    overflow: hidden;       /* evita que nada “empuje” la página */
   }
 
-  /* Ocupa el área útil (después del padding) */
   .label {
-    width:100%;
-    height:100%;
-    display:flex;
-    flex-direction:column; /* ya no necesitas .row/.column */
-    align-items:center;
-    justify-content:center;
-    gap:0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column; 
+    align-items: center;
+    justify-content: center;
+    gap: 0;
   }
 
-  .barcode-svg { width:100%; height:${barH}mm; }
-  .qr-canvas { width:15mm; height:15mm; }
+  .barcode-svg { width: 100%; height: ${barH}mm; }
+  .qr-canvas { width: ${labelConfig.qrSizeMm}mm; height: ${labelConfig.qrSizeMm}mm; }
 
   .desc-text {
-    font-size:${descFontPx}px; text-align:center;
-    width:100%; max-width:100%;
-    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  width: ${labelW}mm; 
+    font-size: ${descFontPx}px; text-align: center;
+    width: 100%; max-width: 100%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .label-text {
-    font-size:${fontPx}px; font-weight:bold;
-    text-align:center; word-break:break-word;
+.label-text {
+  width: 100%;        /* ✅ o elimínala */
+  font-size: ${fontPx}px !important;
+  font-weight: bold;
+  text-align: center;
+  word-break: break-word;
+}
+
+
+  @media print {
+    html, body {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
   }
 </style>
 </head>
@@ -670,25 +740,46 @@ ${bodyHtml}
 (function(){
   function render() {
     document.querySelectorAll('svg.barcode-svg').forEach(svg=>{
-      try{ JsBarcode(svg, svg.dataset.value, {
-  format: svg.dataset.format,
-  displayValue: false,
-  margin: 0,
-  width: 1.2 // 👈 igual que en preview
-})
-}catch(e){}
+      try {
+        JsBarcode(svg, svg.dataset.value, {
+          format: svg.dataset.format,
+          displayValue: false,
+          margin: 0,
+          width: 1.2
+        });
+        svg.setAttribute('preserveAspectRatio', 'none');
+      } catch(e){}
     });
+
     document.querySelectorAll('canvas.qr-canvas').forEach(c=>{
-      try{ QRCode.toCanvas(c, c.dataset.value, { errorCorrectionLevel:"M", margin:0, width:c.offsetWidth }) }catch(e){}
+      try {
+        // Lee el tamaño CSS en px (derivado de mm)
+        const rect = c.getBoundingClientRect();
+        // Escala el bitmap para impresión (2x ayuda a nitidez en drivers)
+        const devicePx = Math.ceil(rect.width * 2);
+        c.width  = devicePx;
+        c.height = devicePx;
+        QRCode.toCanvas(c, c.dataset.value, {
+          errorCorrectionLevel: "M",
+          margin: 0,
+          width: devicePx
+        });
+        // Mantén el tamaño físico en la página
+        c.style.width  = rect.width + 'px';
+        c.style.height = rect.width + 'px';
+      } catch(e){}
     });
   }
+
   window.addEventListener('load', ()=>{
     render();
-    setTimeout(()=>{ window.print(); },200);
+    setTimeout(()=>{ window.print(); }, 200);
   });
+
   window.addEventListener('afterprint', ()=>{ try{ window.close(); }catch(e){} });
 })();
 </script>
+
 </body>
 </html>`;
 
@@ -929,7 +1020,22 @@ ${bodyHtml}
                 {/* Formato de código de barras */}
                 <div className="space-y-2">
                   <Label className="text-gray-100 font-medium text-sm sm:text-base">Formato de código de barras</Label>
-                  <Select value={barcodeFormat} onValueChange={(v: "CODE128" | "CODE128B" | "QR") => setBarcodeFormat(v)}>
+                  <Select value={barcodeFormat}
+                    onValueChange={(v: "CODE128" | "CODE128B" | "QR") => {
+                      setBarcodeFormat(v)
+                      if (v === "QR") {
+                        setLabelConfig(prev => {
+                          const qr = clampQrSize(
+                            parseFloat(prev.barHeightMm || "20"),
+                            parseFloat(prev.width || "50"),
+                            parseFloat(prev.height || "25"),
+                            parseFloat(prev.margin || "0")
+                          )
+                          return { ...prev, qrSizeMm: String(qr) }
+                        })
+                      }
+                    }}
+                  >
                     <SelectTrigger className="bg-gray-700 border-gray-500 text-white w-full">
                       <SelectValue />
                     </SelectTrigger>
