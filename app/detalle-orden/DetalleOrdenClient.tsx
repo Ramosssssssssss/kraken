@@ -35,7 +35,7 @@ type Caja = {
 }
 
 type CajaInstancia = {
-  instanciaId: string // Unique ID for each physical box instance
+  instanciaId: string
   CAJA_ID: number
   NOMBRE: string
   TIPO: string
@@ -289,7 +289,10 @@ export default function DetalleOrden() {
   }
 
   const processScan = (raw: string) => {
-    if (scanningRef.current) return
+    if (scanningRef.current) {
+      console.log("[v0] Scan blocked - already processing")
+      return
+    }
 
     const code = (raw || "").trim().toUpperCase()
     if (!code) return
@@ -299,6 +302,7 @@ export default function DetalleOrden() {
       return
     }
 
+    console.log("[v0] Processing scan:", code)
     scanningRef.current = true
 
     const idx = detalles.findIndex(
@@ -325,15 +329,24 @@ export default function DetalleOrden() {
             if (!updated[cajaActivaId]) {
               updated[cajaActivaId] = []
             }
-            const existingArticle = updated[cajaActivaId].find((a) => a.articuloId === item.articuloId)
-            if (existingArticle) {
-              existingArticle.cantidad += 1
+
+            const existingIndex = updated[cajaActivaId].findIndex((a) => a.articuloId === item.articuloId)
+
+            if (existingIndex >= 0) {
+              console.log("[v0] Incrementing existing article:", updated[cajaActivaId][existingIndex].codigo)
+              updated[cajaActivaId] = updated[cajaActivaId].map((a, i) =>
+                i === existingIndex ? { ...a, cantidad: a.cantidad + 1 } : a,
+              )
             } else {
-              updated[cajaActivaId].push({
-                articuloId: item.articuloId,
-                codigo: item.codigo || item.codbar || "Sin código",
-                cantidad: 1,
-              })
+              console.log("[v0] Adding new article to box:", item.codigo || item.codbar)
+              updated[cajaActivaId] = [
+                ...updated[cajaActivaId],
+                {
+                  articuloId: item.articuloId,
+                  codigo: item.codigo || item.codbar || "Sin código",
+                  cantidad: 1,
+                },
+              ]
             }
             return updated
           })
@@ -352,7 +365,8 @@ export default function DetalleOrden() {
 
     setTimeout(() => {
       scanningRef.current = false
-    }, 300)
+      console.log("[v0] Scan lock released")
+    }, 100)
   }
 
   const confirmarPacking = async () => {
@@ -393,7 +407,6 @@ export default function DetalleOrden() {
     setIsPrinting(true)
 
     try {
-      // Fetch folio data from API
       const folioResp = await fetch(`/api/buscar_folio?folio=${encodeURIComponent(caratula.folio)}`)
       const folioJson = await folioResp.json()
 
@@ -404,7 +417,6 @@ export default function DetalleOrden() {
       const folioData = Array.isArray(folioJson.data) ? folioJson.data[0] : folioJson.data
       const tipoDetectado = folioJson.tipo || "factura"
 
-      // Print labels for each box
       await printLabels({
         folio: caratula.folio,
         folioData,
@@ -415,7 +427,6 @@ export default function DetalleOrden() {
       playSound("success")
       showToast("Etiquetas impresas correctamente", "success")
 
-      // Close modal and redirect after successful print
       setTimeout(() => {
         setShowCompletionModal(false)
         router.push("/packing")
@@ -441,10 +452,10 @@ export default function DetalleOrden() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-slate-600 mx-auto mb-4"></div>
-          <p className="text-slate-600 text-lg">Cargando orden...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p className="text-gray-600 text-lg">Cargando orden...</p>
         </div>
       </div>
     )
@@ -452,7 +463,7 @@ export default function DetalleOrden() {
 
   if (esperandoCaja) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <input
           ref={scannerRef}
           type="text"
@@ -477,10 +488,10 @@ export default function DetalleOrden() {
           {toasts.map((toast) => (
             <div
               key={toast.id}
-              className={`px-6 py-4 rounded-2xl shadow-2xl backdrop-blur-xl border-2 animate-in slide-in-from-right ${
+              className={`px-6 py-4 rounded-xl shadow-lg border animate-in slide-in-from-right ${
                 toast.type === "success"
-                  ? "bg-emerald-500/90 border-emerald-400/50 text-white"
-                  : "bg-red-500/90 border-red-400/50 text-white"
+                  ? "bg-white border-gray-900 text-gray-900"
+                  : "bg-gray-900 border-gray-900 text-white"
               }`}
             >
               <p className="font-semibold">{toast.message}</p>
@@ -488,8 +499,8 @@ export default function DetalleOrden() {
           ))}
         </div>
 
-        <div className="glass border border-white/20 rounded-3xl shadow-2xl max-w-2xl w-full p-12 text-center bg-black/40 backdrop-blur-xl">
-          <div className="w-32 h-32 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg shadow-purple-500/50 animate-pulse">
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-xl max-w-2xl w-full p-12 text-center">
+          <div className="w-32 h-32 bg-gray-900 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg">
             <svg className="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
@@ -499,22 +510,16 @@ export default function DetalleOrden() {
               />
             </svg>
           </div>
-          <h2 className="text-4xl font-bold text-white mb-4">Escanea una Caja</h2>
-          <p className="text-xl text-slate-300 mb-8">
+          <h2 className="text-4xl font-bold text-gray-900 mb-4">Escanea una Caja</h2>
+          <p className="text-xl text-gray-600 mb-8">
             Antes de comenzar el empaque, escanea el código QR de la caja que utilizarás
           </p>
-          <div className="flex items-center justify-center gap-3 text-purple-300">
-            <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
-            <div
-              className="w-3 h-3 bg-purple-400 rounded-full animate-bounce"
-              style={{ animationDelay: "150ms" }}
-            ></div>
-            <div
-              className="w-3 h-3 bg-purple-400 rounded-full animate-bounce"
-              style={{ animationDelay: "300ms" }}
-            ></div>
+          <div className="flex items-center justify-center gap-3 text-gray-400">
+            <div className="w-3 h-3 bg-gray-900 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
+            <div className="w-3 h-3 bg-gray-900 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
+            <div className="w-3 h-3 bg-gray-900 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
           </div>
-          <p className="text-sm text-slate-400 mt-8">Escáner activo - Esperando código...</p>
+          <p className="text-sm text-gray-500 mt-8">Escáner activo - Esperando código...</p>
         </div>
       </div>
     )
@@ -522,7 +527,7 @@ export default function DetalleOrden() {
 
   if (modoAgregarCaja) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
         <input
           ref={scannerRef}
           type="text"
@@ -547,10 +552,10 @@ export default function DetalleOrden() {
           {toasts.map((toast) => (
             <div
               key={toast.id}
-              className={`px-6 py-4 rounded-2xl shadow-2xl backdrop-blur-xl border-2 animate-in slide-in-from-right ${
+              className={`px-6 py-4 rounded-xl shadow-lg border animate-in slide-in-from-right ${
                 toast.type === "success"
-                  ? "bg-emerald-500/90 border-emerald-400/50 text-white"
-                  : "bg-red-500/90 border-red-400/50 text-white"
+                  ? "bg-white border-gray-900 text-gray-900"
+                  : "bg-gray-900 border-gray-900 text-white"
               }`}
             >
               <p className="font-semibold">{toast.message}</p>
@@ -558,8 +563,8 @@ export default function DetalleOrden() {
           ))}
         </div>
 
-        <div className="glass border border-white/20 rounded-3xl shadow-2xl max-w-2xl w-full p-12 text-center bg-black/40 backdrop-blur-xl">
-          <div className="w-32 h-32 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg shadow-purple-500/50 animate-pulse">
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-xl max-w-2xl w-full p-12 text-center">
+          <div className="w-32 h-32 bg-gray-900 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg">
             <svg className="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
@@ -569,25 +574,19 @@ export default function DetalleOrden() {
               />
             </svg>
           </div>
-          <h2 className="text-4xl font-bold text-white mb-4">Escanea Otra Caja</h2>
-          <p className="text-xl text-slate-300 mb-8">Escanea el código QR de la caja adicional</p>
-          <div className="flex items-center justify-center gap-3 text-purple-300 mb-8">
-            <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
-            <div
-              className="w-3 h-3 bg-purple-400 rounded-full animate-bounce"
-              style={{ animationDelay: "150ms" }}
-            ></div>
-            <div
-              className="w-3 h-3 bg-purple-400 rounded-full animate-bounce"
-              style={{ animationDelay: "300ms" }}
-            ></div>
+          <h2 className="text-4xl font-bold text-gray-900 mb-4">Escanea Otra Caja</h2>
+          <p className="text-xl text-gray-600 mb-8">Escanea el código QR de la caja adicional</p>
+          <div className="flex items-center justify-center gap-3 text-gray-400 mb-8">
+            <div className="w-3 h-3 bg-gray-900 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
+            <div className="w-3 h-3 bg-gray-900 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
+            <div className="w-3 h-3 bg-gray-900 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
           </div>
           <button
             onClick={() => {
               setModoAgregarCaja(false)
               focusScanner()
             }}
-            className="px-8 py-3 bg-slate-600 hover:bg-slate-700 text-white font-semibold rounded-2xl transition-all"
+            className="px-8 py-3 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold rounded-xl transition-all shadow-sm"
           >
             Cancelar
           </button>
@@ -597,7 +596,7 @@ export default function DetalleOrden() {
   }
 
   return (
-    <div className="h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-gray-100 flex flex-col overflow-hidden">
+    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       <input
         ref={scannerRef}
         type="text"
@@ -622,10 +621,10 @@ export default function DetalleOrden() {
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`px-6 py-4 rounded-2xl shadow-2xl backdrop-blur-xl border-2 animate-in slide-in-from-right ${
+            className={`px-6 py-4 rounded-xl shadow-lg border animate-in slide-in-from-right ${
               toast.type === "success"
-                ? "bg-emerald-500/90 border-emerald-400/50 text-white"
-                : "bg-red-500/90 border-red-400/50 text-white"
+                ? "bg-white border-gray-900 text-gray-900"
+                : "bg-gray-900 border-gray-900 text-white"
             }`}
           >
             <p className="font-semibold">{toast.message}</p>
@@ -634,22 +633,22 @@ export default function DetalleOrden() {
       </div>
 
       <div className="flex-shrink-0 p-8 pb-4">
-        <div className="glass border border-slate-300/60 rounded-3xl p-8 shadow-xl bg-white/40">
+        <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-lg">
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-4xl font-bold text-slate-800 mb-3">
+              <h1 className="text-4xl font-bold text-gray-900 mb-3">
                 Orden #{caratula?.folio ?? ordenData?.id ?? "—"}
               </h1>
-              <p className="text-slate-600 text-lg">Destino: {caratula?.destino ?? "—"}</p>
-              <p className="text-slate-500">Picker: {caratula?.picker ?? "—"}</p>
+              <p className="text-gray-600 text-lg">Destino: {caratula?.destino ?? "—"}</p>
+              <p className="text-gray-500">Picker: {caratula?.picker ?? "—"}</p>
             </div>
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowOnlyMissing(!showOnlyMissing)}
-                className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-semibold transition-all shadow-lg ${
+                className={`flex items-center gap-2 px-5 py-3 rounded-xl font-semibold transition-all shadow-sm ${
                   showOnlyMissing
-                    ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-2 border-amber-400/50"
-                    : "glass border-2 border-slate-300/60 text-slate-700 hover:bg-slate-200/50"
+                    ? "bg-gray-900 text-white"
+                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                 }`}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -658,13 +657,14 @@ export default function DetalleOrden() {
                     strokeLinejoin="round"
                     strokeWidth={2}
                     d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                    clipRule="evenodd"
                   />
                 </svg>
                 {showOnlyMissing ? "Ver Todos" : "Ver Faltantes"}
               </button>
               <button
                 onClick={focusScanner}
-                className="flex items-center gap-2 px-5 py-3 glass border-2 border-blue-400/60 rounded-2xl text-blue-700 font-semibold hover:bg-blue-100/50 transition-all shadow-lg"
+                className="flex items-center gap-2 px-5 py-3 bg-white border border-gray-300 rounded-xl text-gray-700 font-semibold hover:bg-gray-50 transition-all shadow-sm"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -690,22 +690,18 @@ export default function DetalleOrden() {
               return (
                 <div
                   key={realIdx}
-                  className={`glass border-2 rounded-3xl p-6 shadow-xl transition-all duration-300 ${
-                    isLastScanned
-                      ? "border-emerald-400 bg-emerald-50/50 shadow-emerald-400/30 scale-[1.02]"
-                      : isComplete
-                        ? "border-green-400/60 bg-green-50/30"
-                        : "border-slate-300/60 bg-white/40"
+                  className={`bg-white border-2 rounded-2xl p-6 shadow-md transition-all duration-300 ${
+                    isLastScanned ? "border-gray-900 scale-[1.02]" : isComplete ? "border-gray-400" : "border-gray-200"
                   }`}
                 >
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <span className="text-2xl font-bold text-slate-800">
+                        <span className="text-2xl font-bold text-gray-900">
                           {item.codigo || item.codbar || "Sin código"}
                         </span>
                         {isComplete && (
-                          <div className="flex items-center gap-1 px-3 py-1 bg-green-500 text-white rounded-full text-sm font-semibold">
+                          <div className="flex items-center gap-1 px-3 py-1 bg-gray-900 text-white rounded-full text-sm font-semibold">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                             </svg>
@@ -713,7 +709,7 @@ export default function DetalleOrden() {
                           </div>
                         )}
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-slate-600">
+                      <div className="flex items-center gap-4 text-sm text-gray-600">
                         <span>Artículo ID: {item.articuloId}</span>
                         {item.codbar && <span>Código de barras: {item.codbar}</span>}
                       </div>
@@ -723,40 +719,36 @@ export default function DetalleOrden() {
                       <button
                         onClick={() => dec(realIdx)}
                         disabled={pk === 0}
-                        className="w-12 h-12 rounded-xl bg-red-500 hover:bg-red-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold text-xl shadow-lg transition-all"
+                        className="w-12 h-12 rounded-xl bg-gray-900 hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold text-xl shadow-md transition-all"
                       >
                         −
                       </button>
                       <div className="text-center min-w-[100px]">
-                        <div className="text-4xl font-bold text-slate-800">
+                        <div className="text-4xl font-bold text-gray-900">
                           {pk} / {req}
                         </div>
-                        <div className="text-sm text-slate-500">empacadas</div>
+                        <div className="text-sm text-gray-500">empacadas</div>
                       </div>
                       <button
                         onClick={() => inc(realIdx)}
                         disabled={pk >= req}
-                        className="w-12 h-12 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold text-xl shadow-lg transition-all"
+                        className="w-12 h-12 rounded-xl bg-gray-900 hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold text-xl shadow-md transition-all"
                       >
                         +
                       </button>
                       <button
                         onClick={() => fillToRequired(realIdx)}
                         disabled={pk >= req}
-                        className="px-4 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-semibold text-sm shadow-lg transition-all"
+                        className="px-4 py-3 rounded-xl bg-gray-900 hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold text-sm shadow-md transition-all"
                       >
                         Llenar
                       </button>
                     </div>
                   </div>
 
-                  <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div
-                      className={`h-full transition-all duration-500 ${
-                        isComplete
-                          ? "bg-gradient-to-r from-green-500 to-emerald-600"
-                          : "bg-gradient-to-r from-blue-500 to-blue-600"
-                      }`}
+                      className={`h-full transition-all duration-500 ${isComplete ? "bg-gray-900" : "bg-gray-600"}`}
                       style={{ width: `${progress}%` }}
                     />
                   </div>
@@ -766,26 +758,28 @@ export default function DetalleOrden() {
           </div>
         </div>
 
-        <div className="w-1/4 min-w-[320px] p-8 pl-0 space-y-6 overflow-y-auto bg-gradient-to-b from-slate-100/50 to-gray-100/50">
-          <div className="glass border border-slate-300/60 rounded-3xl p-8 text-center shadow-xl bg-white/40">
-            <div className="text-7xl font-bold text-slate-800 mb-3">{Math.round(progreso * 100)}%</div>
-            <p className="text-slate-600 text-lg font-semibold mb-6">Progreso Total</p>
-            <div className="flex items-center justify-between text-sm text-slate-500 mb-2">
+        <div className="w-1/4 min-w-[320px] p-8 pl-0 space-y-6 overflow-y-auto">
+          {/* Progress card */}
+          <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center shadow-lg">
+            <div className="text-7xl font-bold text-gray-900 mb-3">{Math.round(progreso * 100)}%</div>
+            <p className="text-gray-600 text-lg font-semibold mb-6">Progreso Total</p>
+            <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
               <span>{lineasCompletas} completadas</span>
               <span>{totalLineas} total</span>
             </div>
-            <div className="h-3 bg-slate-300/50 rounded-full overflow-hidden">
+            <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500 shadow-lg shadow-blue-500/50"
+                className="h-full bg-gray-900 transition-all duration-500 shadow-sm"
                 style={{ width: `${progreso * 100}%` }}
               />
             </div>
           </div>
 
+          {/* Boxes section */}
           {cajasSeleccionadas.length > 0 && (
-            <div className="glass border border-purple-400/60 rounded-3xl p-6 shadow-xl shadow-purple-400/20 bg-white/40">
+            <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-lg">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center shadow-lg shadow-purple-500/50">
+                <div className="w-10 h-10 bg-gray-900 rounded-full flex items-center justify-center shadow-md">
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
@@ -795,7 +789,7 @@ export default function DetalleOrden() {
                     />
                   </svg>
                 </div>
-                <h3 className="text-lg font-bold text-slate-800">Cajas Seleccionadas</h3>
+                <h3 className="text-lg font-bold text-gray-900">Cajas Seleccionadas</h3>
               </div>
 
               <div className="space-y-3 mb-4">
@@ -817,9 +811,9 @@ export default function DetalleOrden() {
 
                     return (
                       <div key={firstCaja.CAJA_ID} className="space-y-2">
-                        <div className="flex items-center justify-between px-3 py-2 bg-purple-100 rounded-lg">
-                          <span className="font-bold text-slate-800">{firstCaja.NOMBRE}</span>
-                          <span className="text-purple-700 font-bold">x{count}</span>
+                        <div className="flex items-center justify-between px-3 py-2 bg-gray-100 rounded-lg">
+                          <span className="font-bold text-gray-900">{firstCaja.NOMBRE}</span>
+                          <span className="text-gray-700 font-bold">x{count}</span>
                         </div>
                         {group.map((caja, idx) => {
                           const isActive = cajaActivaId === caja.instanciaId
@@ -832,18 +826,18 @@ export default function DetalleOrden() {
                               onClick={() => setCajaActivaId(caja.instanciaId)}
                               className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${
                                 isActive
-                                  ? "bg-purple-100 border-purple-500 shadow-lg shadow-purple-500/30"
-                                  : "bg-purple-50 border-purple-200 hover:border-purple-300"
+                                  ? "bg-gray-100 border-gray-900 shadow-md"
+                                  : "bg-gray-50 border-gray-200 hover:border-gray-300"
                               }`}
                             >
                               <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center gap-2">
-                                  {isActive && <div className="w-2 h-2 bg-purple-600 rounded-full animate-pulse"></div>}
-                                  <span className="text-slate-700 font-semibold">
+                                  {isActive && <div className="w-2 h-2 bg-gray-900 rounded-full"></div>}
+                                  <span className="text-gray-900 font-semibold">
                                     {firstCaja.TIPO} #{idx + 1}
                                   </span>
                                 </div>
-                                <span className="text-slate-600 text-sm">{totalArticulos} arts.</span>
+                                <span className="text-gray-600 text-sm">{totalArticulos} arts.</span>
                               </div>
 
                               <button
@@ -851,7 +845,7 @@ export default function DetalleOrden() {
                                   e.stopPropagation()
                                   setModalCajaId(caja.instanciaId)
                                 }}
-                                className="w-full py-2 bg-purple-500 hover:bg-purple-600 text-white text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-2"
+                                className="w-full py-2 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-2 shadow-sm"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path
@@ -871,7 +865,7 @@ export default function DetalleOrden() {
                               </button>
 
                               {isActive && (
-                                <div className="mt-2 text-xs text-purple-600 font-semibold flex items-center gap-1">
+                                <div className="mt-2 text-xs text-gray-600 font-semibold flex items-center gap-1">
                                   <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                     <path
                                       fillRule="evenodd"
@@ -893,7 +887,7 @@ export default function DetalleOrden() {
 
               <button
                 onClick={() => setModoAgregarCaja(true)}
-                className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-semibold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
+                className="w-full py-3 bg-gray-900 hover:bg-gray-800 text-white font-semibold rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -903,35 +897,35 @@ export default function DetalleOrden() {
             </div>
           )}
 
+          {/* Last scanned item */}
           {lastScannedItem && (
-            <div className="glass border border-emerald-400/60 rounded-3xl p-6 shadow-xl shadow-emerald-400/20 bg-white/40">
+            <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-lg">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-green-600 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/50">
+                <div className="w-10 h-10 bg-gray-900 rounded-full flex items-center justify-center shadow-md">
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-bold text-slate-800">Último Escaneado</h3>
+                <h3 className="text-lg font-bold text-gray-900">Último Escaneado</h3>
               </div>
               <div className="space-y-2">
-                <div className="text-2xl font-bold text-emerald-700">
+                <div className="text-2xl font-bold text-gray-900">
                   {lastScannedItem.codigo || lastScannedItem.codbar}
                 </div>
-                <div className="text-sm text-slate-600">Artículo ID: {lastScannedItem.articuloId}</div>
-                <div className="text-3xl font-bold text-slate-800 mt-3">
+                <div className="text-sm text-gray-600">Artículo ID: {lastScannedItem.articuloId}</div>
+                <div className="text-3xl font-bold text-gray-900 mt-3">
                   {lastScannedItem.packed} / {lastScannedItem.unidades}
                 </div>
               </div>
             </div>
           )}
 
+          {/* Confirm button */}
           <button
             onClick={handleRecibir}
             disabled={!todoListo}
-            className={`w-full py-6 rounded-3xl font-bold text-xl shadow-2xl transition-all ${
-              todoListo
-                ? "bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white shadow-emerald-500/50"
-                : "bg-slate-300 text-slate-500 cursor-not-allowed"
+            className={`w-full py-6 rounded-2xl font-bold text-xl shadow-lg transition-all ${
+              todoListo ? "bg-gray-900 hover:bg-gray-800 text-white" : "bg-gray-300 text-gray-500 cursor-not-allowed"
             }`}
           >
             {todoListo ? "✓ Confirmar Packing" : "Completa el empaque"}
@@ -940,8 +934,8 @@ export default function DetalleOrden() {
       </div>
 
       {modalCajaId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="glass border border-purple-400/60 rounded-3xl shadow-2xl max-w-2xl w-full p-8 bg-white/95">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl max-w-2xl w-full p-8">
             {(() => {
               const caja = cajasSeleccionadas.find((c) => c.instanciaId === modalCajaId)
               const articulosEnCaja = articulosEnCajas[modalCajaId] || []
@@ -951,7 +945,7 @@ export default function DetalleOrden() {
                 <>
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center shadow-lg shadow-purple-500/50">
+                      <div className="w-12 h-12 bg-gray-900 rounded-full flex items-center justify-center shadow-md">
                         <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path
                             strokeLinecap="round"
@@ -962,23 +956,23 @@ export default function DetalleOrden() {
                         </svg>
                       </div>
                       <div>
-                        <h3 className="text-2xl font-bold text-slate-800">{caja?.NOMBRE}</h3>
-                        <p className="text-sm text-slate-600">Tipo: {caja?.TIPO}</p>
+                        <h3 className="text-2xl font-bold text-gray-900">{caja?.NOMBRE}</h3>
+                        <p className="text-sm text-gray-600">Tipo: {caja?.TIPO}</p>
                       </div>
                     </div>
                     <button
                       onClick={() => setModalCajaId(null)}
-                      className="w-10 h-10 rounded-full bg-slate-200 hover:bg-slate-300 flex items-center justify-center transition-all"
+                      className="w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-all"
                     >
-                      <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </button>
                   </div>
 
-                  <div className="mb-4 p-4 bg-purple-50 rounded-2xl border border-purple-200">
-                    <div className="text-sm text-slate-600 mb-1">Total de artículos en esta caja:</div>
-                    <div className="text-3xl font-bold text-purple-700">{totalArticulos}</div>
+                  <div className="mb-4 p-4 bg-gray-100 rounded-xl border border-gray-200">
+                    <div className="text-sm text-gray-600 mb-1">Total de artículos en esta caja:</div>
+                    <div className="text-3xl font-bold text-gray-900">{totalArticulos}</div>
                   </div>
 
                   {articulosEnCaja.length > 0 ? (
@@ -986,18 +980,18 @@ export default function DetalleOrden() {
                       {articulosEnCaja.map((art) => (
                         <div
                           key={art.articuloId}
-                          className="flex items-center justify-between p-4 bg-white rounded-xl border border-slate-200 shadow-sm"
+                          className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200 shadow-sm"
                         >
                           <div>
-                            <div className="font-bold text-slate-800">{art.codigo}</div>
-                            <div className="text-sm text-slate-500">ID: {art.articuloId}</div>
+                            <div className="font-bold text-gray-900">{art.codigo}</div>
+                            <div className="text-sm text-gray-500">ID: {art.articuloId}</div>
                           </div>
-                          <div className="text-2xl font-bold text-purple-600">x{art.cantidad}</div>
+                          <div className="text-2xl font-bold text-gray-900">x{art.cantidad}</div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-12 text-slate-400">
+                    <div className="text-center py-12 text-gray-400">
                       <svg
                         className="w-16 h-16 mx-auto mb-4 opacity-50"
                         fill="none"
@@ -1022,23 +1016,23 @@ export default function DetalleOrden() {
       )}
 
       {showCompletionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="glass border border-emerald-400/60 rounded-3xl shadow-2xl max-w-2xl w-full p-12 text-center bg-white/95">
-            <div className="w-32 h-32 bg-gradient-to-br from-emerald-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg shadow-emerald-500/50 animate-pulse">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl max-w-2xl w-full p-12 text-center">
+            <div className="w-32 h-32 bg-gray-900 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg">
               <svg className="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h2 className="text-4xl font-bold text-slate-800 mb-4">¡Empaque Completado!</h2>
-            <p className="text-xl text-slate-600 mb-8">Todas las líneas han sido empacadas correctamente</p>
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">¡Empaque Completado!</h2>
+            <p className="text-xl text-gray-600 mb-8">Todas las líneas han sido empacadas correctamente</p>
             <div className="space-y-4">
-              <div className="p-4 bg-slate-100 rounded-2xl">
-                <div className="text-sm text-slate-600 mb-1">Orden</div>
-                <div className="text-2xl font-bold text-slate-800">{caratula?.folio}</div>
+              <div className="p-4 bg-gray-100 rounded-xl">
+                <div className="text-sm text-gray-600 mb-1">Orden</div>
+                <div className="text-2xl font-bold text-gray-900">{caratula?.folio}</div>
               </div>
-              <div className="p-4 bg-purple-100 rounded-2xl">
-                <div className="text-sm text-slate-600 mb-1">Total de cajas</div>
-                <div className="text-2xl font-bold text-purple-700">{cajasSeleccionadas.length}</div>
+              <div className="p-4 bg-gray-100 rounded-xl">
+                <div className="text-sm text-gray-600 mb-1">Total de cajas</div>
+                <div className="text-2xl font-bold text-gray-900">{cajasSeleccionadas.length}</div>
               </div>
             </div>
             <div className="flex gap-4 mt-8">
@@ -1048,14 +1042,14 @@ export default function DetalleOrden() {
                   focusScanner()
                 }}
                 disabled={isPrinting}
-                className="flex-1 py-4 bg-slate-300 hover:bg-slate-400 disabled:bg-slate-200 disabled:cursor-not-allowed text-slate-700 font-bold text-lg rounded-2xl transition-all"
+                className="flex-1 py-4 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed text-gray-900 font-bold text-lg rounded-xl transition-all shadow-sm"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleRecibir}
                 disabled={isPrinting}
-                className="flex-1 py-4 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 disabled:from-slate-400 disabled:to-slate-500 disabled:cursor-not-allowed text-white font-bold text-lg rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2"
+                className="flex-1 py-4 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold text-lg rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
               >
                 {isPrinting ? (
                   <>
