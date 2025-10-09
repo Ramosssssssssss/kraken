@@ -92,12 +92,14 @@ function BarcodeSVG({
         try {
           JsBarcode(ref.current, value, {
             format,
-            displayValue: false, // sin texto dentro del código en preview
+            displayValue: false,
             font: fontFamily,
             fontSize: Math.max(8, Math.round(fontSizePx * 0.8)),
             textMargin: 2,
             margin: 0,
+            width: 1.2, // 👈 control del grosor (ajústalo desde estado/props)
           })
+
           ref.current.setAttribute("preserveAspectRatio", "none")
           ref.current.style.width = "100%"
           ref.current.style.height = `${heightPx}px`
@@ -265,6 +267,8 @@ export default function LabelGenerator() {
     quantity: "1",
     barHeightMm: "20",
     qrSizeMm: "16",   // 👉 tamaño del QR en milímetros
+    xDimPx: "1.2", // grosor de módulo (px)
+
 
     // 👇 NUEVO
     showDesc: true,
@@ -615,19 +619,48 @@ export default function LabelGenerator() {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Etiquetas</title>
-  <style>
-    @page { size: ${labelW}mm ${labelH}mm; margin: 0; }
-    body { margin:0; padding:0; font-family:${fontFamily}; }
-    .page { width:${labelW}mm; height:${labelH}mm; padding: ${padding};display:grid; place-items:center; page-break-after:always; }
-    .label { width:${labelW}mm; height:${labelH}mm; display:flex; align-items:center; justify-content:center; gap:4px; }
-    .label.column { flex-direction:column; }
-    .label.row { flex-direction:column; }
-    .barcode-svg { width:100%; height:${barH}mm; }
-    .qr-canvas { width:15mm; height:15mm; }
-    .desc-text { font-size:${descFontPx}px; text-align:center; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+<style>
+  @page { size: ${labelW}mm ${labelH}mm; margin: 0; }
+  html, body { margin:0; padding:0; font-family:${fontFamily}; }
+  /* Incluye el padding dentro del box */
+  *, *::before, *::after { box-sizing: border-box; }
 
-    .label-text { font-size:${fontPx}px; font-weight:bold; text-align:center; word-break:break-word; }
-  </style>
+  /* Página exacta al tamaño, con padding interno */
+  .page {
+    width:${labelW}mm;
+    height:${labelH}mm;
+    padding:${padding}mm;
+    display:flex;
+    /* place-items es de grid; en flex usa align/justify */
+    align-items:center;
+    justify-content:center;
+    page-break-after:always;
+  }
+
+  /* Ocupa el área útil (después del padding) */
+  .label {
+    width:100%;
+    height:100%;
+    display:flex;
+    flex-direction:column; /* ya no necesitas .row/.column */
+    align-items:center;
+    justify-content:center;
+    gap:0;
+  }
+
+  .barcode-svg { width:100%; height:${barH}mm; }
+  .qr-canvas { width:15mm; height:15mm; }
+
+  .desc-text {
+    font-size:${descFontPx}px; text-align:center;
+    width:100%; max-width:100%;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .label-text {
+    font-size:${fontPx}px; font-weight:bold;
+    text-align:center; word-break:break-word;
+  }
+</style>
 </head>
 <body>
 ${bodyHtml}
@@ -637,7 +670,13 @@ ${bodyHtml}
 (function(){
   function render() {
     document.querySelectorAll('svg.barcode-svg').forEach(svg=>{
-      try{ JsBarcode(svg, svg.dataset.value, { format: svg.dataset.format, displayValue:false, margin:0 }) }catch(e){}
+      try{ JsBarcode(svg, svg.dataset.value, {
+  format: svg.dataset.format,
+  displayValue: false,
+  margin: 0,
+  width: 1.2 // 👈 igual que en preview
+})
+}catch(e){}
     });
     document.querySelectorAll('canvas.qr-canvas').forEach(c=>{
       try{ QRCode.toCanvas(c, c.dataset.value, { errorCorrectionLevel:"M", margin:0, width:c.offsetWidth }) }catch(e){}
