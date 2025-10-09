@@ -244,7 +244,6 @@ function shareZplToZebra(zpl: string, name = `etiquetas_${Date.now()}.zpl`) {
 
 /* ==================================================================== */
 // ====== BrowserPrint (Android) ======
-// ====== BrowserPrint (Android) ======
 declare global {
   interface Window {
     BrowserPrint?: any
@@ -259,8 +258,8 @@ async function ensureBrowserPrintLoaded(): Promise<void> {
 
   // intentamos primero el namespaced y luego el legacy
   const candidates = [
-    "/browserprint/BrowserPrint-Zebra-1.1.250.min.js",
-    "/browserprint/BrowserPrint-3.1.250.min.js",
+    "/public/browserprint/BrowserPrint-3.1.250.min.js",
+    "/public/browserprint/BrowserPrint-Zebra-1.1.250.min.js",
   ]
 
   for (const src of candidates) {
@@ -336,17 +335,43 @@ async function bpGetOrPickDevice(): Promise<ZebraDevice> {
   return dev
 }
 
-
 async function bpPrintZPL(zpl: string): Promise<void> {
   const dev = await bpGetOrPickDevice()
+
+  // Normaliza terminadores y asegúrate de cerrar con CRLF
+  const payload = (zpl.endsWith("\r\n") ? zpl : zpl.replace(/\n/g, "\r\n") + "\r\n");
+
+  // Sender compatible con distintas versiones del SDK (send vs write)
+  const sender: (chunk: string, ok: () => void, err: (e:any)=>void) => void =
+    // @ts-ignore
+    typeof (dev as any).send === "function"
+      // @ts-ignore
+      ? (data, ok, err) => (dev as any).send(data, ok, err)
+      : (data, ok, err) => dev.write(data, ok, err);
+
+  // Fragmenta para SPP (BT clásico) – evita timeouts por tamaño
+  const CHUNK = 8 * 1024; // 8KB
+  const parts: string[] = [];
+  for (let i = 0; i < payload.length; i += CHUNK) parts.push(payload.slice(i, i + CHUNK));
+
   await new Promise<void>((resolve, reject) => {
-    let settled = false
-    const done = (fn: () => void) => { if (!settled) { settled = true; fn() } }
-    try { dev.write("~HS\n") } catch {}
-    dev.write(zpl, () => done(resolve), (e: any) => done(() => reject(e)))
-    setTimeout(() => done(() => reject(new Error("Timeout al enviar a BrowserPrint"))), 10000)
-  })
+    let settled = false;
+    const done = (f: () => void) => { if (!settled) { settled = true; f(); } };
+
+    const sendNext = (idx: number) => {
+      if (idx >= parts.length) return done(resolve);
+      sender(parts[idx], () => sendNext(idx + 1), (e:any) => done(() => reject(e)));
+    };
+
+    // “Wake up” y también diagnóstico rápido
+    try { sender("~HS\r\n", () => {}, () => {}); } catch {}
+    // Envía todo
+    sendNext(0);
+    // Timeout defensivo
+    setTimeout(() => done(() => reject(new Error("Timeout al enviar a BrowserPrint"))), 15000);
+  });
 }
+
 
 
 /**************************************************************/
