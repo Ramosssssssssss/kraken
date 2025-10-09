@@ -78,57 +78,84 @@ export default function LoginPage() {
     [],
   )
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setIsLoading(true)
+const MAX_RETRIES = 3
+const RETRY_DELAY_MS = 1000 // 1 segundo
 
-    const apiUrl = derivedApiUrl
+// Función para esperar entre reintentos
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
-    if (!apiUrl) {
-      setError("No se pudo obtener la URL de la API para este subdominio.")
-      setIsLoading(false)
-      return
-    }
-
-    if (!email || !password) {
-      setError("Usuario y contraseña son requeridos")
-      setIsLoading(false)
-      return
-    }
-
+// Fetch con reintentos
+const fetchWithRetry = async (url: string, options: RequestInit, retries = MAX_RETRIES): Promise<Response> => {
+  for (let i = 0; i < retries; i++) {
     try {
-      const response = await fetch(`${apiUrl}/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user: email, password }),
-      })
-
-      const data = await response.json()
-
-      if (response.ok && data.message === "✅ Login exitoso") {
-       
-         const modulosArr = parseModulesCSV(data.user?.MODULOS_KRKN)
- const userDataToSave = {
-          ...data.user,
-          user: email,
-          password: password,
-            MODULOS_KRKN: data.user?.MODULOS_KRKN ?? null, // crudo por referencia
-    modulosKrknArr: modulosArr,  
-        }
-        setUserData(userDataToSave)
-
-        router.replace("/dashboard")
-      } else {
-        setError(data.message || "Credenciales inválidas")
+      const response = await fetch(url, options)
+      // Solo reintenta si hay error de red, no si el status es 401, 400, etc.
+      if (!response.ok && response.status >= 500) {
+        throw new Error(`Error del servidor: ${response.status}`)
       }
-    } catch (err) {
-      console.error("Login error:", err)
-      setError("Error de conexión. Intenta nuevamente.")
-    } finally {
-      setIsLoading(false)
+      return response
+    } catch (error) {
+      if (i < retries - 1) {
+        console.warn(`Intento ${i + 1} fallido. Reintentando en ${RETRY_DELAY_MS}ms...`)
+        await delay(RETRY_DELAY_MS)
+      } else {
+        throw error // después de los reintentos, lanza el error
+      }
     }
   }
+  throw new Error("No se pudo completar la solicitud después de varios intentos.")
+}
+
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault()
+  setError("")
+  setIsLoading(true)
+
+  const apiUrl = derivedApiUrl
+
+  if (!apiUrl) {
+    setError("No se pudo obtener la URL de la API para este subdominio.")
+    setIsLoading(false)
+    return
+  }
+
+  if (!email || !password) {
+    setError("Usuario y contraseña son requeridos")
+    setIsLoading(false)
+    return
+  }
+
+  try {
+    const response = await fetchWithRetry(`${apiUrl}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user: email, password }),
+    })
+
+    const data = await response.json()
+
+    if (response.ok && data.message === "✅ Login exitoso") {
+      const modulosArr = parseModulesCSV(data.user?.MODULOS_KRKN)
+      const userDataToSave = {
+        ...data.user,
+        user: email,
+        password: password,
+        MODULOS_KRKN: data.user?.MODULOS_KRKN ?? null,
+        modulosKrknArr: modulosArr,
+      }
+      setUserData(userDataToSave)
+
+      router.replace("/dashboard")
+    } else {
+      setError(data.message || "Credenciales inválidas")
+    }
+  } catch (err) {
+    console.error("Login error:", err)
+    setError("Error de conexión. Intenta nuevamente.")
+  } finally {
+    setIsLoading(false)
+  }
+}
 
   if (!isReady || !brandingLoaded) {
     return (

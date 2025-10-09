@@ -1,0 +1,12 @@
+[2025-10-09 14:03:27] [INFO] [a8nmbff7] GET /api/buscar_folio host=192.168.50.100
+[2025-10-09 14:03:27] [DEBUG] [a8nmbff7] folio='PC14322' -> 'PC0014322' | tipoPreferido='' -> 'factura'
+[2025-10-09 14:03:30] [DEBUG] [a8nmbff7] Cliente decodificado: 'REGINA HILDA ORTIZ NUÑEZ'
+[2025-10-09 14:03:30] [INFO] [a8nmbff7] Resultados folio=PC0014322 tipoDetectado=factura usando host=192.168.50.100: 1
+[2025-10-09 14:09:35] [INFO] [cw6i70fg] GET /api/buscar_folio host=192.168.50.100
+[2025-10-09 14:09:35] [DEBUG] [cw6i70fg] folio='PC14322' -> 'PC0014322' | tipoPreferido='' -> 'factura'
+[2025-10-09 14:09:38] [DEBUG] [cw6i70fg] Cliente decodificado: 'REGINA HILDA ORTIZ NUÑEZ'
+[2025-10-09 14:09:38] [INFO] [cw6i70fg] Resultados folio=PC0014322 tipoDetectado=factura usando host=192.168.50.100: 1
+[2025-10-09 14:10:26] [INFO] [b2ncusn1] GET /api/buscar_folio host=192.168.50.100
+[2025-10-09 14:10:26] [DEBUG] [b2ncusn1] folio='PC14322' -> 'PC0014322' | tipoPreferido='' -> 'factura'
+[2025-10-09 14:10:28] [DEBUG] [b2ncusn1] Cliente decodificado: 'REGINA HILDA ORTIZ NUÑEZ'
+[2025-10-09 14:10:28] [INFO] [b2ncusn1] Resultados folio=PC0014322 tipoDetectado=factura usando host=192.168.50.100: 1

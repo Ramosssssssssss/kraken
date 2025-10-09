@@ -32,11 +32,7 @@ const goumamFbConfig: fb.Options = {
 }
 
 function hostnameFromReq(req: NextRequest): string {
-  const h =
-    req.headers.get("x-forwarded-host") ||
-    req.headers.get("host") ||
-    new URL(req.url).hostname ||
-    ""
+  const h = req.headers.get("x-forwarded-host") || req.headers.get("host") || new URL(req.url).hostname || ""
   return h.toLowerCase().replace(/:\d+$/, "")
 }
 
@@ -131,14 +127,14 @@ function corregirCaracteresManualmente(texto: string): string {
     "Ã©": "é",
     "Ã­": "í",
     "Ã³": "ó",
-    "Ãº": "ú",
+    Ãº: "ú",
     "Ã": "Á",
     "Ã‰": "É",
     "Ã": "Í",
     "Ã“": "Ó",
-    "Ãš": "Ú",
+    Ãš: "Ú",
     "Ã¼": "ü",
-    "Ãœ": "Ü",
+    Ãœ: "Ü",
     "Ã": "ß",
     "Â¿": "¿",
     "Â¡": "¡",
@@ -325,7 +321,7 @@ function buildQueryByTipo(tipo: TipoEtiqueta): { sql: string; mapper: (r: any) =
 async function tryQueriesInOrder(
   fbOptions: fb.Options,
   folio: string,
-  prefer?: TipoEtiqueta
+  prefer?: TipoEtiqueta,
 ): Promise<Salida[] & { __tipo?: TipoEtiqueta }> {
   const order: TipoEtiqueta[] = prefer
     ? [prefer, ...(["factura", "traspaso", "puntoVenta"] as TipoEtiqueta[]).filter((t) => t !== prefer)]
@@ -363,15 +359,12 @@ export async function GET(req: NextRequest) {
     if (!folioRaw) {
       return NextResponse.json(
         { ok: false, error: "Falta el parámetro 'folio'." },
-        { status: 400, headers: { "Access-Control-Allow-Origin": "*" } }
+        { status: 400, headers: { "Access-Control-Allow-Origin": "*" } },
       )
     }
 
     const folio = normalizeFolio(folioRaw, 9)
-    log(
-      `[${rid}] folio='${folioRaw}' -> '${folio}' | tipoPreferido='${tipoRaw}' -> '${tipoPreferido}'`,
-      "DEBUG"
-    )
+    log(`[${rid}] folio='${folioRaw}' -> '${folio}' | tipoPreferido='${tipoRaw}' -> '${tipoPreferido}'`, "DEBUG")
 
     const resultados = await tryQueriesInOrder(fbOptions, folio, tipoRaw ? tipoPreferido : undefined)
 
@@ -379,7 +372,7 @@ export async function GET(req: NextRequest) {
       log(`[${rid}] Sin resultados para folio=${folio}`, "WARN")
       return NextResponse.json(
         { ok: false, error: "Folio no encontrado en ninguna tabla." },
-        { status: 404, headers: { "Access-Control-Allow-Origin": "*" } }
+        { status: 404, headers: { "Access-Control-Allow-Origin": "*" } },
       )
     }
 
@@ -392,19 +385,19 @@ export async function GET(req: NextRequest) {
 
     log(
       `[${rid}] Resultados folio=${folio} tipoDetectado=${tipoDetectado} usando host=${hostname}: ${resultados.length}`,
-      "INFO"
+      "INFO",
     )
 
     return NextResponse.json(
       { ok: true, data: resultados, tipo: tipoDetectado },
-      { headers: { "Access-Control-Allow-Origin": "*" } }
+      { headers: { "Access-Control-Allow-Origin": "*" } },
     )
   } catch (error: any) {
     log(`GET /api/buscar_folio ERROR: ${error?.message}`, "ERROR")
     log(`STACK: ${error?.stack}`, "DEBUG")
     return NextResponse.json(
       { ok: false, error: "Error interno del servidor", message: String(error?.message || error) },
-      { status: 500, headers: { "Access-Control-Allow-Origin": "*" } }
+      { status: 500, headers: { "Access-Control-Allow-Origin": "*" } },
     )
   }
 }
@@ -420,6 +413,6 @@ export async function OPTIONS() {
         "Access-Control-Allow-Methods": "GET, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization, x-folio, x-tipo",
       },
-    }
+    },
   )
 }

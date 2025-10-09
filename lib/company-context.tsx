@@ -2,6 +2,7 @@
 "use client"
 
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react"
+//COMENTARIOS PARA BRANDON
 
 interface Branding {
   logo: string | null
@@ -23,7 +24,7 @@ interface UserData {
   password: string
   nombre?: string
   email?: string
-    MODULOS_KRKN?: string | number[] | null  // lo que venga del back (crudo)
+    MODULOS_KRKN?: string | number[] | null 
   modulosKrknArr?: number[] 
   [key: string]: any
 }
@@ -45,7 +46,6 @@ export function useCompany() {
   return ctx
 }
 
-/* ---------------- utils LS/Cookies seguras ---------------- */
 function safeGetLS(key: string) {
   try {
     if (typeof window === "undefined") return null
@@ -77,16 +77,13 @@ function readCookie(name: string) {
   }
 }
 
-/* ---------------- Provider ---------------- */
 export function CompanyProvider({ children }: { children: ReactNode }) {
   const [companyData, setCompanyDataState] = useState<CompanyData | null>(null)
   const [userData, setUserDataState] = useState<UserData | null>(null)
   const [isReady, setIsReady] = useState(false)
 
-  // evita fetchs duplicados de branding (StrictMode/dev)
   const brandingInFlight = useRef<boolean>(false)
 
-  // Helper: guarda en estado + LS
   const setCompanyData = (d: CompanyData | null) => {
     setCompanyDataState(d)
     safeSetLS("companyData", d ? JSON.stringify(d) : null)
@@ -110,7 +107,6 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         } catch {}
       }
 
-      // 1) localStorage
       const ls = safeGetLS("companyData")
       if (ls) {
         try {
@@ -122,7 +118,6 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         } catch {}
       }
 
-      // 2) subdominio → check-cliente (SOLO si no teníamos nada)
       if (!done && typeof window !== "undefined") {
         const host = window.location.hostname
         const parts = host.split(".")
@@ -138,7 +133,6 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
             })
             const data = await res.json()
             if (data?.ok && data?.cliente) {
-              // OJO: el backend ya devuelve { id, codigo, nombre, apiUrl }
               const c: CompanyData = { ...data.cliente, branding: null }
               setCompanyDataState(c)
               safeSetLS("companyData", JSON.stringify(c))
@@ -148,7 +142,6 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // 3) cookie de respaldo
       if (!done) {
         const codigo = readCookie("tenant")
         const apiUrl = readCookie("apiUrl")
@@ -165,7 +158,6 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
 
   // Efecto: cuando tengamos apiUrl+codigo y NO haya branding cargado, tráelo con tu endpoint existente:
   useEffect(() => {
-    // requisitos mínimos
     if (!isReady) return
     if (!companyData?.apiUrl || !companyData?.codigo) return
     // si ya hay branding, no vuelvas a pedir
@@ -175,7 +167,6 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     ) {
       return
     }
-    // evita requests duplicados
     if (brandingInFlight.current) return
 
     const controller = new AbortController()
@@ -185,17 +176,12 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         const url = `${companyData.apiUrl}/get-branding/${companyData.codigo}?_=${Date.now()}`
         const res = await fetch(url, { cache: "no-store", signal: controller.signal })
         const json = await res.json().catch(() => ({}) as any)
-        // const branding: Branding | null = json?.branding || null
-
-        // actualiza companyData con el branding
-        // const updated: CompanyData = { ...companyData, branding }
-        // setCompanyData(updated) // esto persiste en LS
+   
       } catch (e) {
         if (!controller.signal.aborted) {
           // si falla, al menos deja branding en null para no entrar en bucle
           const updated: CompanyData = { ...companyData, branding: null }
           setCompanyData(updated)
-          // opcional: console.warn("[company-context] branding fetch failed:", e)
         }
       } finally {
         brandingInFlight.current = false
@@ -204,7 +190,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
 
     loadBranding()
     return () => controller.abort()
-  }, [isReady, companyData]) // dependemos de apiUrl/codigo
+  }, [isReady, companyData]) 
 
   return (
     <CompanyContext.Provider
