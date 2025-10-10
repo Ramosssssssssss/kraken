@@ -6,6 +6,8 @@ import { Mini25x25 } from "./mini-25x25"
 import { ColaRaton } from "./cola-raton"
 import { Chica50x25 } from "./chica50x25"
 import { Prueba } from "./Prueba"
+import { Prueba2 } from "./etiquetaJero"
+
 
 
 
@@ -18,6 +20,8 @@ export const LABEL_TEMPLATES: readonly LabelTemplate[] = [
   ColaRaton,
   Chica50x25,
   Prueba,
+  Prueba2,
+
   
 ] as const
 
