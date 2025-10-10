@@ -66,6 +66,8 @@ const menuItems: MenuItem[] = [
   { name: "PROCESOS", icon: ClipboardList }, // 🧾 operaciones WMS
   { name: "TABLEROS", icon: BarChart3 }, // 📈 dashboards visuales
   { name: "USUARIOS", icon: Users2 }, // 👥 gestión de personal
+    { name: "ADMIN", icon: Users2 }, // 👥 gestión de personal
+
 ]
 
 

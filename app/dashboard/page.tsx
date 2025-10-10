@@ -18,7 +18,9 @@ import ConfigurationSection from "@/components/dashboard/configuration-section"
 import PerfilPage from "@/components/dashboard/profile-section"
 import PlaceholderSection from "@/components/dashboard/placeholder-section"
 import TablesSection from "@/components/dashboard/tables-section"
+import AdminSection from "@/components/dashboard/admin-section"
 // Opcional: evita pre-render estático de esta página
+
 export const dynamic = "force-dynamic"
 
 
@@ -52,13 +54,14 @@ const ALLOWED_SECTIONS = new Set([
   "EMBARQUES",
   "INTEGRACIONES",
   "CONFIGURACION",
-    "TABLEROS",
+    "ADMIN",
 
   // nuevas que van a placeholder
   "ADUANA",
   "AUDITORÍA",
   "KPI'S",
   "LAYOUT",
+  "TABLEROS",
 ])
 
 const PLACEHOLDER_SECTIONS = new Set([
@@ -67,6 +70,7 @@ const PLACEHOLDER_SECTIONS = new Set([
   "INTEGRACIONES",
   "KPI'S",
   "LAYOUT",
+  "TABLEROS",
 ])
 /* ---------- Wrapper con Suspense ---------- */
 export default function DashboardPage() {
@@ -173,8 +177,9 @@ const renderContent = useMemo(() => {
     //   return <IntegrationsSection />
     case "CONFIGURACION":
       return <ConfigurationSection />
-          case "TABLEROS":
-      return <TablesSection />
+          case "ADMIN":
+      return <AdminSection />
+      
     case "PERFIL":
     default:
       return <PerfilPage />
