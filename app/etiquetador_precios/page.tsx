@@ -347,7 +347,7 @@ async function bpPrintZPL(zpl: string): Promise<void> {
     const dev = await bpGetOrPickDevice();
 
     // selector de método send/write
-    const sendFn: (data: string, ok: () => void, err: (e: any) => void) => void =
+    const sendFn: (data: string, ok: () => void, err: (e:any)=>void) => void =
       typeof (dev as any).send === "function"
         ? (data, ok, err) => (dev as any).send(data, ok, err)
         : (data, ok, err) => dev.write(data, ok, err);
@@ -359,7 +359,7 @@ async function bpPrintZPL(zpl: string): Promise<void> {
     for (let i = 0; i < payload.length; i += CHUNK) parts.push(payload.slice(i, i + CHUNK));
 
     // envoltorios connect/open/close si existen en esta versión del SDK
-    const maybeConnect = (cb: () => void, onErr: (e: any) => void) => {
+    const maybeConnect = (cb: () => void, onErr: (e:any)=>void) => {
       const fn = (dev as any).connect || (dev as any).open;
       if (typeof fn === "function") {
         try { fn.call(dev, cb, onErr); } catch (e) { onErr(e); }
@@ -367,7 +367,7 @@ async function bpPrintZPL(zpl: string): Promise<void> {
     };
     const maybeClose = () => {
       const fn = (dev as any).disconnect || (dev as any).close;
-      try { if (typeof fn === "function") fn.call(dev, () => { }, () => { }); } catch { }
+      try { if (typeof fn === "function") fn.call(dev, () => {}, () => {}); } catch {}
     };
 
     await new Promise<void>((resolve, reject) => {
@@ -377,14 +377,14 @@ async function bpPrintZPL(zpl: string): Promise<void> {
       // cadena de envío
       const sendNext = (i: number) => {
         if (i >= parts.length) return done(() => { maybeClose(); resolve(); });
-        sendFn(parts[i], () => sendNext(i + 1), (e: any) => done(() => { maybeClose(); reject(e); }));
+        sendFn(parts[i], () => sendNext(i + 1), (e:any) => done(() => { maybeClose(); reject(e); }));
       };
 
       // wake + connect y luego enviar
-      try { sendFn("~HS\r\n", () => { }, () => { }); } catch { }
+      try { sendFn("~HS\r\n", () => {}, () => {}); } catch {}
       maybeConnect(() => {
         sendNext(0);
-      }, (e: any) => done(() => { maybeClose(); reject(e); }));
+      }, (e:any) => done(() => { maybeClose(); reject(e); }));
 
       setTimeout(() => done(() => { maybeClose(); reject(new Error("Timeout al enviar a BrowserPrint")); }), 15000);
     });
@@ -392,7 +392,7 @@ async function bpPrintZPL(zpl: string): Promise<void> {
 
   try {
     await tryOnce();
-  } catch (e: any) {
+  } catch (e:any) {
     // si falla en el primer intento, limpia UID y reintenta una vez
     if (firstAttempt) {
       firstAttempt = false;
@@ -409,9 +409,9 @@ const testZPL = `^XA^CI28^FO40,40^A0N,40,40^FDTEST ZPL^FS^XZ`;
 async function handleTestPrint() {
   try {
     await bpPrintZPL(testZPL);
-    new Noty({ type: "success", layout: "topRight", theme: "mint", text: "Test ZPL enviado.", timeout: 1800 }).show();
-  } catch (e: any) {
-    new Noty({ type: "error", layout: "topRight", theme: "mint", text: "No se pudo conectar/enviar.", timeout: 2600 }).show();
+    new Noty({ type:"success", layout:"topRight", theme:"mint", text:"Test ZPL enviado.", timeout:1800 }).show();
+  } catch (e:any) {
+    new Noty({ type:"error", layout:"topRight", theme:"mint", text:"No se pudo conectar/enviar.", timeout:2600 }).show();
     console.warn("bpPrint error:", e);
   }
 }
@@ -1118,7 +1118,7 @@ ${template.css(w, h, pad)}
                 <CardTitle className="flex items-center gap-2 text-white">
                   <Settings className="w-5 h-5 text-purple-300" />Configuración
                 </CardTitle>
-                <CardTitle className="flex items-center gap-2 text-white font-light text-xs">v2.3.8</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-white font-light text-xs">v2.3.9</CardTitle>
               </CardHeader>
 
               <CardContent className="p-4 sm:p-6 space-y-6">
@@ -1225,14 +1225,6 @@ ${template.css(w, h, pad)}
                   >
                     <Printer className="w-4 h-4 mr-2" />
                     Imprimir (BrowserPrint)
-                  </Button>
-                  <Button
-                    onClick={handleTestPrint}
-                    className="col-span-full w-full justify-center h-11 bg-gray-700 hover:bg-gray-600 text-white border-0"
-                    disabled={!hasBP}
-                    title="Probar envío directo a BrowserPrint"
-                  >
-                    Probar impresión directa (TEST ZPL)
                   </Button>
 
 
