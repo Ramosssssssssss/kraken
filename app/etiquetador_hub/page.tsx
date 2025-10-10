@@ -14,6 +14,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 const tiles = [
   { id: "etiquetador", href: "/etiquetador", title: "Generador de Etiquetas", desc: "Crear y gestionar etiquetas estándar con código de barras y QR.", icon: Tags },
   { id: "etiquetador_precios", href: "/etiquetador_precios", title: "Etiquetador de Precios", desc: "Etiquetas enfocadas en punto de Venta.", icon: DollarSign },
+  { id: "etiquetador_gabetas", href: "/etiquetador_ubicaciones", title: "Etiquetador de Ubicaciones", desc: "Etiquetas enfocadas en Almácen.", icon: DollarSign },
   { id: "etiquetador_paquetes", href: "/etiquetador_paquetes", title: "Etiquetador de Paquetes", desc: "Imprime una etiqueta por paquete con código de barras del folio.", icon: Package },
 ] as const;
 
