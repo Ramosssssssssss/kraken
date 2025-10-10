@@ -94,60 +94,83 @@ export const Blanca40x22: LabelTemplate = {
       <div class="pl">Dist: ${escapeHTML(money(a.distribuidor))}</div>
     </div></div></div>`,
 
-  // === ZPL equivalente, con opcional barcode & darkness ===
-  // Uso: Blanca40x22.renderZPL(a, 203, { darkness: 12, barcode: { kind: "code128"|"qr"|"none", value?: string } })
-  renderZPL: (a: any, dpi: Dpi, opts?: { darkness?: number, barcode?: { kind: BarcodeKind, value?: string } }) => {
-    const W = 39.9, H = 22.8
-    const padX = 2.0
-    const padY = 2.0
-    const colGap = 8.0
+  renderZPL: (
+  a: any,
+  dpi: Dpi,
+  opts?: { darkness?: number, barcode?: { kind: BarcodeKind, value?: string } }
+) => {
+  const W = 39.9, H = 22.8
+  const padX = 2.0
+  const padY = 2.0
+  const colGap = 8.0
 
-    const start = zplStart(W, H, dpi, { darkness: opts?.darkness })
+  const start = zplStart(W, H, dpi, { darkness: opts?.darkness })
 
-    // Descripción (2 líneas a todo lo ancho)
-    const desc = textBox(padX, padY, W - padX * 2, 2.8, 2, "L", dpi, a?.nombre ?? "", 0.6)
+  // ===== 1) Descripción (2 líneas, ancho completo)
+  const DESC_H = 2.8
+  const DESC_GAP = 0.6
+  const desc = textBox(padX, padY, W - padX * 2, DESC_H, 2, "L", dpi, a?.nombre ?? "", 0.6)
 
-    // Columna izquierda (4 filas)
-    const leftX = padX
-    const leftW = (W - padX * 2 - colGap) / 2
-    const rowH  = 3.4
-    const leftY0 = padY + 6.8
+  // ===== 2) (Opcional) Código de barras inmediatamente debajo de la descripción
+  const kind: BarcodeKind = opts?.barcode?.kind ?? "none"
+  const value = (opts?.barcode?.value ?? a?.codigo ?? a?.sku ?? "").toString()
 
-    const invMax = textBox(leftX, leftY0 + rowH * 0, leftW, 2.3, 1, "L", dpi,
-      `G - ${Number.isFinite(a?.inventarioMaximo) ? a.inventarioMaximo : 0}`)
-    const estatus = textBox(leftX, leftY0 + rowH * 1, leftW, 2.3, 1, "L", dpi, a?.estatus ?? "-")
-    const unidad  = textBox(leftX, leftY0 + rowH * 2, leftW, 2.3, 1, "L", dpi, a?.unidad ?? "")
-    const codigo  = textBox(leftX, leftY0 + rowH * 3, leftW, 2.3, 1, "L", dpi, a?.codigo ?? "")
+  let barcode = ""
+  let contentY = padY + DESC_H + DESC_GAP // siguiente bloque arranca después de la descripción
 
-    // Columna derecha (fecha + precio + distribuidor)
-    const rightX = padX + leftW + colGap
-    const rightW = W - rightX - padX
+  if (kind === "code128" && value) {
+    const BAR_H = 9.0  // << alto de barras más grande (antes 7.0/18px)
+    const BAR_M = 0.8  // margen inferior post-barcode
+    const bX = padX
+    const bY = contentY
+    barcode = code128(bX, bY, BAR_H, 0.30, dpi, value) // CODE128 explícito
+    contentY = bY + BAR_H + BAR_M
+  } else if (kind === "qr" && value) {
+    // Si fueran QR, deja el área más compacta y sigue el flujo
+    const QR_SIDE = 3.0
+    const qX = padX
+    const qY = contentY
+    barcode = qrBox(qX, qY, QR_SIDE, value, dpi)
+    contentY = qY + QR_SIDE + 0.6
+  }
 
-    const fecha = textBox(rightX, leftY0, rightW, 2.4, 1, "R", dpi, a?.fecha ?? "")
-    const price = textBox(rightX, leftY0 + rowH * 1.15, rightW, 5.6, 1, "R", dpi, fmtMoney(a?.precio ?? 0))
+  // ===== 3) Columnas: izquierda (4 filas) y derecha (fecha + precio + dist)
+  const leftX = padX
+  const leftW = (W - padX * 2 - colGap) / 2
+  const rowH  = 3.4
 
-    // Dist en dos cajas: "Dist:" a la izq + monto a la derecha
-    const distY = leftY0 + rowH * 2.65
-    const distLabelW = 10.0
-    const distH = 2.0
-    const distLabel = textBox(rightX, distY, distLabelW, distH, 1, "L", dpi, "Dist:")
-    const distValue = textBox(rightX + distLabelW, distY, rightW - distLabelW, distH, 1, "R", dpi, fmtMoney(a?.distribuidor ?? 0))
+  // La columna ahora arranca SIEMPRE debajo del bloque anterior (desc + barcode si hubo)
+  const leftY0 = contentY
 
-    // Código de barras opcional (bajo descripción, alineado a la izquierda)
-    let barcode = ""
-    const kind = opts?.barcode?.kind ?? "none"
-    const value = (opts?.barcode?.value ?? a?.codigo ?? a?.sku ?? "").toString()
-    if (kind === "code128" && value) {
-      const bX = padX
-      const bY = padY + 4.0
-      barcode = code128(bX, bY, 7.0, 0.30, dpi, value)
-    } else if (kind === "qr" && value) {
-      const qX = padX
-      const qY = padY + 3.5
-      barcode = qrBox(qX, qY, 3, value, dpi)
-    }
+  const invMax = textBox(
+    leftX, leftY0 + rowH * 0, leftW, 2.3, 1, "L", dpi,
+    `G - ${Number.isFinite(a?.inventarioMaximo) ? a.inventarioMaximo : 0}`
+  )
+  const estatus = textBox(leftX, leftY0 + rowH * 1, leftW, 2.3, 1, "L", dpi, a?.estatus ?? "-")
+  const unidad  = textBox(leftX, leftY0 + rowH * 2, leftW, 2.3, 1, "L", dpi, a?.unidad ?? "")
+  const codigo  = textBox(leftX, leftY0 + rowH * 3, leftW, 2.3, 1, "L", dpi, a?.codigo ?? "")
 
-    return `${start}
+  // Columna derecha
+  const rightX = padX + leftW + colGap
+  const rightW = W - rightX - padX
+
+  // Fecha alineada con la primera fila izquierda
+  const fecha = textBox(rightX, leftY0 + rowH * 0 + 0.1, rightW, 2.4, 1, "R", dpi, a?.fecha ?? "")
+
+  // Precio: debajo de fecha con altura amplia, NO se pisa con dist
+  const PRICE_H = 5.8            // altura de caja para precio (ligeramente más que antes)
+  const PRICE_GAP = 0.6          // margen inferior antes de "Dist:"
+  const priceY = leftY0 + rowH * 1 + 0.3
+  const price  = textBox(rightX, priceY, rightW, PRICE_H, 1, "R", dpi, fmtMoney(a?.precio ?? 0))
+
+  // Dist: siempre debajo del precio con margen
+  const distY = priceY + PRICE_H + PRICE_GAP
+  const distLabelW = 9.0
+  const distH = 2.2
+  const distLabel = textBox(rightX, distY, distLabelW, distH, 1, "L", dpi, "Dist:")
+  const distValue = textBox(rightX + distLabelW, distY, rightW - distLabelW, distH, 1, "R", dpi, fmtMoney(a?.distribuidor ?? 0))
+
+  return `${start}
 ${desc}
 ${barcode}
 ${invMax}
@@ -159,7 +182,8 @@ ${price}
 ${distLabel}
 ${distValue}
 ${zplEnd}`
-  },
+},
+
 
   preview: (a) => (
     <div className="w-full h-full grid"
