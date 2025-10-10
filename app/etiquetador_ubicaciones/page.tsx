@@ -187,11 +187,11 @@ export default function EtiquetadorSimple() {
                     {/* Panel izquierdo */}
                     <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm">
                         <CardHeader className="border-b border-gray-600">
-                            <CardTitle className="text-white">Etiquetador simple (sin backend)</CardTitle>
+                            <CardTitle className="text-white">Etiquetador</CardTitle>
                         </CardHeader>
                         <CardContent className="p-6 space-y-4">
                             <div className="space-y-1">
-                                <Label className="text-gray-100">Ubicación / Código</Label>
+                                <Label className="text-gray-100">Ubicación</Label>
                                 <Input
                                     value={texto}
                                     onChange={(e) => setTexto(e.target.value)}
