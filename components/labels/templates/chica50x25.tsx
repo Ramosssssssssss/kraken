@@ -7,9 +7,6 @@ import { escapeHTML, money } from "@/lib/labels/utils"
 const toDots = (mm: number, dpi: Dpi) => Math.round((mm / 25.4) * dpi)
 const safe = (s: string) => (s || "").replace(/[\^~\\]/g, " ").replace(/\s+/g, " ").trim()
 
-// 🔻 Solo code128 (sin QR)
-type BarcodeKind = "none" | "code128"
-
 const zplStart = (wmm: number, hmm: number, dpi: Dpi, opts?: { darkness?: number }) => {
   const md = Math.max(-30, Math.min(30, opts?.darkness ?? 10))
   return `^XA
@@ -36,19 +33,6 @@ const textBox = (
   const gap = toDots(lineGapMm, dpi)
   return `^FO${x},${y}^CF0,${font}^FB${Math.max(20, w)},${lines},${gap},${align},0^FD${safe(text)}^FS`
 }
-
-const code128 = (xmm: number, ymm: number, heightMm: number, moduleMm: number, dpi: Dpi, data: string) => {
-  const x = toDots(xmm, dpi)
-  const y = toDots(ymm, dpi)
-  const h = toDots(heightMm, dpi)
-  const mod = Math.max(1, Math.round(toDots(moduleMm, dpi)))
-  return `^FO${x},${y}^BY${mod}
-^BCN,${h},N,N,N
-^FD${safe(data)}^FS`
-}
-
-// ❌ Eliminado: qrBox
-// const qrBox = ...
 
 const fmtMoney = (v: unknown) => Number.isFinite(Number(v)) ? money(Number(v)) : money(0)
 
@@ -85,59 +69,44 @@ export const Chica50x25: LabelTemplate = {
       <div class="pl">Distribuidor: ${escapeHTML(money(a.distribuidor))}</div>
     </div></div></div>`,
 
-  // === ZPL (sin QR, solo code128/none) ===
-  // Puedes pasar opts: { darkness?: number, barcode?: { kind: "none"|"code128", value?: string } }
-renderZPL: (a: any, dpi: Dpi, opts?: { darkness?: number, barcode?: { kind: "none"|"code128", value?: string } }) => {
-  // Dimensiones físicas (mm)
-  const W = 49.9, H = 25.4
-  const padX = 2.0
-  const padY = 0.0
-  const colGap = 3.2
+  // === ZPL sin código de barras ===
+  renderZPL: (a: any, dpi: Dpi, opts?: { darkness?: number }) => {
+    // Dimensiones físicas (mm)
+    const W = 49.9, H = 25.4
+    const padX = 2.0
+    const padY = 0.0
+    const colGap = 3.2
 
-  const start = zplStart(W, H, dpi, { darkness: opts?.darkness })
+    const start = zplStart(W, H, dpi, { darkness: opts?.darkness })
 
-  // --- Descripción (2 líneas arriba)
-  const desc = textBox(padX, padY, W - padX * 2, 2.8, 2, "L", dpi, a?.nombre ?? "", 0.55)
+    // Descripción
+    const desc = textBox(padX, padY, W - padX * 2, 2.8, 2, "L", dpi, a?.nombre ?? "", 0.55)
 
-  // --- Detalle
-  const detailTop = padY + 5.8
-  const leftX = padX
-  const leftW = (W - padX * 2 - colGap) / 2
-  const rowH = 3.0
+    // Detalle
+    const detailTop = padY + 5.8
+    const leftX = padX
+    const leftW = (W - padX * 2 - colGap) / 2
+    const rowH = 3.0
 
-  const invMax = textBox(leftX, detailTop + rowH * 0, leftW, 2.2, 1, "L", dpi,
-    `G - ${Number.isFinite(a?.inventarioMaximo) ? a.inventarioMaximo : 0}`)
-  const estatus = textBox(leftX, detailTop + rowH * 1, leftW, 2.2, 1, "L", dpi, a?.estatus ?? "-")
-  const unidad  = textBox(leftX, detailTop + rowH * 2, leftW, 2.2, 1, "L", dpi, a?.unidad ?? "")
-  const codigo  = textBox(leftX, detailTop + rowH * 3, leftW, 2.2, 1, "L", dpi, a?.codigo ?? "")
+    const invMax = textBox(leftX, detailTop + rowH * 0, leftW, 2.2, 1, "L", dpi,
+      `G - ${Number.isFinite(a?.inventarioMaximo) ? a.inventarioMaximo : 0}`)
+    const estatus = textBox(leftX, detailTop + rowH * 1, leftW, 2.2, 1, "L", dpi, a?.estatus ?? "-")
+    const unidad  = textBox(leftX, detailTop + rowH * 2, leftW, 2.2, 1, "L", dpi, a?.unidad ?? "")
+    const codigo  = textBox(leftX, detailTop + rowH * 3, leftW, 2.2, 1, "L", dpi, a?.codigo ?? "")
 
-  const rightX = padX + leftW + colGap
-  const rightW = W - rightX - padX
+    const rightX = padX + leftW + colGap
+    const rightW = W - rightX - padX
 
-  const fecha = textBox(rightX, detailTop + rowH * 0, rightW, 2.2, 1, "R", dpi, a?.fecha ?? "")
+    const fecha  = textBox(rightX, detailTop + rowH * 0, rightW, 2.2, 1, "R", dpi, a?.fecha ?? "")
+    const price  = textBox(rightX, detailTop + rowH * 1.05, rightW, 6.0, 1, "R", dpi, fmtMoney(a?.precio ?? 0))
 
-  // 🔸 Aumentamos tamaño del precio (antes 6.0mm → ahora 8.0mm)
-  const price = textBox(rightX, detailTop + rowH * 0.9, rightW, 8.0, 1, "R", dpi, fmtMoney(a?.precio ?? 0))
+    const distY = detailTop + rowH * 3.0
+    const distLabelW = 16.0
+    const distLabel = textBox(rightX, distY, distLabelW, 2.0, 1, "L", dpi, "Distribuidor:")
+    const distValue = textBox(rightX + distLabelW, distY, rightW - distLabelW, 2.0, 1, "R", dpi, fmtMoney(a?.distribuidor ?? 0))
 
-  // Distribuidor un poco más abajo para dejar espacio al precio grande
-  const distY = detailTop + rowH * 3.4
-  const distLabelW = 16.0
-  const distLabel = textBox(rightX, distY, distLabelW, 2.0, 1, "L", dpi, "Distribuidor:")
-  const distValue = textBox(rightX + distLabelW, distY, rightW - distLabelW, 2.0, 1, "R", dpi, fmtMoney(a?.distribuidor ?? 0))
-
-  // --- Código de barras (solo code128)
-  let barcode = ""
-  const kind = opts?.barcode?.kind ?? "none"
-  const value = (opts?.barcode?.value ?? a?.codigo ?? a?.sku ?? "").toString()
-  if (kind === "code128" && value) {
-    const bX = padX
-    const bY = 1.5 // ligeramente más arriba
-    barcode = code128(bX, bY, 6.5, 0.28, dpi, value)
-  }
-
-  return `${start}
+    return `${start}
 ${desc}
-${barcode}
 ${invMax}
 ${estatus}
 ${unidad}
@@ -147,8 +116,7 @@ ${price}
 ${distLabel}
 ${distValue}
 ${zplEnd}`
-}
-,
+  },
 
   preview: (a) => (
     <div className="w-full h-full grid bg-[#d2c600]"
