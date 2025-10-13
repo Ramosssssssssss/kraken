@@ -95,9 +95,9 @@ export const Blanca40x22: LabelTemplate = {
     </div></div></div>`,
 
 renderZPL: (a: any, dpi: Dpi, opts?: { darkness?: number }) => {
-  const W = 39.9, H = 23.8
+  const W = 39.9, H = 22.8
   const padX = 2.0, padY = 2.0
-  const colGap = 2.1
+  const colGap = 1.4
   const rowGap = 0.8
   const colW = (W - padX * 2 - colGap * 2) / 3
   const rows = [2.8, 2.8, 2.3, 2.9, 2.6, 2.4] // 6 filas
@@ -132,7 +132,7 @@ renderZPL: (a: any, dpi: Dpi, opts?: { darkness?: number }) => {
   const fecha   = textBox(aFecha.x, aFecha.y, aFecha.w, 2.3, 1, "R", dpi, a?.fecha ?? "")
 
   // Precio grande (altura ajustada a 5.6 mm para dejar margen)
-  const price = textBox(aPrecio.x, aPrecio.y + 0.3, aPrecio.w, 5.6, 1, "R", dpi, fmtMoney(a?.precio ?? 0))
+  const price = textBox(aPrecio.x, aPrecio.y + 0.3, aPrecio.w, 5.3, 1, "R", dpi, fmtMoney(a?.precio ?? 0))
 
   // “Dist” una línea aparte, con más separación (subido un poco)
   const dist = textBox(aDist.x, aDist.y + 0.8, aDist.w, 2.3, 1, "R", dpi, `Dist: ${fmtMoney(a?.distribuidor ?? 0)}`)
