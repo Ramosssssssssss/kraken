@@ -314,7 +314,7 @@ export default function ClientesPage() {
             <div className="grid gap-2">
               <Label htmlFor="api-url">API URL</Label>
               <Input
-                id="api-url"
+                id=" "
                 value={newApiUrl}
                 onChange={(e) => setNewApiUrl(e.target.value)}
                 placeholder="https://api.ejemplo.com"

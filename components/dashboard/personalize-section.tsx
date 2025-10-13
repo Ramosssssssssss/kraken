@@ -3,9 +3,8 @@
 import type React from "react"
 
 import { useState, useRef, useEffect } from "react"
-import { ImageIcon, Upload, Save, Loader2, CheckCircle2, XCircle } from "lucide-react"
+import { ImageIcon, Upload, Save, Loader2, CheckCircle2, XCircle, AlertCircle } from "lucide-react"
 import { useCompany } from "@/lib/company-context"
-import Image from "next/image"
 
 interface Toast {
   id: number
@@ -21,36 +20,48 @@ export default function PersonalizeSection() {
   const [backgroundFile, setBackgroundFile] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isFetching, setIsFetching] = useState(true)
+  const [connectionError, setConnectionError] = useState(false)
   const [toasts, setToasts] = useState<Toast[]>([])
 
   const logoInputRef = useRef<HTMLInputElement>(null)
   const backgroundInputRef = useRef<HTMLInputElement>(null)
 
-  // useEffect(() => {
-  //   if (!apiUrl || !companyData?.codigo) return
+  useEffect(() => {
+    if (!apiUrl || !companyData?.codigo) {
+      setIsFetching(false)
+      setConnectionError(true)
+      return
+    }
 
-  //   const fetchBranding = async () => {
-  //     try {
-  //       const response = await fetch(`${apiUrl}/get-branding/${companyData.codigo}`)
-  //       const data = await response.json()
+    const fetchBranding = async () => {
+      try {
+        const response = await fetch(`${apiUrl}/get-branding/${companyData.codigo}`)
 
-  //       if (data.ok && data.branding) {
-  //         if (data.branding.logo) {
-  //           setLogoPreview(data.branding.logo)
-  //         }
-  //         if (data.branding.background) {
-  //           setBackgroundPreview(data.branding.background)
-  //         }
-  //       }
-  //     } catch (error) {
-  //       console.error("Error fetching branding:", error)
-  //     } finally {
-  //       setIsFetching(false)
-  //     }
-  //   }
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
 
-  //   fetchBranding()
-  // }, [apiUrl, companyData])
+        const data = await response.json()
+
+        if (data.ok && data.branding) {
+          if (data.branding.logo) {
+            setLogoPreview(data.branding.logo)
+          }
+          if (data.branding.background) {
+            setBackgroundPreview(data.branding.background)
+          }
+        }
+        setConnectionError(false)
+      } catch (error) {
+        console.error("Error fetching branding:", error)
+        setConnectionError(true)
+      } finally {
+        setIsFetching(false)
+      }
+    }
+
+    fetchBranding()
+  }, [apiUrl, companyData])
 
   const showToast = (type: "success" | "error", message: string) => {
     const id = Date.now()
@@ -130,12 +141,14 @@ export default function PersonalizeSection() {
         showToast("success", "Branding actualizado exitosamente")
         setLogoFile(null)
         setBackgroundFile(null)
+        setConnectionError(false)
       } else {
         showToast("error", data.message || "Error al guardar")
       }
     } catch (error) {
       console.error("Error saving branding:", error)
       showToast("error", "Error de conexión al guardar")
+      setConnectionError(true)
     } finally {
       setIsLoading(false)
     }
@@ -173,6 +186,36 @@ export default function PersonalizeSection() {
         ))}
       </div>
 
+      {/* Connection Error Banner */}
+      {connectionError && (
+        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+            <div className="space-y-2">
+              <p className="text-sm text-yellow-300 font-medium">No se pudo conectar con el servidor backend</p>
+              <div className="text-xs text-yellow-300/80 space-y-1">
+                <p>Para que esta funcionalidad trabaje correctamente, necesitas:</p>
+                <ul className="list-disc list-inside space-y-1 ml-2">
+                  <li>
+                    Configurar la variable de entorno{" "}
+                    <code className="bg-black/30 px-1 py-0.5 rounded">NEXT_PUBLIC_API_URL</code> con la URL de tu API
+                  </li>
+                  <li>
+                    Configurar la variable de entorno{" "}
+                    <code className="bg-black/30 px-1 py-0.5 rounded">NEXT_PUBLIC_COMPANY_CODE</code> con el código de
+                    tu empresa
+                  </li>
+                  <li>Asegurarte de que tu servidor backend esté corriendo</li>
+                </ul>
+                <p className="mt-2">
+                  Puedes configurar las variables de entorno en la sección <strong>Vars</strong> del sidebar.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <h2 className="text-3xl font-bold text-white">Personalización del Login</h2>
 
       {/* Logo Section */}
@@ -188,12 +231,10 @@ export default function PersonalizeSection() {
             <label className="block text-sm font-medium text-gray-300">Vista Previa</label>
             <div className="relative w-full h-48 bg-black/40 border border-white/10 rounded-xl flex items-center justify-center overflow-hidden">
               {logoPreview ? (
-                <Image
+                <img
                   src={logoPreview || "/placeholder.svg"}
                   alt="Logo preview"
-                  width={200}
-                  height={200}
-                  className="object-contain max-h-full"
+                  className="object-contain max-h-full max-w-full"
                 />
               ) : (
                 <div className="text-center text-gray-500">
@@ -241,11 +282,10 @@ export default function PersonalizeSection() {
             <label className="block text-sm font-medium text-gray-300">Vista Previa</label>
             <div className="relative w-full h-48 bg-black/40 border border-white/10 rounded-xl overflow-hidden">
               {backgroundPreview ? (
-                <Image
+                <img
                   src={backgroundPreview || "/placeholder.svg"}
                   alt="Background preview"
-                  fill
-                  className="object-cover"
+                  className="w-full h-full object-cover"
                 />
               ) : (
                 <div className="flex items-center justify-center h-full text-center text-gray-500">

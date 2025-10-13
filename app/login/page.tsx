@@ -1,12 +1,12 @@
 "use client"
 
 import type React from "react"
-import { useMemo, useState, useEffect } from "react"
+import { useMemo, useState } from "react"
 import { Eye, EyeOff, User, Lock, Loader2 } from "lucide-react"
-import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useCompany } from "@/lib/company-context"
 import { parseModulesCSV } from "@/lib/parse-mods"
+
 function getTenantFromHost(hostname: string) {
   const parts = hostname.split(".")
   return parts.length >= 3 ? (parts[0] || "").toLowerCase() : null
@@ -21,10 +21,6 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
-  const [customLogo, setCustomLogo] = useState<string | null>(null)
-  const [customBackground, setCustomBackground] = useState<string | null>(null)
-  const [brandingLoaded, setBrandingLoaded] = useState(false)
-
   const { companyData, apiUrl: apiUrlFromCtx, isReady, setUserData } = useCompany()
 
   const derivedApiUrl = useMemo(() => {
@@ -33,39 +29,6 @@ export default function LoginPage() {
     const tenant = getTenantFromHost(window.location.hostname)
     return null
   }, [apiUrlFromCtx])
-
-  useEffect(() => {
-    const fetchBranding = async () => {
-      if (!companyData?.codigo || !derivedApiUrl) {
-        setBrandingLoaded(true)
-        return
-      }
-
-      // const brandingUrl = `${derivedApiUrl}/get-branding/${companyData.codigo}`
-
-      try {
-        // const response = await fetch(brandingUrl)
-        // const data = await response.json()
-
-        // if (data.ok && data.branding) {
-        //   if (data.branding.logo) {
-        //     setCustomLogo(data.branding.logo)
-        //   }
-        //   if (data.branding.background) {
-        //     setCustomBackground(data.branding.background)
-        //   }
-        // }
-      } catch (error) {
-        console.error("Error fetching branding:", error)
-      } finally {
-        setBrandingLoaded(true)
-      }
-    }
-
-    if (isReady) {
-      fetchBranding()
-    }
-  }, [companyData, derivedApiUrl, isReady])
 
   const particles = useMemo(
     () =>
@@ -78,92 +41,92 @@ export default function LoginPage() {
     [],
   )
 
-const MAX_RETRIES = 3
-const RETRY_DELAY_MS = 1000 // 1 segundo
+  const MAX_RETRIES = 3
+  const RETRY_DELAY_MS = 1000
 
-// Función para esperar entre reintentos
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+  const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
-// Fetch con reintentos
-const fetchWithRetry = async (url: string, options: RequestInit, retries = MAX_RETRIES): Promise<Response> => {
-  for (let i = 0; i < retries; i++) {
+  const fetchWithRetry = async (url: string, options: RequestInit, retries = MAX_RETRIES): Promise<Response> => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const response = await fetch(url, options)
+        if (!response.ok && response.status >= 500) {
+          throw new Error(`Error del servidor: ${response.status}`)
+        }
+        return response
+      } catch (error) {
+        if (i < retries - 1) {
+          console.warn(`Intento ${i + 1} fallido. Reintentando en ${RETRY_DELAY_MS}ms...`)
+          await delay(RETRY_DELAY_MS)
+        } else {
+          throw error
+        }
+      }
+    }
+    throw new Error("No se pudo completar la solicitud después de varios intentos.")
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+    setIsLoading(true)
+
+    const apiUrl = derivedApiUrl
+
+    if (!apiUrl) {
+      setError("No se pudo obtener la URL de la API para este subdominio.")
+      setIsLoading(false)
+      return
+    }
+
+    if (!email || !password) {
+      setError("Usuario y contraseña son requeridos")
+      setIsLoading(false)
+      return
+    }
+
     try {
-      const response = await fetch(url, options)
-      // Solo reintenta si hay error de red, no si el status es 401, 400, etc.
-      if (!response.ok && response.status >= 500) {
-        throw new Error(`Error del servidor: ${response.status}`)
-      }
-      return response
-    } catch (error) {
-      if (i < retries - 1) {
-        console.warn(`Intento ${i + 1} fallido. Reintentando en ${RETRY_DELAY_MS}ms...`)
-        await delay(RETRY_DELAY_MS)
+      const response = await fetchWithRetry(`${apiUrl}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user: email, password }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.message === "✅ Login exitoso") {
+        const modulosArr = parseModulesCSV(data.user?.MODULOS_KRKN)
+        const userDataToSave = {
+          ...data.user,
+          user: email,
+          password: password,
+          MODULOS_KRKN: data.user?.MODULOS_KRKN ?? null,
+          modulosKrknArr: modulosArr,
+        }
+        setUserData(userDataToSave)
+
+        router.replace("/dashboard")
       } else {
-        throw error // después de los reintentos, lanza el error
+        setError(data.message || "Credenciales inválidas")
       }
+    } catch (err) {
+      console.error("Login error:", err)
+      setError("Error de conexión. Intenta nuevamente.")
+    } finally {
+      setIsLoading(false)
     }
   }
-  throw new Error("No se pudo completar la solicitud después de varios intentos.")
-}
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault()
-  setError("")
-  setIsLoading(true)
-
-  const apiUrl = derivedApiUrl
-
-  if (!apiUrl) {
-    setError("No se pudo obtener la URL de la API para este subdominio.")
-    setIsLoading(false)
-    return
-  }
-
-  if (!email || !password) {
-    setError("Usuario y contraseña son requeridos")
-    setIsLoading(false)
-    return
-  }
-
-  try {
-    const response = await fetchWithRetry(`${apiUrl}/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user: email, password }),
-    })
-
-    const data = await response.json()
-
-    if (response.ok && data.message === "✅ Login exitoso") {
-      const modulosArr = parseModulesCSV(data.user?.MODULOS_KRKN)
-      const userDataToSave = {
-        ...data.user,
-        user: email,
-        password: password,
-        MODULOS_KRKN: data.user?.MODULOS_KRKN ?? null,
-        modulosKrknArr: modulosArr,
-      }
-      setUserData(userDataToSave)
-
-      router.replace("/dashboard")
-    } else {
-      setError(data.message || "Credenciales inválidas")
-    }
-  } catch (err) {
-    console.error("Login error:", err)
-    setError("Error de conexión. Intenta nuevamente.")
-  } finally {
-    setIsLoading(false)
-  }
-}
-
-  if (!isReady || !brandingLoaded) {
+  if (!isReady) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
       </div>
     )
   }
+
+  const customLogo = companyData?.branding?.logo
+  const customBackground = companyData?.branding?.background
 
   return (
     <>
@@ -187,22 +150,12 @@ const handleSubmit = async (e: React.FormEvent) => {
           </div>
 
           <div className="absolute inset-0 flex items-center justify-center">
-            {customBackground ? (
-              <img
-                src={customBackground || "/placeholder.svg"}
-                alt="Custom Background"
-                className="w-full h-full object-cover"
-                style={{ filter: "drop-shadow(0 0 30px rgba(43, 21, 85, 0.74))" }}
-              />
-            ) : (
-              <Image
-                src="/test.jpg"
-                alt="3D Octopus"
-                fill
-                className="object-cover"
-                style={{ filter: "drop-shadow(0 0 30px rgba(43, 21, 85, 0.74))" }}
-              />
-            )}
+            <img
+              src={customBackground || "/test.jpg"}
+              alt={customBackground ? "Custom Background" : "3D Octopus"}
+              className="w-full h-full object-cover"
+              style={{ filter: "drop-shadow(0 0 30px rgba(43, 21, 85, 0.74))" }}
+            />
           </div>
         </div>
 
@@ -218,15 +171,11 @@ const handleSubmit = async (e: React.FormEvent) => {
             <div className="w-full max-w-xs space-y-8">
               <div className="text-center space-y-4">
                 <div className="flex justify-center">
-                  {customLogo ? (
-                    <img
-                      src={customLogo || "/placeholder.svg"}
-                      alt="Company Logo"
-                      className="w-[100px] h-[100px] object-contain"
-                    />
-                  ) : (
-                    <Image src="/FYTTSA.png" alt="Kraken Logo" width={100} height={100} />
-                  )}
+                  <img
+                    src={customLogo || "/FYTTSA.png"}
+                    alt={customLogo ? "Company Logo" : "Kraken Logo"}
+                    className="w-[100px] h-[100px] object-contain"
+                  />
                 </div>
                 <p className="text-gray-500 text-3xl mt-2 font-bold">Inicia Sesión</p>
                 {companyData && <p className="text-gray-400 text-sm">{companyData.nombre}</p>}
@@ -296,13 +245,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                   )}
                 </button>
               </form>
-{/* FUNCION DE REESTABLECER CONTRASEÑA PROXIMA
-              <div className="text-center space-y-3">
-                <button className="text-gray-500 hover:text-gray-300 text-sm transition-colors">
-                  ¿Olvidaste tu contraseña?
-                </button>
-              </div>
- */}
+
               {(apiUrlFromCtx || derivedApiUrl) && (
                 <div className="text-center">
                   <p className="text-gray-600 text-xs">API: {apiUrlFromCtx || derivedApiUrl}</p>
@@ -313,7 +256,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 
           {/* Logo BS fijo abajo */}
           <div className="flex justify-center mt-auto">
-            <Image src="/testbs.png" alt="BS Logo" width={40} height={20} className="object-contain" />
+            <img src="/testbs.png" alt="BS Logo" className="w-[40px] h-[20px] object-contain" />
           </div>
         </div>
       </div>

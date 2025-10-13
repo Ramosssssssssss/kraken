@@ -1,8 +1,15 @@
-export function parseModulesCSV(csv: unknown): number[] {
-  if (Array.isArray(csv)) return csv.map((n) => Number(n)).filter(Number.isFinite)
-  if (typeof csv !== "string") return []
-  return csv
+/**
+ * Parsea una cadena CSV de módulos en un array
+ * @param modulesCSV - Cadena CSV de módulos (ej: "MOD1,MOD2,MOD3")
+ * @returns Array de módulos o array vacío si no hay módulos
+ */
+export function parseModulesCSV(modulesCSV: string | null | undefined): string[] {
+  if (!modulesCSV || typeof modulesCSV !== "string") {
+    return []
+  }
+
+  return modulesCSV
     .split(",")
-    .map((s) => Number(s.trim()))
-    .filter((n) => Number.isFinite(n))
+    .map((mod) => mod.trim())
+    .filter((mod) => mod.length > 0)
 }

@@ -1,8 +1,6 @@
-// lib/company-context.tsx
 "use client"
 
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react"
-//COMENTARIOS PARA BRANDON
 
 interface Branding {
   logo: string | null
@@ -24,8 +22,8 @@ interface UserData {
   password: string
   nombre?: string
   email?: string
-    MODULOS_KRKN?: string | number[] | null 
-  modulosKrknArr?: number[] 
+  MODULOS_KRKN?: string | number[] | null
+  modulosKrknArr?: number[]
   [key: string]: any
 }
 
@@ -112,7 +110,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         try {
           const parsed = JSON.parse(ls) as CompanyData
           if (parsed && parsed.apiUrl && parsed.codigo) {
-            setCompanyDataState(parsed) // incluye branding si ya estaba en LS
+            setCompanyDataState(parsed)
             done = true
           }
         } catch {}
@@ -156,11 +154,9 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     })()
   }, [])
 
-  // Efecto: cuando tengamos apiUrl+codigo y NO haya branding cargado, tráelo con tu endpoint existente:
   useEffect(() => {
     if (!isReady) return
     if (!companyData?.apiUrl || !companyData?.codigo) return
-    // si ya hay branding, no vuelvas a pedir
     if (
       companyData.branding &&
       (companyData.branding.logo !== undefined || companyData.branding.background !== undefined)
@@ -176,10 +172,23 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         const url = `${companyData.apiUrl}/get-branding/${companyData.codigo}?_=${Date.now()}`
         const res = await fetch(url, { cache: "no-store", signal: controller.signal })
         const json = await res.json().catch(() => ({}) as any)
-   
+
+        if (json.ok && json.branding) {
+          const updated: CompanyData = {
+            ...companyData,
+            branding: {
+              logo: json.branding.logo || null,
+              background: json.branding.background || null,
+              fechaModificacion: json.branding.fechaModificacion,
+            },
+          }
+          setCompanyData(updated)
+        } else {
+          const updated: CompanyData = { ...companyData, branding: null }
+          setCompanyData(updated)
+        }
       } catch (e) {
         if (!controller.signal.aborted) {
-          // si falla, al menos deja branding en null para no entrar en bucle
           const updated: CompanyData = { ...companyData, branding: null }
           setCompanyData(updated)
         }
@@ -190,7 +199,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
 
     loadBranding()
     return () => controller.abort()
-  }, [isReady, companyData]) 
+  }, [isReady, companyData])
 
   return (
     <CompanyContext.Provider
