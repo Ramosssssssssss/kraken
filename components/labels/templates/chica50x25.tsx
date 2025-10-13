@@ -7,7 +7,8 @@ import { escapeHTML, money } from "@/lib/labels/utils"
 const toDots = (mm: number, dpi: Dpi) => Math.round((mm / 25.4) * dpi)
 const safe = (s: string) => (s || "").replace(/[\^~\\]/g, " ").replace(/\s+/g, " ").trim()
 
-type BarcodeKind = "none" | "code128" | "qr"
+// 🔻 Solo code128 (sin QR)
+type BarcodeKind = "none" | "code128"
 
 const zplStart = (wmm: number, hmm: number, dpi: Dpi, opts?: { darkness?: number }) => {
   const md = Math.max(-30, Math.min(30, opts?.darkness ?? 10))
@@ -46,12 +47,8 @@ const code128 = (xmm: number, ymm: number, heightMm: number, moduleMm: number, d
 ^FD${safe(data)}^FS`
 }
 
-const qrBox = (xmm: number, ymm: number, mag: number, data: string, dpi: Dpi) => {
-  const x = toDots(xmm, dpi)
-  const y = toDots(ymm, dpi)
-  const m = Math.max(1, Math.min(10, Math.round(mag)))
-  return `^FO${x},${y}^BQN,2,${m}^FDLA,${safe(data)}^FS`
-}
+// ❌ Eliminado: qrBox
+// const qrBox = ...
 
 const fmtMoney = (v: unknown) => Number.isFinite(Number(v)) ? money(Number(v)) : money(0)
 
@@ -88,23 +85,22 @@ export const Chica50x25: LabelTemplate = {
       <div class="pl">Distribuidor: ${escapeHTML(money(a.distribuidor))}</div>
     </div></div></div>`,
 
-  // === NUEVO: ZPL equivalente ===
-  // Puedes pasar opts: { darkness?: number, barcode?: { kind: "none"|"code128"|"qr", value?: string } }
-renderZPL: (a: any, dpi: Dpi, opts?: { darkness?: number, barcode?: { kind: BarcodeKind, value?: string } }) => {
+  // === ZPL (sin QR, solo code128/none) ===
+  // Puedes pasar opts: { darkness?: number, barcode?: { kind: "none"|"code128", value?: string } }
+renderZPL: (a: any, dpi: Dpi, opts?: { darkness?: number, barcode?: { kind: "none"|"code128", value?: string } }) => {
   // Dimensiones físicas (mm)
   const W = 49.9, H = 25.4
-  const padX = 2.0     // margen lateral (mantener)
-  const padY = 0.0     // 🔸 sin margen superior
-  const colGap = 3.2   // columnas más juntas
+  const padX = 2.0
+  const padY = 0.0
+  const colGap = 3.2
 
   const start = zplStart(W, H, dpi, { darkness: opts?.darkness })
 
-  // --- Descripción (2 líneas, arriba sin padding)
+  // --- Descripción (2 líneas arriba)
   const desc = textBox(padX, padY, W - padX * 2, 2.8, 2, "L", dpi, a?.nombre ?? "", 0.55)
 
-  // --- Detalle (grid)
-  const detailTop = padY + 5.8 // 🔸 antes 6.8 → más arriba, más compacto
-
+  // --- Detalle
+  const detailTop = padY + 5.8
   const leftX = padX
   const leftW = (W - padX * 2 - colGap) / 2
   const rowH = 3.0
@@ -118,26 +114,25 @@ renderZPL: (a: any, dpi: Dpi, opts?: { darkness?: number, barcode?: { kind: Barc
   const rightX = padX + leftW + colGap
   const rightW = W - rightX - padX
 
-  const fecha  = textBox(rightX, detailTop + rowH * 0, rightW, 2.2, 1, "R", dpi, a?.fecha ?? "")
-  const price  = textBox(rightX, detailTop + rowH * 1.05, rightW, 6.0, 1, "R", dpi, fmtMoney(a?.precio ?? 0))
+  const fecha = textBox(rightX, detailTop + rowH * 0, rightW, 2.2, 1, "R", dpi, a?.fecha ?? "")
 
-  const distY = detailTop + rowH * 3.0
+  // 🔸 Aumentamos tamaño del precio (antes 6.0mm → ahora 8.0mm)
+  const price = textBox(rightX, detailTop + rowH * 0.9, rightW, 8.0, 1, "R", dpi, fmtMoney(a?.precio ?? 0))
+
+  // Distribuidor un poco más abajo para dejar espacio al precio grande
+  const distY = detailTop + rowH * 3.4
   const distLabelW = 16.0
   const distLabel = textBox(rightX, distY, distLabelW, 2.0, 1, "L", dpi, "Distribuidor:")
   const distValue = textBox(rightX + distLabelW, distY, rightW - distLabelW, 2.0, 1, "R", dpi, fmtMoney(a?.distribuidor ?? 0))
 
-  // --- Código de barras (también sin margen top)
+  // --- Código de barras (solo code128)
   let barcode = ""
   const kind = opts?.barcode?.kind ?? "none"
   const value = (opts?.barcode?.value ?? a?.codigo ?? a?.sku ?? "").toString()
   if (kind === "code128" && value) {
     const bX = padX
-    const bY = 2.0 // 🔸 más pegado al borde superior
+    const bY = 1.5 // ligeramente más arriba
     barcode = code128(bX, bY, 6.5, 0.28, dpi, value)
-  } else if (kind === "qr" && value) {
-    const qX = padX
-    const qY = 1.8
-    barcode = qrBox(qX, qY, 2.8, value, dpi)
   }
 
   return `${start}
