@@ -94,11 +94,7 @@ export const Blanca40x22: LabelTemplate = {
       <div class="pl">Dist: ${escapeHTML(money(a.distribuidor))}</div>
     </div></div></div>`,
 
-  renderZPL: (
-  a: any,
-  dpi: Dpi,
-  opts?: { darkness?: number, barcode?: { kind: BarcodeKind, value?: string } }
-) => {
+  renderZPL: (a: any, dpi: Dpi, opts?: { darkness?: number }) => {
   const W = 39.9, H = 22.8
   const padX = 2.0
   const padY = 2.0
@@ -106,73 +102,40 @@ export const Blanca40x22: LabelTemplate = {
 
   const start = zplStart(W, H, dpi, { darkness: opts?.darkness })
 
-  // ===== 1) Descripción (2 líneas, ancho completo)
-  const DESC_H = 2.8
-  const DESC_GAP = 0.6
-  const desc = textBox(padX, padY, W - padX * 2, DESC_H, 2, "L", dpi, a?.nombre ?? "", 0.6)
+  // Descripción (2 líneas a todo lo ancho)
+  const desc = textBox(padX, padY, W - padX * 2, 2.8, 2, "L", dpi, a?.nombre ?? "", 0.6)
 
-  // ===== 2) (Opcional) Código de barras inmediatamente debajo de la descripción
-  const kind: BarcodeKind = opts?.barcode?.kind ?? "none"
-  const value = (opts?.barcode?.value ?? a?.codigo ?? a?.sku ?? "").toString()
-
-  let barcode = ""
-  let contentY = padY + DESC_H + DESC_GAP // siguiente bloque arranca después de la descripción
-
-  if (kind === "code128" && value) {
-    const BAR_H = 9.0  // << alto de barras más grande (antes 7.0/18px)
-    const BAR_M = 0.8  // margen inferior post-barcode
-    const bX = padX
-    const bY = contentY
-    barcode = code128(bX, bY, BAR_H, 0.30, dpi, value) // CODE128 explícito
-    contentY = bY + BAR_H + BAR_M
-  } else if (kind === "qr" && value) {
-    // Si fueran QR, deja el área más compacta y sigue el flujo
-    const QR_SIDE = 3.0
-    const qX = padX
-    const qY = contentY
-    barcode = qrBox(qX, qY, QR_SIDE, value, dpi)
-    contentY = qY + QR_SIDE + 0.6
-  }
-
-  // ===== 3) Columnas: izquierda (4 filas) y derecha (fecha + precio + dist)
+  // Columna izquierda (4 filas)
   const leftX = padX
   const leftW = (W - padX * 2 - colGap) / 2
   const rowH  = 3.4
+  const leftY0 = padY + 6.8
 
-  // La columna ahora arranca SIEMPRE debajo del bloque anterior (desc + barcode si hubo)
-  const leftY0 = contentY
-
-  const invMax = textBox(
-    leftX, leftY0 + rowH * 0, leftW, 2.3, 1, "L", dpi,
-    `G - ${Number.isFinite(a?.inventarioMaximo) ? a.inventarioMaximo : 0}`
-  )
+  const invMax = textBox(leftX, leftY0 + rowH * 0, leftW, 2.3, 1, "L", dpi,
+    `G - ${Number.isFinite(a?.inventarioMaximo) ? a.inventarioMaximo : 0}`)
   const estatus = textBox(leftX, leftY0 + rowH * 1, leftW, 2.3, 1, "L", dpi, a?.estatus ?? "-")
   const unidad  = textBox(leftX, leftY0 + rowH * 2, leftW, 2.3, 1, "L", dpi, a?.unidad ?? "")
   const codigo  = textBox(leftX, leftY0 + rowH * 3, leftW, 2.3, 1, "L", dpi, a?.codigo ?? "")
 
-  // Columna derecha
+  // Columna derecha (fecha + precio + distribuidor)
   const rightX = padX + leftW + colGap
   const rightW = W - rightX - padX
 
-  // Fecha alineada con la primera fila izquierda
-  const fecha = textBox(rightX, leftY0 + rowH * 0 + 0.1, rightW, 2.4, 1, "R", dpi, a?.fecha ?? "")
+  const fecha = textBox(rightX, leftY0, rightW, 2.4, 1, "R", dpi, a?.fecha ?? "")
 
-  // Precio: debajo de fecha con altura amplia, NO se pisa con dist
-  const PRICE_H = 5.8            // altura de caja para precio (ligeramente más que antes)
-  const PRICE_GAP = 0.6          // margen inferior antes de "Dist:"
-  const priceY = leftY0 + rowH * 1 + 0.3
-  const price  = textBox(rightX, priceY, rightW, PRICE_H, 1, "R", dpi, fmtMoney(a?.precio ?? 0))
+  const priceY = leftY0 + rowH * 1.15
+  const priceH = 5.0
+  const price = textBox(rightX, priceY, rightW, priceH, 1, "R", dpi, fmtMoney(a?.precio ?? 0))
 
-  // Dist: siempre debajo del precio con margen
-  const distY = priceY + PRICE_H + PRICE_GAP
-  const distLabelW = 9.0
-  const distH = 2.2
+  const gap = 0.4
+  const distY = priceY + priceH + gap
+  const distLabelW = 10.0
+  const distH = 2.0
   const distLabel = textBox(rightX, distY, distLabelW, distH, 1, "L", dpi, "Dist:")
   const distValue = textBox(rightX + distLabelW, distY, rightW - distLabelW, distH, 1, "R", dpi, fmtMoney(a?.distribuidor ?? 0))
 
   return `${start}
 ${desc}
-${barcode}
 ${invMax}
 ${estatus}
 ${unidad}
@@ -183,7 +146,6 @@ ${distLabel}
 ${distValue}
 ${zplEnd}`
 },
-
 
   preview: (a) => (
     <div className="w-full h-full grid"
