@@ -123,7 +123,7 @@ renderZPL: (a: any, dpi: Dpi, opts?: { darkness?: number }) => {
   const aDist   = gridArea(6,2,7,4)
 
   // === Textos ===
-  const desc = textBox(aDesc.x, aDesc.y, aDesc.w, 2.8, 2, "L", dpi, a?.nombre ?? "", 0.6)
+  const desc = textBox(aDesc.x, aDesc.y, aDesc.w, 2.3, 2, "L", dpi, a?.nombre ?? "", 0.6)
 
   const invMax  = textBox(aInv.x, aInv.y, aInv.w, 2.3, 1, "L", dpi, `G - ${Number.isFinite(a?.inventarioMaximo) ? a.inventarioMaximo : 0}`)
   const estatus = textBox(aEst.x, aEst.y, aEst.w, 2.3, 1, "L", dpi, a?.estatus ?? "-")
@@ -135,7 +135,7 @@ renderZPL: (a: any, dpi: Dpi, opts?: { darkness?: number }) => {
   const price = textBox(aPrecio.x, aPrecio.y + 0.3, aPrecio.w, 5.6, 1, "R", dpi, fmtMoney(a?.precio ?? 0))
 
   // “Dist” una línea aparte, con más separación (subido un poco)
-  const dist = textBox(aDist.x, aDist.y + 0.8, aDist.w, 2.4, 1, "R", dpi, `Dist: ${fmtMoney(a?.distribuidor ?? 0)}`)
+  const dist = textBox(aDist.x, aDist.y + 0.8, aDist.w, 2.3, 1, "R", dpi, `Dist: ${fmtMoney(a?.distribuidor ?? 0)}`)
 
   return `${start}
 ${desc}
