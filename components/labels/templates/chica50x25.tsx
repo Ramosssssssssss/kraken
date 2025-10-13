@@ -93,56 +93,50 @@ export const Chica50x25: LabelTemplate = {
 renderZPL: (a: any, dpi: Dpi, opts?: { darkness?: number, barcode?: { kind: BarcodeKind, value?: string } }) => {
   // Dimensiones físicas (mm)
   const W = 49.9, H = 25.4
-  const padX = 2.0
-  const padY = 1.8
-  const colGap = 3.2 // ↓ antes 6.5 → más compacto pero aún con aire lateral
+  const padX = 2.0     // margen lateral (mantener)
+  const padY = 0.0     // 🔸 sin margen superior
+  const colGap = 3.2   // columnas más juntas
 
   const start = zplStart(W, H, dpi, { darkness: opts?.darkness })
 
-  // --- Descripción (2 líneas, arriba a todo lo ancho)
-  // font ≈ 2.8 mm; interlineado corto; ancho = W - 2*pad
+  // --- Descripción (2 líneas, arriba sin padding)
   const desc = textBox(padX, padY, W - padX * 2, 2.8, 2, "L", dpi, a?.nombre ?? "", 0.55)
 
-  // --- Eje columnas y filas (tipo grid)
-  const detailTop = padY + 6.8 // ↓ antes 7.2
+  // --- Detalle (grid)
+  const detailTop = padY + 5.8 // 🔸 antes 6.8 → más arriba, más compacto
 
-  // Columna izquierda (4 filas)
   const leftX = padX
   const leftW = (W - padX * 2 - colGap) / 2
-  const rowH = 3.1 // ↓ antes 3.6 (reduce separación vertical)
-  
-  const invMax = textBox(leftX, detailTop + rowH * 0, leftW, 2.3, 1, "L", dpi,
-    `G - ${Number.isFinite(a?.inventarioMaximo) ? a.inventarioMaximo : 0}`)
-  const estatus = textBox(leftX, detailTop + rowH * 1, leftW, 2.3, 1, "L", dpi, a?.estatus ?? "-")
-  const unidad  = textBox(leftX, detailTop + rowH * 2, leftW, 2.3, 1, "L", dpi, a?.unidad ?? "")
-  const codigo  = textBox(leftX, detailTop + rowH * 3, leftW, 2.3, 1, "L", dpi, a?.codigo ?? "")
+  const rowH = 3.0
 
-  // Columna derecha
+  const invMax = textBox(leftX, detailTop + rowH * 0, leftW, 2.2, 1, "L", dpi,
+    `G - ${Number.isFinite(a?.inventarioMaximo) ? a.inventarioMaximo : 0}`)
+  const estatus = textBox(leftX, detailTop + rowH * 1, leftW, 2.2, 1, "L", dpi, a?.estatus ?? "-")
+  const unidad  = textBox(leftX, detailTop + rowH * 2, leftW, 2.2, 1, "L", dpi, a?.unidad ?? "")
+  const codigo  = textBox(leftX, detailTop + rowH * 3, leftW, 2.2, 1, "L", dpi, a?.codigo ?? "")
+
   const rightX = padX + leftW + colGap
   const rightW = W - rightX - padX
 
-  const fecha  = textBox(rightX, detailTop + rowH * 0, rightW, 2.3, 1, "R", dpi, a?.fecha ?? "")
+  const fecha  = textBox(rightX, detailTop + rowH * 0, rightW, 2.2, 1, "R", dpi, a?.fecha ?? "")
+  const price  = textBox(rightX, detailTop + rowH * 1.05, rightW, 6.0, 1, "R", dpi, fmtMoney(a?.precio ?? 0))
 
-  // Precio: caja alta y tipografía grande
-  const price = textBox(rightX, detailTop + rowH * 1.05, rightW, 6.0, 1, "R", dpi, fmtMoney(a?.precio ?? 0))
-
-  // Distribuidor
   const distY = detailTop + rowH * 3.0
-  const distLabelW = 16.0 // ↓ antes 17.0
+  const distLabelW = 16.0
   const distLabel = textBox(rightX, distY, distLabelW, 2.0, 1, "L", dpi, "Distribuidor:")
   const distValue = textBox(rightX + distLabelW, distY, rightW - distLabelW, 2.0, 1, "R", dpi, fmtMoney(a?.distribuidor ?? 0))
 
-  // --- Código de barras
+  // --- Código de barras (también sin margen top)
   let barcode = ""
   const kind = opts?.barcode?.kind ?? "none"
   const value = (opts?.barcode?.value ?? a?.codigo ?? a?.sku ?? "").toString()
   if (kind === "code128" && value) {
     const bX = padX
-    const bY = padY + 4.0 // ↓ antes 4.2
-    barcode = code128(bX, bY, 6.5, 0.28, dpi, value) // ↓ más compacto
+    const bY = 2.0 // 🔸 más pegado al borde superior
+    barcode = code128(bX, bY, 6.5, 0.28, dpi, value)
   } else if (kind === "qr" && value) {
     const qX = padX
-    const qY = padY + 3.5
+    const qY = 1.8
     barcode = qrBox(qX, qY, 2.8, value, dpi)
   }
 
@@ -158,7 +152,8 @@ ${price}
 ${distLabel}
 ${distValue}
 ${zplEnd}`
-},
+}
+,
 
   preview: (a) => (
     <div className="w-full h-full grid bg-[#d2c600]"
