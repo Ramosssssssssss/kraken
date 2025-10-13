@@ -130,9 +130,10 @@ export const Blanca40x22: LabelTemplate = {
   const gap = 0.4
   const distY = priceY + priceH + gap
   const distLabelW = 10.0
-  const distH = 2.0
-  const distLabel = textBox(rightX, distY, distLabelW, distH, 1, "L", dpi, "Dist:")
-  const distValue = textBox(rightX + distLabelW, distY, rightW - distLabelW, distH, 1, "R", dpi, fmtMoney(a?.distribuidor ?? 0))
+const distH = 2.4 // antes 2.0
+const distLabel = textBox(rightX, distY, distLabelW, distH, 1, "L", dpi, "Dist:")
+const distValue = textBox(rightX + distLabelW, distY - 0.1, rightW - distLabelW, distH, 1, "R", dpi, fmtMoney(a?.distribuidor ?? 0))
+
 
   return `${start}
 ${desc}
