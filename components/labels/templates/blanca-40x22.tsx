@@ -100,8 +100,8 @@ export const Blanca40x22: LabelTemplate = {
   const padX = 2.0, padY = 2.0
 
   // gap del grid (aprox de "3px 8px" a mm)
-  const rowGap = 0.8
-  const colGap = 2.1
+  const rowGap = 0.4
+  const colGap = 1.2
 
   // 3 columnas iguales
   const colW = (W - padX * 2 - colGap * 2) / 3
