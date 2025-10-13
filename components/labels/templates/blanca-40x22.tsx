@@ -94,65 +94,48 @@ export const Blanca40x22: LabelTemplate = {
       <div class="pl">Dist: ${escapeHTML(money(a.distribuidor))}</div>
     </div></div></div>`,
 
- renderZPL: (a: any, dpi: Dpi, opts?: { darkness?: number }) => {
-  // === Dimensiones iguales al HTML ===
-  const W = 39.9, H = 23.8   // match con renderHTML
+renderZPL: (a: any, dpi: Dpi, opts?: { darkness?: number }) => {
+  const W = 39.9, H = 23.8
   const padX = 2.0, padY = 2.0
-
-  // gap del grid (aprox de "3px 8px" a mm)
-  const rowGap = 0.4
-  const colGap = 1.2
-
-  // 3 columnas iguales
+  const colGap = 2.1
+  const rowGap = 0.8
   const colW = (W - padX * 2 - colGap * 2) / 3
-
-  // 6 filas: ajustadas para que sumen con gaps y padding = H
-  // [desc, desc, fila3, fila4, fila5, fila6]
-  const rows = [2.8, 2.8, 2.3, 2.9, 2.6, 2.4] // total 15.8
-  // check: pad(4.0) + rows(15.8) + rowGap*5(4.0) = 23.8 ✔
+  const rows = [2.8, 2.8, 2.3, 2.9, 2.6, 2.4] // 6 filas
 
   const start = zplStart(W, H, dpi, { darkness: opts?.darkness })
 
-  // Helper para “grid-area: r1/c1/r2/c2” (1-based, end exclusivo)
-  const gridArea = (r1: number, c1: number, r2: number, c2: number) => {
+  const gridArea = (r1:number,c1:number,r2:number,c2:number)=>{
     const x = padX + (c1 - 1) * (colW + colGap)
-    const y = padY + rows.slice(0, r1 - 1).reduce((s, h) => s + h, 0) + rowGap * (r1 - 1)
+    const y = padY + rows.slice(0, r1 - 1).reduce((s,h)=>s+h,0) + rowGap * (r1 - 1)
     const w = (c2 - c1) * colW + (c2 - c1 - 1) * colGap
-    const h = rows.slice(r1 - 1, r2 - 1).reduce((s, hh) => s + hh, 0) + rowGap * (r2 - r1 - 0)
+    const h = rows.slice(r1 - 1, r2 - 1).reduce((s,hh)=>s+hh,0) + rowGap * (r2 - r1)
     return { x, y, w, h }
   }
 
-  // === Áreas (mapeadas 1:1 al HTML) ===
-  const aDesc   = gridArea(1, 1, 3, 4) // rows 1-2, cols 1-3
-  const aInv    = gridArea(3, 1, 4, 2) // row 3, col 1
-  const aEst    = gridArea(4, 1, 5, 2) // row 4, col 1
-  const aUni    = gridArea(5, 1, 6, 2) // row 5, col 1
-  const aCod    = gridArea(6, 1, 7, 2) // row 6, col 1
+  // Áreas del grid (mismo orden que HTML)
+  const aDesc   = gridArea(1,1,3,4)
+  const aInv    = gridArea(3,1,4,2)
+  const aEst    = gridArea(4,1,5,2)
+  const aUni    = gridArea(5,1,6,2)
+  const aCod    = gridArea(6,1,7,2)
+  const aFecha  = gridArea(3,2,4,4)
+  const aPrecio = gridArea(4,2,6,4)
+  const aDist   = gridArea(6,2,7,4)
 
-  const aFecha  = gridArea(3, 2, 4, 4) // row 3, cols 2-3
-  const aPrecio = gridArea(4, 2, 6, 4) // rows 4-5, cols 2-3 (span 2 filas)
-  const aDist   = gridArea(6, 2, 7, 4) // row 6, cols 2-3
-
-  // === Cajas de texto ===
-  // Descripción: 2 líneas, ocupa todo el ancho (como HTML)
+  // === Textos ===
   const desc = textBox(aDesc.x, aDesc.y, aDesc.w, 2.8, 2, "L", dpi, a?.nombre ?? "", 0.6)
 
-  // Columna izquierda (1 línea cada una)
-  const invMax  = textBox(aInv.x,   aInv.y,   aInv.w, 2.3, 1, "L", dpi, `G - ${Number.isFinite(a?.inventarioMaximo) ? a.inventarioMaximo : 0}`)
-  const estatus = textBox(aEst.x,   aEst.y,   aEst.w, 2.3, 1, "L", dpi, a?.estatus ?? "-")
-  const unidad  = textBox(aUni.x,   aUni.y,   aUni.w, 2.3, 1, "L", dpi, a?.unidad ?? "")
-  const codigo  = textBox(aCod.x,   aCod.y,   aCod.w, 2.3, 1, "L", dpi, a?.codigo ?? "")
-
-  // Fecha (derecha)
+  const invMax  = textBox(aInv.x, aInv.y, aInv.w, 2.3, 1, "L", dpi, `G - ${Number.isFinite(a?.inventarioMaximo) ? a.inventarioMaximo : 0}`)
+  const estatus = textBox(aEst.x, aEst.y, aEst.w, 2.3, 1, "L", dpi, a?.estatus ?? "-")
+  const unidad  = textBox(aUni.x, aUni.y, aUni.w, 2.3, 1, "L", dpi, a?.unidad ?? "")
+  const codigo  = textBox(aCod.x, aCod.y, aCod.w, 2.3, 1, "L", dpi, a?.codigo ?? "")
   const fecha   = textBox(aFecha.x, aFecha.y, aFecha.w, 2.3, 1, "R", dpi, a?.fecha ?? "")
 
-  // Precio: 1 línea grande, ocupa el alto combinado de filas 4–5 (no se encima)
-  // Usa altura ~5.4–5.5mm derivada de aPrecio.h
-  const price   = textBox(aPrecio.x, aPrecio.y, aPrecio.w, Math.min(5.6, aPrecio.h), 1, "R", dpi, fmtMoney(a?.precio ?? 0))
+  // Precio grande (altura ajustada a 5.6 mm para dejar margen)
+  const price = textBox(aPrecio.x, aPrecio.y + 0.3, aPrecio.w, 5.6, 1, "R", dpi, fmtMoney(a?.precio ?? 0))
 
-  // Dist: para evitar cualquier encimado, lo ponemos en **una sola caja** derecha: "Dist: $..."
-  // (Así no hay label/valor compitiendo por la misma línea.)
-  const dist    = textBox(aDist.x,  aDist.y,  aDist.w, 2.4, 1, "R", dpi, `Dist: ${fmtMoney(a?.distribuidor ?? 0)}`)
+  // “Dist” una línea aparte, con más separación (subido un poco)
+  const dist = textBox(aDist.x, aDist.y + 0.8, aDist.w, 2.4, 1, "R", dpi, `Dist: ${fmtMoney(a?.distribuidor ?? 0)}`)
 
   return `${start}
 ${desc}
@@ -165,7 +148,6 @@ ${price}
 ${dist}
 ${zplEnd}`
 },
-
 
   preview: (a) => (
     <div className="w-full h-full grid"
