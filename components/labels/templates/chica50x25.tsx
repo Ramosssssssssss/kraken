@@ -98,9 +98,12 @@ export const Chica50x25: LabelTemplate = {
     const rightW = W - rightX - padX
 
     const fecha  = textBox(rightX, detailTop + rowH * 0, rightW, 2.2, 1, "R", dpi, a?.fecha ?? "")
-    const price  = textBox(rightX, detailTop + rowH * 1.05, rightW, 6.0, 1, "R", dpi, fmtMoney(a?.precio ?? 0))
+    // Precio: más grande y un poco más abajo
+const price = textBox(rightX, detailTop + rowH * 1.15, rightW, 7.6, 1, "R", dpi, fmtMoney(a?.precio ?? 0))
 
-    const distY = detailTop + rowH * 3.0
+// Distribuidor: más abajo para dar aire al precio
+const distY = detailTop + rowH * 3.45
+
     const distLabelW = 16.0
     const distLabel = textBox(rightX, distY, distLabelW, 2.0, 1, "L", dpi, "Distribuidor:")
     const distValue = textBox(rightX + distLabelW, distY, rightW - distLabelW, 2.0, 1, "R", dpi, fmtMoney(a?.distribuidor ?? 0))
