@@ -174,17 +174,16 @@ export default function LoginPage() {
                   <img
                     src={customLogo || "/FYTTSA.png"}
                     alt={customLogo ? "Company Logo" : "Kraken Logo"}
-                    className="w-[100px] h-[100px] object-contain"
+                    className="w-[200px] h-[200px] object-contain"
                   />
                 </div>
                 <p className="text-gray-500 text-3xl mt-2 font-bold">Inicia Sesión</p>
-                {companyData && <p className="text-gray-400 text-sm">{companyData.nombre}</p>}
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
                   <label htmlFor="email" className="text-gray-300 text-sm font-medium">
-                    Usuario
+                    Usuario:
                   </label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
@@ -203,7 +202,7 @@ export default function LoginPage() {
 
                 <div className="space-y-2">
                   <label htmlFor="password" className="text-gray-300 text-sm font-medium">
-                    Contraseña
+                    Contraseña:
                   </label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />

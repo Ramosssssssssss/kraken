@@ -1,353 +1,145 @@
 "use client"
 
-import type React from "react"
+import { useState } from "react"
+import { Palette, Users, ArrowRight, Sparkles } from "lucide-react"
+import UploadAvatares from "./upload-avatares"
+import BrandingConfig from "./branding-config"
+type Section = "menu" | "branding" | "avatares"
 
-import { useState, useRef, useEffect } from "react"
-import { ImageIcon, Upload, Save, Loader2, CheckCircle2, XCircle, AlertCircle } from "lucide-react"
-import { useCompany } from "@/lib/company-context"
+export default function PersonalizePage() {
+  const [activeSection, setActiveSection] = useState<Section>("menu")
 
-interface Toast {
-  id: number
-  type: "success" | "error"
-  message: string
-}
-
-export default function PersonalizeSection() {
-  const { companyData, apiUrl } = useCompany()
-  const [logoPreview, setLogoPreview] = useState<string | null>(null)
-  const [backgroundPreview, setBackgroundPreview] = useState<string | null>(null)
-  const [logoFile, setLogoFile] = useState<File | null>(null)
-  const [backgroundFile, setBackgroundFile] = useState<File | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [isFetching, setIsFetching] = useState(true)
-  const [connectionError, setConnectionError] = useState(false)
-  const [toasts, setToasts] = useState<Toast[]>([])
-
-  const logoInputRef = useRef<HTMLInputElement>(null)
-  const backgroundInputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    if (!apiUrl || !companyData?.codigo) {
-      setIsFetching(false)
-      setConnectionError(true)
-      return
-    }
-
-    const fetchBranding = async () => {
-      try {
-        const response = await fetch(`${apiUrl}/get-branding/${companyData.codigo}`)
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-
-        const data = await response.json()
-
-        if (data.ok && data.branding) {
-          if (data.branding.logo) {
-            setLogoPreview(data.branding.logo)
-          }
-          if (data.branding.background) {
-            setBackgroundPreview(data.branding.background)
-          }
-        }
-        setConnectionError(false)
-      } catch (error) {
-        console.error("Error fetching branding:", error)
-        setConnectionError(true)
-      } finally {
-        setIsFetching(false)
-      }
-    }
-
-    fetchBranding()
-  }, [apiUrl, companyData])
-
-  const showToast = (type: "success" | "error", message: string) => {
-    const id = Date.now()
-    setToasts((prev) => [...prev, { id, type, message }])
-    setTimeout(
-      () => {
-        setToasts((prev) => prev.filter((t) => t.id !== id))
-      },
-      type === "error" ? 1000 : 3000,
+  if (activeSection === "branding") {
+    return (
+      <div className="min-h-screen bg-black p-6">
+        <div className="max-w-7xl mx-auto">
+          <button
+            onClick={() => setActiveSection("menu")}
+            className="mb-6 text-white/60 hover:text-white transition-colors flex items-center gap-2 text-sm"
+          >
+            ← Volver al menú
+          </button>
+          <BrandingConfig />
+        </div>
+      </div>
     )
   }
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: "logo" | "background") => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    // Validate file type
-    if (!file.type.startsWith("image/")) {
-      showToast("error", "Por favor selecciona una imagen válida")
-      return
-    }
-
-    // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      showToast("error", "La imagen no debe superar 10MB")
-      return
-    }
-
-    const reader = new FileReader()
-    reader.onload = () => {
-      const preview = reader.result as string
-
-      if (type === "logo") {
-        setLogoFile(file)
-        setLogoPreview(preview)
-      } else {
-        setBackgroundFile(file)
-        setBackgroundPreview(preview)
-      }
-    }
-    reader.readAsDataURL(file)
-  }
-
-  const handleSave = async () => {
-    if (!apiUrl || !companyData?.codigo) {
-      showToast("error", "No se pudo obtener la información de la empresa")
-      return
-    }
-
-    if (!logoFile && !backgroundFile) {
-      showToast("error", "Selecciona al menos una imagen para guardar")
-      return
-    }
-
-    setIsLoading(true)
-
-    try {
-      const formData = new FormData()
-      formData.append("codigo", companyData.codigo)
-
-      if (logoFile) {
-        formData.append("logo", logoFile)
-      }
-
-      if (backgroundFile) {
-        formData.append("background", backgroundFile)
-      }
-
-      const response = await fetch(`${apiUrl}/update-branding`, {
-        method: "POST",
-        body: formData,
-      })
-
-      const data = await response.json()
-
-      if (data.ok) {
-        showToast("success", "Branding actualizado exitosamente")
-        setLogoFile(null)
-        setBackgroundFile(null)
-        setConnectionError(false)
-      } else {
-        showToast("error", data.message || "Error al guardar")
-      }
-    } catch (error) {
-      console.error("Error saving branding:", error)
-      showToast("error", "Error de conexión al guardar")
-      setConnectionError(true)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  if (isFetching) {
+  if (activeSection === "avatares") {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-white/40" />
+      <div className="min-h-screen bg-black p-6">
+        <div className="max-w-7xl mx-auto">
+          <button
+            onClick={() => setActiveSection("menu")}
+            className="mb-6 text-white/60 hover:text-white transition-colors flex items-center gap-2 text-sm"
+          >
+            ← Volver al menú
+          </button>
+          <UploadAvatares />
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      {/* Toasts */}
-      <div className="fixed top-4 right-4 z-50 space-y-2">
-        {toasts.map((toast) => (
-          <div
-            key={toast.id}
-            className={`
-              flex items-center gap-3 px-4 py-3 rounded-xl
-              backdrop-blur-xl border shadow-2xl
-              animate-in slide-in-from-right duration-300
-              ${
-                toast.type === "success"
-                  ? "bg-green-500/10 border-green-500/20 text-green-400"
-                  : "bg-red-500/10 border-red-500/20 text-red-400"
-              }
-            `}
-          >
-            {toast.type === "success" ? <CheckCircle2 className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
-            <span className="font-medium">{toast.message}</span>
+    <div className="min-h-screen bg-black flex items-center justify-center p-6">
+      <div className="max-w-6xl w-full">
+        {/* Header */}
+        <div className="text-center mb-12 space-y-4">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full mb-4">
+            <Sparkles className="w-4 h-4 text-purple-400" />
+            <span className="text-sm text-white/80">Centro de Personalización</span>
           </div>
-        ))}
-      </div>
+          <h1 className="text-5xl font-bold text-white tracking-tight">
+            ¿Qué deseas
+            <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              {" "}
+              personalizar
+            </span>
+            ?
+          </h1>
+          <p className="text-lg text-white/60 max-w-2xl mx-auto">
+            Configura la identidad visual de tu aplicación y gestiona los avatares de tu equipo
+          </p>
+        </div>
 
-      {/* Connection Error Banner */}
-      {connectionError && (
-        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
-            <div className="space-y-2">
-              <p className="text-sm text-yellow-300 font-medium">No se pudo conectar con el servidor backend</p>
-              <div className="text-xs text-yellow-300/80 space-y-1">
-                <p>Para que esta funcionalidad trabaje correctamente, necesitas:</p>
-                <ul className="list-disc list-inside space-y-1 ml-2">
-                  <li>
-                    Configurar la variable de entorno{" "}
-                    <code className="bg-black/30 px-1 py-0.5 rounded">NEXT_PUBLIC_API_URL</code> con la URL de tu API
-                  </li>
-                  <li>
-                    Configurar la variable de entorno{" "}
-                    <code className="bg-black/30 px-1 py-0.5 rounded">NEXT_PUBLIC_COMPANY_CODE</code> con el código de
-                    tu empresa
-                  </li>
-                  <li>Asegurarte de que tu servidor backend esté corriendo</li>
-                </ul>
-                <p className="mt-2">
-                  Puedes configurar las variables de entorno en la sección <strong>Vars</strong> del sidebar.
+        {/* Options Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Branding Card */}
+          <button
+            onClick={() => setActiveSection("branding")}
+            className="group relative overflow-hidden bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-white/10 rounded-3xl p-8 text-left transition-all hover:scale-[1.02] hover:border-white/20 hover:shadow-2xl hover:shadow-blue-500/20"
+          >
+            {/* Animated Background */}
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-purple-500/0 group-hover:from-blue-500/5 group-hover:to-purple-500/5 transition-all duration-500" />
+
+            {/* Content */}
+            <div className="relative z-10 space-y-6">
+              <div className="flex items-start justify-between">
+                <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl group-hover:bg-blue-500/20 transition-colors">
+                  <Palette className="w-8 h-8 text-blue-400" />
+                </div>
+                <ArrowRight className="w-6 h-6 text-white/40 group-hover:text-white group-hover:translate-x-1 transition-all" />
+              </div>
+
+              <div className="space-y-3">
+                <h2 className="text-2xl font-bold text-white">Branding</h2>
+                <p className="text-white/60 leading-relaxed">
+                  Personaliza el logo y fondo de la pantalla de login. Define la identidad visual de tu aplicación.
                 </p>
               </div>
+
+              <div className="flex items-center gap-2 text-sm text-blue-400">
+                <span>Configurar branding</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </div>
             </div>
-          </div>
-        </div>
-      )}
 
-      <h2 className="text-3xl font-bold text-white">Personalización del Login</h2>
+            {/* Decorative Elements */}
+            <div className="absolute -top-12 -right-12 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl group-hover:bg-blue-500/30 transition-all" />
+            <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-purple-500/20 rounded-full blur-3xl group-hover:bg-purple-500/30 transition-all" />
+          </button>
 
-      {/* Logo Section */}
-      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
-        <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-          <ImageIcon className="w-5 h-5 text-blue-400" />
-          Logo de la Empresa
-        </h3>
+          {/* Avatares Card */}
+          <button
+            onClick={() => setActiveSection("avatares")}
+            className="group relative overflow-hidden bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-white/10 rounded-3xl p-8 text-left transition-all hover:scale-[1.02] hover:border-white/20 hover:shadow-2xl hover:shadow-purple-500/20"
+          >
+            {/* Animated Background */}
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/0 to-pink-500/0 group-hover:from-purple-500/5 group-hover:to-pink-500/5 transition-all duration-500" />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Preview */}
-          <div className="space-y-3">
-            <label className="block text-sm font-medium text-gray-300">Vista Previa</label>
-            <div className="relative w-full h-48 bg-black/40 border border-white/10 rounded-xl flex items-center justify-center overflow-hidden">
-              {logoPreview ? (
-                <img
-                  src={logoPreview || "/placeholder.svg"}
-                  alt="Logo preview"
-                  className="object-contain max-h-full max-w-full"
-                />
-              ) : (
-                <div className="text-center text-gray-500">
-                  <ImageIcon className="w-12 h-12 mx-auto mb-2 opacity-40" />
-                  <p className="text-sm">Sin logo</p>
+            {/* Content */}
+            <div className="relative z-10 space-y-6">
+              <div className="flex items-start justify-between">
+                <div className="p-4 bg-purple-500/10 border border-purple-500/20 rounded-2xl group-hover:bg-purple-500/20 transition-colors">
+                  <Users className="w-8 h-8 text-purple-400" />
                 </div>
-              )}
-            </div>
-          </div>
+                <ArrowRight className="w-6 h-6 text-white/40 group-hover:text-white group-hover:translate-x-1 transition-all" />
+              </div>
 
-          {/* Upload */}
-          <div className="space-y-3">
-            <label className="block text-sm font-medium text-gray-300">Subir Nuevo Logo</label>
-            <div className="flex flex-col gap-3">
-              <input
-                ref={logoInputRef}
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleFileSelect(e, "logo")}
-                className="hidden"
-              />
-              <button
-                onClick={() => logoInputRef.current?.click()}
-                className="flex items-center justify-center gap-2 px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/20 rounded-xl text-white transition-all"
-              >
-                <Upload className="w-5 h-5" />
-                Seleccionar Logo
-              </button>
-              <p className="text-xs text-gray-500">Formatos: PNG, JPG, SVG • Máximo 10MB</p>
+              <div className="space-y-3">
+                <h2 className="text-2xl font-bold text-white">Avatares</h2>
+                <p className="text-white/60 leading-relaxed">
+                  Gestiona hasta 5 avatares personalizados para tu equipo. Crea una galería visual única.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 text-sm text-purple-400">
+                <span>Gestionar avatares</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </div>
             </div>
-          </div>
+
+            {/* Decorative Elements */}
+            <div className="absolute -top-12 -right-12 w-32 h-32 bg-purple-500/20 rounded-full blur-3xl group-hover:bg-purple-500/30 transition-all" />
+            <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-pink-500/20 rounded-full blur-3xl group-hover:bg-pink-500/30 transition-all" />
+          </button>
         </div>
-      </div>
 
-      {/* Background Section */}
-      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
-        <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-          <ImageIcon className="w-5 h-5 text-purple-400" />
-          Fondo del Login
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Preview */}
-          <div className="space-y-3">
-            <label className="block text-sm font-medium text-gray-300">Vista Previa</label>
-            <div className="relative w-full h-48 bg-black/40 border border-white/10 rounded-xl overflow-hidden">
-              {backgroundPreview ? (
-                <img
-                  src={backgroundPreview || "/placeholder.svg"}
-                  alt="Background preview"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="flex items-center justify-center h-full text-center text-gray-500">
-                  <div>
-                    <ImageIcon className="w-12 h-12 mx-auto mb-2 opacity-40" />
-                    <p className="text-sm">Sin fondo personalizado</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Upload */}
-          <div className="space-y-3">
-            <label className="block text-sm font-medium text-gray-300">Subir Nuevo Fondo</label>
-            <div className="flex flex-col gap-3">
-              <input
-                ref={backgroundInputRef}
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleFileSelect(e, "background")}
-                className="hidden"
-              />
-              <button
-                onClick={() => backgroundInputRef.current?.click()}
-                className="flex items-center justify-center gap-2 px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/20 rounded-xl text-white transition-all"
-              >
-                <Upload className="w-5 h-5" />
-                Seleccionar Fondo
-              </button>
-              <p className="text-xs text-gray-500">Formatos: PNG, JPG • Máximo 10MB • Recomendado: 1920x1080px</p>
-            </div>
-          </div>
+        {/* Footer Info */}
+        <div className="mt-12 text-center">
+          <p className="text-sm text-white/40">Los cambios se aplicarán inmediatamente en toda la aplicación</p>
         </div>
-      </div>
-
-      {/* Save Button */}
-      <div className="flex justify-end">
-        <button
-          onClick={handleSave}
-          disabled={isLoading || (!logoFile && !backgroundFile)}
-          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-all shadow-lg"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" />
-              Guardando...
-            </>
-          ) : (
-            <>
-              <Save className="w-5 h-5" />
-              Guardar Cambios
-            </>
-          )}
-        </button>
-      </div>
-
-      {/* Info */}
-      <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4">
-        <p className="text-sm text-blue-300">
-          💡 Los cambios se aplicarán inmediatamente en la pantalla de login para todos los usuarios de tu empresa.
-        </p>
       </div>
     </div>
   )

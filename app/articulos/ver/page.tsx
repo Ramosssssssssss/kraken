@@ -20,10 +20,20 @@ import {
   GripVertical,
   Save,
   Upload,
+  FileDown,
+  FileUp,
+  Search,
+  Filter,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react"
 import { CrearArticuloModal } from "@/components/crear-articulo-modal"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover" // Added Popover for filter dropdown
+import * as XLSX from "xlsx"
 
 type Articulo = {
   ARTICULO_ID: number
@@ -54,7 +64,7 @@ type ArticuloDetalle = {
   INVENTARIO_MINIMO?: number | null
   PUNTO_REORDEN?: number | null
   INVENTARIO_MAXIMO?: number | null
-  LINEA_ARTICULO_ID?: number // Added this property
+  IMAGEN?: string // Added IMAGEN property
 }
 
 const PER_PAGE_OPTIONS = [15, 25, 50, 100]
@@ -76,6 +86,14 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
   { key: "acciones", label: "Acciones", filterable: false },
 ]
 
+type FilterOperator = "contains" | "equals" | "startsWith" | "endsWith" | "greaterThan" | "lessThan" | "between"
+
+type ColumnFilter = {
+  operator: FilterOperator
+  value: string
+  value2?: string // For "between" operator
+}
+
 export default function ArticulosPage() {
   const { apiUrl } = useCompany()
 
@@ -83,18 +101,21 @@ export default function ArticulosPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const [filters, setFilters] = useState({
-    nombre: "",
-    clave: "",
-    unidadVenta: "",
-    precio: "",
-  })
+  const [columnFilters, setColumnFilters] = useState<Record<string, ColumnFilter>>({})
+
+  const [sortColumn, setSortColumn] = useState<ColumnKey | null>(null)
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
 
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(15)
 
   const [columnOrder, setColumnOrder] = useState<ColumnKey[]>(DEFAULT_COLUMNS.map((c) => c.key))
   const [draggedColumn, setDraggedColumn] = useState<ColumnKey | null>(null)
+
+  const [selectedArticulos, setSelectedArticulos] = useState<Set<number>>(new Set())
+
+  const [searchQuery, setSearchQuery] = useState("")
+  const [showSearchResults, setShowSearchResults] = useState(false)
 
   // Modals
   const [createModalOpen, setCreateModalOpen] = useState(false)
@@ -103,6 +124,8 @@ export default function ArticulosPage() {
   const [detalle, setDetalle] = useState<ArticuloDetalle | null>(null)
   const [loadingDetalle, setLoadingDetalle] = useState(false)
   const [errorDetalle, setErrorDetalle] = useState<string | null>(null)
+
+  const [imageLoading, setImageLoading] = useState(false)
 
   // Edit mode
   const [isEditMode, setIsEditMode] = useState(false)
@@ -124,7 +147,10 @@ export default function ArticulosPage() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const json = await res.json()
       if (json?.ok && Array.isArray(json.articulos)) {
-        setItems(json.articulos)
+        const uniqueItems = Array.from(
+          new Map((json.articulos as Articulo[]).map((item) => [item.ARTICULO_ID, item])).values(),
+        )
+        setItems(uniqueItems)
       } else {
         setError("Respuesta inesperada del servidor")
       }
@@ -142,16 +168,115 @@ export default function ArticulosPage() {
   }, [apiUrl])
 
   const filtered = useMemo(() => {
-    return items.filter((item) => {
-      if (filters.nombre && !item.NOMBRE.toLowerCase().includes(filters.nombre.toLowerCase())) return false
-      if (filters.clave && !(item.CLAVE_ARTICULO || "").toLowerCase().includes(filters.clave.toLowerCase()))
-        return false
-      if (filters.unidadVenta && !item.UNIDAD_VENTA.toLowerCase().includes(filters.unidadVenta.toLowerCase()))
-        return false
-      if (filters.precio && !item.PRECIO_LISTA.toString().includes(filters.precio)) return false
+    let result = items.filter((item) => {
+      // Check each column filter
+      for (const [columnKey, filter] of Object.entries(columnFilters)) {
+        let fieldValue = ""
+
+        switch (columnKey) {
+          case "nombre":
+            fieldValue = item.NOMBRE.toLowerCase()
+            break
+          case "clave":
+            fieldValue = (item.CLAVE_ARTICULO || "").toLowerCase()
+            break
+          case "unidad":
+            fieldValue = item.UNIDAD_VENTA.toLowerCase()
+            break
+          case "precio":
+            fieldValue = item.PRECIO_LISTA.toString()
+            break
+          default:
+            continue
+        }
+
+        const filterValue = filter.value.toLowerCase()
+
+        switch (filter.operator) {
+          case "contains":
+            if (!fieldValue.includes(filterValue)) return false
+            break
+          case "equals":
+            if (fieldValue !== filterValue) return false
+            break
+          case "startsWith":
+            if (!fieldValue.startsWith(filterValue)) return false
+            break
+          case "endsWith":
+            if (!fieldValue.endsWith(filterValue)) return false
+            break
+          case "greaterThan":
+            if (columnKey === "precio") {
+              if (Number(fieldValue) <= Number(filter.value)) return false
+            }
+            break
+          case "lessThan":
+            if (columnKey === "precio") {
+              if (Number(fieldValue) >= Number(filter.value)) return false
+            }
+            break
+          case "between":
+            if (columnKey === "precio" && filter.value2) {
+              const num = Number(fieldValue)
+              if (num < Number(filter.value) || num > Number(filter.value2)) return false
+            }
+            break
+        }
+      }
+
       return true
     })
-  }, [items, filters])
+
+    // Apply sorting
+    if (sortColumn) {
+      result = [...result].sort((a, b) => {
+        let aVal: any
+        let bVal: any
+
+        switch (sortColumn) {
+          case "id":
+            aVal = a.ARTICULO_ID
+            bVal = b.ARTICULO_ID
+            break
+          case "nombre":
+            aVal = a.NOMBRE.toLowerCase()
+            bVal = b.NOMBRE.toLowerCase()
+            break
+          case "clave":
+            aVal = (a.CLAVE_ARTICULO || "").toLowerCase()
+            bVal = (b.CLAVE_ARTICULO || "").toLowerCase()
+            break
+          case "unidad":
+            aVal = a.UNIDAD_VENTA.toLowerCase()
+            bVal = b.UNIDAD_VENTA.toLowerCase()
+            break
+          case "precio":
+            aVal = a.PRECIO_LISTA
+            bVal = b.PRECIO_LISTA
+            break
+          default:
+            return 0
+        }
+
+        if (aVal < bVal) return sortDirection === "asc" ? -1 : 1
+        if (aVal > bVal) return sortDirection === "asc" ? 1 : -1
+        return 0
+      })
+    }
+
+    return result
+  }, [items, columnFilters, sortColumn, sortDirection])
+
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return []
+    const query = searchQuery.toLowerCase()
+    return items.filter(
+      (item) =>
+        item.NOMBRE.toLowerCase().includes(query) ||
+        (item.CLAVE_ARTICULO || "").toLowerCase().includes(query) ||
+        item.ARTICULO_ID.toString().includes(query),
+    )
+  }, [items, searchQuery])
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / perPage))
   const currentPage = Math.min(page, pageCount)
@@ -162,7 +287,7 @@ export default function ArticulosPage() {
 
   useEffect(() => {
     setPage(1)
-  }, [perPage, filters])
+  }, [perPage, columnFilters, sortColumn, sortDirection]) // Updated dependency
 
   const fmtMoney = (n: number) =>
     new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 2 }).format(n || 0)
@@ -212,7 +337,14 @@ export default function ArticulosPage() {
     setIsEditMode(false)
     setEditedData({})
     setImagePreview(null)
+    setImageLoading(false) // Reset image loading state
   }
+
+  useEffect(() => {
+    if (detailModalOpen && selectedId) {
+      setImageLoading(true)
+    }
+  }, [detailModalOpen, selectedId])
 
   useEffect(() => {
     if (!isEditMode || !apiUrl) return
@@ -238,9 +370,9 @@ export default function ArticulosPage() {
       CLAVE_ARTICULO: detalle.CLAVE_ARTICULO || "",
       CLAVE_BARRAS: detalle.CLAVE_BARRAS || "",
       LOCALIZACION: detalle.LOCALIZACION || "",
-      INVENTARIO_MINIMO: detalle.INVENTARIO_MINIMO || 0,
-      PUNTO_REORDEN: detalle.PUNTO_REORDEN || 0,
-      INVENTARIO_MAXIMO: detalle.INVENTARIO_MAXIMO || 0,
+      INVENTARIO_MINIMO: detalle.INVENTARIO_MINIMO ?? 0,
+      PUNTO_REORDEN: detalle.PUNTO_REORDEN ?? 0,
+      INVENTARIO_MAXIMO: detalle.INVENTARIO_MAXIMO ?? 0,
     })
   }
 
@@ -252,174 +384,139 @@ export default function ArticulosPage() {
     reader.onloadend = () => {
       const base64 = reader.result as string
       setImagePreview(base64)
+      setEditedData({ ...editedData, IMAGEN: base64 })
     }
     reader.readAsDataURL(file)
   }
 
-const handleSave = async () => {
-  if (!apiUrl || !selectedId || !detalle) return
+  const handleSave = async () => {
+    if (!apiUrl || !selectedId || !detalle) return
 
-  setSaving(true)
-  const base = apiUrl.replace(/\/+$/, "")
+    setSaving(true)
+    const base = apiUrl.replace(/\/+$/, "")
 
-  // Helper: PUT JSON con manejo de error del body
-  const putJson = async (url: string, payload: any) => {
-    const resp = await fetch(url, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    })
-    const data = await resp.json().catch(() => ({}))
-    if (!resp.ok) {
-      throw new Error(data?.message || `HTTP ${resp.status} - ${url}`)
+    try {
+      const updates: Promise<any>[] = []
+
+      // Update NOMBRE
+      if (editedData.NOMBRE && editedData.NOMBRE !== detalle.NOMBRE) {
+        updates.push(
+          fetch(`${base}/artics/${selectedId}/nombre`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ nombre: editedData.NOMBRE }),
+          }),
+        )
+      }
+
+      // Update UNIDAD_VENTA
+      if (editedData.UNIDAD_VENTA && editedData.UNIDAD_VENTA !== detalle.UNIDAD_VENTA) {
+        updates.push(
+          fetch(`${base}/artics/${selectedId}/unidad-venta`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ unidadVenta: editedData.UNIDAD_VENTA }),
+          }),
+        )
+      }
+
+      // Update CLAVE_ARTICULO
+      if (editedData.CLAVE_ARTICULO !== undefined && editedData.CLAVE_ARTICULO !== detalle.CLAVE_ARTICULO) {
+        updates.push(
+          fetch(`${base}/artics/${selectedId}/clave`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ clave: editedData.CLAVE_ARTICULO }),
+          }),
+        )
+      }
+
+      // Update CLAVE_BARRAS
+      if (editedData.CLAVE_BARRAS !== undefined && editedData.CLAVE_BARRAS !== detalle.CLAVE_BARRAS) {
+        updates.push(
+          fetch(`${base}/artics/${selectedId}/codigo-barras`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ codigoBarras: editedData.CLAVE_BARRAS }),
+          }),
+        )
+      }
+
+      // Update LOCALIZACION
+      if (editedData.LOCALIZACION !== undefined && editedData.LOCALIZACION !== detalle.LOCALIZACION) {
+        updates.push(
+          fetch(`${base}/artics/${selectedId}/localizacion`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ localizacion: editedData.LOCALIZACION }),
+          }),
+        )
+      }
+
+      // Update INVENTARIO_MINIMO
+      if (editedData.INVENTARIO_MINIMO !== undefined && editedData.INVENTARIO_MINIMO !== detalle.INVENTARIO_MINIMO) {
+        updates.push(
+          fetch(`${base}/artics/${selectedId}/inventario-minimo`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ inventarioMinimo: editedData.INVENTARIO_MINIMO }),
+          }),
+        )
+      }
+
+      // Update PUNTO_REORDEN
+      if (editedData.PUNTO_REORDEN !== undefined && editedData.PUNTO_REORDEN !== detalle.PUNTO_REORDEN) {
+        updates.push(
+          fetch(`${base}/artics/${selectedId}/punto-reorden`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ puntoReorden: editedData.PUNTO_REORDEN }),
+          }),
+        )
+      }
+
+      // Update INVENTARIO_MAXIMO
+      if (editedData.INVENTARIO_MAXIMO !== undefined && editedData.INVENTARIO_MAXIMO !== detalle.INVENTARIO_MAXIMO) {
+        updates.push(
+          fetch(`${base}/artics/${selectedId}/inventario-maximo`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ inventarioMaximo: editedData.INVENTARIO_MAXIMO }),
+          }),
+        )
+      }
+
+      // Update IMAGEN
+      if (editedData.IMAGEN) {
+        updates.push(
+          fetch(`${base}/artics/${selectedId}/imagen`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ imagen: editedData.IMAGEN }),
+          }),
+        )
+      }
+
+      await Promise.all(updates)
+
+      // Refresh data
+      setIsEditMode(false)
+      setEditedData({})
+      setImagePreview(null)
+      fetchArticulos()
+
+      // Reload detail
+      const res = await fetch(`${base}/artics/${selectedId}`, { cache: "no-store" })
+      if (res.ok) {
+        const json = await res.json()
+        if (json?.ok && json.articulo) setDetalle(json.articulo)
+      }
+    } catch (e: any) {
+      alert(`Error al guardar: ${e.message}`)
+    } finally {
+      setSaving(false)
     }
-    return data
   }
-
-  // Helper: de dónde sacar el ALMACEN_ID para endpoints que lo requieren
-  const resolveAlmacenId = () =>
-    (editedData as any)?.ALMACEN_ID ?? (detalle as any)?.ALMACEN_ID
-
-  try {
-    const updates: Promise<any>[] = []
-
-    // NOMBRE
-    if (editedData.NOMBRE && editedData.NOMBRE !== detalle.NOMBRE) {
-      updates.push(
-        putJson(`${base}/artics/${selectedId}/nombre`, {
-          NOMBRE: editedData.NOMBRE, // <-- backend espera MAYÚSCULAS
-        }),
-      )
-    }
-
-    // LINEA_ARTICULO_ID  (si lo estás editando)
-    if (
-      editedData.LINEA_ARTICULO_ID !== undefined &&
-      editedData.LINEA_ARTICULO_ID !== (detalle as any)?.LINEA_ARTICULO_ID
-    ) {
-      updates.push(
-        putJson(`${base}/artics/${selectedId}/linea`, {
-          LINEA_ARTICULO_ID: editedData.LINEA_ARTICULO_ID,
-        }),
-      )
-    }
-
-    // UNIDAD_VENTA (solo permite PAR o PZA, en mayúsculas)
-    if (editedData.UNIDAD_VENTA && editedData.UNIDAD_VENTA !== detalle.UNIDAD_VENTA) {
-      const unidad = String(editedData.UNIDAD_VENTA).toUpperCase()
-      updates.push(
-        putJson(`${base}/artics/${selectedId}/unidad-venta`, {
-          UNIDAD_VENTA: unidad, // <-- PAR | PZA
-        }),
-      )
-    }
-
-    // CLAVE_ARTICULO (SKU)
-    if (editedData.CLAVE_ARTICULO !== undefined && editedData.CLAVE_ARTICULO !== detalle.CLAVE_ARTICULO) {
-      updates.push(
-        putJson(`${base}/artics/${selectedId}/clave`, {
-          CLAVE_ARTICULO: editedData.CLAVE_ARTICULO ?? "",
-        }),
-      )
-    }
-
-    // CODIGO_BARRAS
-    if (editedData.CLAVE_BARRAS !== undefined && editedData.CLAVE_BARRAS !== detalle.CLAVE_BARRAS) {
-      updates.push(
-        putJson(`${base}/artics/${selectedId}/codigo-barras`, {
-          CODIGO_BARRAS: editedData.CLAVE_BARRAS ?? "",
-        }),
-      )
-    }
-
-    // LOCALIZACION (requiere ALMACEN_ID)
-    if (editedData.LOCALIZACION !== undefined && editedData.LOCALIZACION !== detalle.LOCALIZACION) {
-      const ALMACEN_ID = resolveAlmacenId()
-      if (!ALMACEN_ID) throw new Error("ALMACEN_ID es requerido para actualizar LOCALIZACION")
-      updates.push(
-        putJson(`${base}/artics/${selectedId}/localizacion`, {
-          LOCALIZACION: editedData.LOCALIZACION ?? "",
-          ALMACEN_ID,
-        }),
-      )
-    }
-
-    // INVENTARIO_MINIMO (requiere ALMACEN_ID)
-    if (
-      editedData.INVENTARIO_MINIMO !== undefined &&
-      editedData.INVENTARIO_MINIMO !== detalle.INVENTARIO_MINIMO
-    ) {
-      const ALMACEN_ID = resolveAlmacenId()
-      if (!ALMACEN_ID) throw new Error("ALMACEN_ID es requerido para actualizar INVENTARIO_MINIMO")
-      updates.push(
-        putJson(`${base}/artics/${selectedId}/inventario-minimo`, {
-          INVENTARIO_MINIMO: Number(editedData.INVENTARIO_MINIMO) ?? 0,
-          ALMACEN_ID,
-        }),
-      )
-    }
-
-    // PUNTO_REORDEN (requiere ALMACEN_ID)
-    if (
-      editedData.PUNTO_REORDEN !== undefined &&
-      editedData.PUNTO_REORDEN !== detalle.PUNTO_REORDEN
-    ) {
-      const ALMACEN_ID = resolveAlmacenId()
-      if (!ALMACEN_ID) throw new Error("ALMACEN_ID es requerido para actualizar PUNTO_REORDEN")
-      updates.push(
-        putJson(`${base}/artics/${selectedId}/punto-reorden`, {
-          PUNTO_REORDEN: Number(editedData.PUNTO_REORDEN) ?? 0,
-          ALMACEN_ID,
-        }),
-      )
-    }
-
-    // INVENTARIO_MAXIMO (requiere ALMACEN_ID)
-    if (
-      editedData.INVENTARIO_MAXIMO !== undefined &&
-      editedData.INVENTARIO_MAXIMO !== detalle.INVENTARIO_MAXIMO
-    ) {
-      const ALMACEN_ID = resolveAlmacenId()
-      if (!ALMACEN_ID) throw new Error("ALMACEN_ID es requerido para actualizar INVENTARIO_MAXIMO")
-      updates.push(
-        putJson(`${base}/artics/${selectedId}/inventario-maximo`, {
-          INVENTARIO_MAXIMO: Number(editedData.INVENTARIO_MAXIMO) ?? 0,
-          ALMACEN_ID,
-        }),
-      )
-    }
-
-    // IMAGEN base64 (opcional si la editas; backend espera IMAGEN en base64)
-    if ((editedData as any).IMAGEN_BASE64) {
-      updates.push(
-        putJson(`${base}/artics/${selectedId}/imagen`, {
-          IMAGEN: (editedData as any).IMAGEN_BASE64, // string base64 sin encabezado data:
-        }),
-      )
-    }
-
-    // Ejecutar todo
-    await Promise.all(updates)
-
-    // Refresh data
-    setIsEditMode(false)
-    setEditedData({})
-    setImagePreview(null)
-    fetchArticulos()
-
-    // Reload detail
-    const res = await fetch(`${base}/artics/${selectedId}`, { cache: "no-store" })
-    if (res.ok) {
-      const json = await res.json()
-      if (json?.ok && json.articulo) setDetalle(json.articulo)
-    }
-  } catch (e: any) {
-    alert(`Error al guardar: ${e.message}`)
-  } finally {
-    setSaving(false)
-  }
-}
-
 
   const handleDragStart = (columnKey: ColumnKey) => {
     setDraggedColumn(columnKey)
@@ -479,6 +576,80 @@ const handleSave = async () => {
     }
   }
 
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allIds = new Set(paged.map((item) => item.ARTICULO_ID))
+      setSelectedArticulos(allIds)
+    } else {
+      setSelectedArticulos(new Set())
+    }
+  }
+
+  const handleSelectArticulo = (id: number, checked: boolean) => {
+    const newSelected = new Set(selectedArticulos)
+    if (checked) {
+      newSelected.add(id)
+    } else {
+      newSelected.delete(id)
+    }
+    setSelectedArticulos(newSelected)
+  }
+
+  const isAllSelected = paged.length > 0 && paged.every((item) => selectedArticulos.has(item.ARTICULO_ID))
+  const isSomeSelected = paged.some((item) => selectedArticulos.has(item.ARTICULO_ID)) && !isAllSelected
+
+  const handleExportExcel = () => {
+    const exportData = filtered.map((item) => {
+      const row: any = {}
+
+      columnOrder.forEach((columnKey) => {
+        switch (columnKey) {
+          case "id":
+            row["ID"] = item.ARTICULO_ID
+            break
+          case "nombre":
+            row["Nombre"] = item.NOMBRE
+            break
+          case "clave":
+            row["Clave"] = item.CLAVE_ARTICULO || ""
+            break
+          case "unidad":
+            row["Unidad Venta"] = item.UNIDAD_VENTA
+            row["Unidad Compra"] = item.UNIDAD_COMPRA
+            break
+          case "precio":
+            row["Precio Lista"] = item.PRECIO_LISTA
+            break
+        }
+      })
+
+      return row
+    })
+
+    const ws = XLSX.utils.json_to_sheet(exportData)
+
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, "Artículos")
+
+    const date = new Date().toISOString().split("T")[0]
+    const filename = `articulos_${date}.xlsx`
+
+    XLSX.writeFile(wb, filename)
+  }
+
+  const handleSort = (columnKey: ColumnKey) => {
+    if (columnKey === "acciones") return // Don't sort actions column
+
+    if (sortColumn === columnKey) {
+      // Toggle direction
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
+    } else {
+      // New column
+      setSortColumn(columnKey)
+      setSortDirection("asc")
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-zinc-950 to-purple-950/20">
       {/* Header */}
@@ -489,11 +660,40 @@ const handleSave = async () => {
               <Package className="w-5 h-5 text-purple-400" />
               <div>
                 <h1 className="text-2xl font-light tracking-wide text-white">Artículos</h1>
-                <p className="text-sm text-white/50 tracking-wide">Catálogo general de productos</p>
+                <p className="text-sm text-white/50 tracking-wide">
+                  Catálogo general de productos
+                  {selectedArticulos.size > 0 && ` • ${selectedArticulos.size} seleccionados`}
+                </p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                <Input
+                  placeholder="Buscar artículos..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value)
+                    setShowSearchResults(e.target.value.trim().length > 0)
+                  }}
+                  className="pl-10 w-64 bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:border-purple-500/50"
+                />
+                {searchQuery && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      setSearchQuery("")
+                      setShowSearchResults(false)
+                    }}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-white/40 hover:text-white"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+
               <Button
                 variant="ghost"
                 size="icon"
@@ -529,16 +729,70 @@ const handleSave = async () => {
           </Card>
         )}
 
+        {showSearchResults && searchResults.length > 0 && (
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg text-white/80 font-light">Resultados de búsqueda ({searchResults.length})</h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearchQuery("")
+                  setShowSearchResults(false)
+                }}
+                className="text-white/60 hover:text-white"
+              >
+                Cerrar
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {searchResults.slice(0, 12).map((item) => (
+                <ArticuloCard key={item.ARTICULO_ID} articulo={item} onView={verArticulo} apiUrl={apiUrl} />
+              ))}
+            </div>
+          </div>
+        )}
+
         {!loading && !error && (
           <div className="space-y-4">
+            {/* Excel import/export buttons */}
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => alert("Funcionalidad de importar en desarrollo")}
+                className="bg-white/5 border-white/10 text-white/70 hover:text-white hover:bg-white/10 flex items-center gap-2"
+              >
+                <FileUp className="w-4 h-4" />
+                Importar Excel
+              </Button>
+              <Button
+                onClick={handleExportExcel}
+                className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+              >
+                <FileDown className="w-4 h-4" />
+                Exportar Excel
+              </Button>
+            </div>
+
             {/* Table */}
             <div className="rounded-xl border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-white/10">
+                      <th className="text-left px-4 py-3 w-12">
+                        <Checkbox
+                          checked={isAllSelected}
+                          onCheckedChange={handleSelectAll}
+                          className="border-white/30 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
+                          aria-label="Seleccionar todos"
+                        />
+                      </th>
                       {columnOrder.map((columnKey) => {
                         const config = getColumnConfig(columnKey)
+                        const hasFilter = columnFilters[columnKey]
+                        const isSorted = sortColumn === columnKey
+
                         return (
                           <th
                             key={columnKey}
@@ -550,56 +804,56 @@ const handleSave = async () => {
                               columnKey === "acciones" ? "text-right" : ""
                             } ${draggedColumn === columnKey ? "opacity-50" : ""}`}
                           >
-                            <div className="flex items-center gap-2">
-                              <GripVertical className="w-3 h-3 text-white/30" />
-                              {config.label}
+                            <div className="flex items-center gap-2 justify-between">
+                              <div className="flex items-center gap-2">
+                                <GripVertical className="w-3 h-3 text-white/30" />
+                                {config.label}
+                                {columnKey !== "acciones" && (
+                                  <button
+                                    onClick={() => handleSort(columnKey)}
+                                    className="p-1 rounded hover:bg-white/10 transition"
+                                  >
+                                    {isSorted ? (
+                                      sortDirection === "asc" ? (
+                                        <ArrowUp className="w-3.5 h-3.5 text-purple-400" />
+                                      ) : (
+                                        <ArrowDown className="w-3.5 h-3.5 text-purple-400" />
+                                      )
+                                    ) : (
+                                      <ArrowUpDown className="w-3.5 h-3.5 text-white/30" />
+                                    )}
+                                  </button>
+                                )}
+                              </div>
+                              {config.filterable && (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <button
+                                      className={`p-1 rounded hover:bg-white/10 transition ${hasFilter ? "text-purple-400" : "text-white/40"}`}
+                                    >
+                                      <Filter className="w-3.5 h-3.5" />
+                                    </button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-80 bg-zinc-900 border-white/10 text-white">
+                                    <FilterPopover
+                                      columnKey={columnKey}
+                                      columnLabel={config.label}
+                                      currentFilter={columnFilters[columnKey]}
+                                      onApply={(filter) => {
+                                        if (filter) {
+                                          setColumnFilters({ ...columnFilters, [columnKey]: filter })
+                                        } else {
+                                          const newFilters = { ...columnFilters }
+                                          delete newFilters[columnKey]
+                                          setColumnFilters(newFilters)
+                                        }
+                                      }}
+                                      isNumeric={columnKey === "precio"}
+                                    />
+                                  </PopoverContent>
+                                </Popover>
+                              )}
                             </div>
-                          </th>
-                        )
-                      })}
-                    </tr>
-                    <tr className="border-b border-white/10 bg-white/[0.02]">
-                      {columnOrder.map((columnKey) => {
-                        const config = getColumnConfig(columnKey)
-
-                        if (!config.filterable) {
-                          return (
-                            <th key={columnKey} className="px-4 py-2">
-                              <div className="w-16" />
-                            </th>
-                          )
-                        }
-
-                        let filterValue = ""
-                        let onFilterChange = (val: string) => {}
-
-                        switch (columnKey) {
-                          case "nombre":
-                            filterValue = filters.nombre
-                            onFilterChange = (val) => setFilters({ ...filters, nombre: val })
-                            break
-                          case "clave":
-                            filterValue = filters.clave
-                            onFilterChange = (val) => setFilters({ ...filters, clave: val })
-                            break
-                          case "unidad":
-                            filterValue = filters.unidadVenta
-                            onFilterChange = (val) => setFilters({ ...filters, unidadVenta: val })
-                            break
-                          case "precio":
-                            filterValue = filters.precio
-                            onFilterChange = (val) => setFilters({ ...filters, precio: val })
-                            break
-                        }
-
-                        return (
-                          <th key={columnKey} className="px-4 py-2">
-                            <Input
-                              placeholder="Filtrar..."
-                              value={filterValue}
-                              onChange={(e) => onFilterChange(e.target.value)}
-                              className="h-8 bg-white/5 border-white/10 text-white text-sm placeholder:text-white/30 focus:border-purple-500/50"
-                            />
                           </th>
                         )
                       })}
@@ -608,7 +862,7 @@ const handleSave = async () => {
                   <tbody>
                     {paged.length === 0 ? (
                       <tr>
-                        <td colSpan={columnOrder.length} className="px-4 py-8 text-center text-white/50">
+                        <td colSpan={columnOrder.length + 1} className="px-4 py-8 text-center text-white/50">
                           No hay artículos que coincidan con los filtros
                         </td>
                       </tr>
@@ -618,8 +872,16 @@ const handleSave = async () => {
                           key={item.ARTICULO_ID}
                           className={`border-b border-white/5 hover:bg-white/[0.02] transition ${
                             idx % 2 === 0 ? "bg-white/[0.01]" : ""
-                          }`}
+                          } ${selectedArticulos.has(item.ARTICULO_ID) ? "bg-purple-500/5" : ""}`}
                         >
+                          <td className="px-4 py-4">
+                            <Checkbox
+                              checked={selectedArticulos.has(item.ARTICULO_ID)}
+                              onCheckedChange={(checked) => handleSelectArticulo(item.ARTICULO_ID, checked as boolean)}
+                              className="border-white/30 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
+                              aria-label={`Seleccionar ${item.NOMBRE}`}
+                            />
+                          </td>
                           {columnOrder.map((columnKey) => (
                             <td key={columnKey} className={`px-4 py-4 ${columnKey === "acciones" ? "text-right" : ""}`}>
                               {renderCell(item, columnKey)}
@@ -711,24 +973,33 @@ const handleSave = async () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
                 <div className="p-6 border-r border-white/10 flex flex-col items-center justify-center bg-white/[0.02] gap-4">
                   <div className="w-full max-w-md aspect-square rounded-xl overflow-hidden border border-white/10 bg-black/40 relative">
+                    {imageLoading && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-10">
+                        <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
+                      </div>
+                    )}
+
                     {imagePreview ? (
                       <img
                         src={imagePreview || "/placeholder.svg"}
                         alt="Preview"
                         className="w-full h-full object-contain"
+                        onLoad={() => setImageLoading(false)}
                       />
-                    ) : selectedId ? (
+                    ) : selectedId && detalle?.TIENE_IMAGEN ? (
                       <img
                         key={selectedId}
                         src={`${apiUrl?.replace(/\/+$/, "")}/artics/${encodeURIComponent(selectedId)}/imagen`}
                         alt="Imagen del artículo"
                         className="w-full h-full object-contain"
+                        loading="lazy"
+                        onLoad={() => setImageLoading(false)}
                         onError={(e) => {
+                          setImageLoading(false)
                           ;(e.currentTarget as HTMLImageElement).style.display = "none"
                         }}
                       />
-                    ) : null}
-                    {!detalle?.TIENE_IMAGEN && !imagePreview && (
+                    ) : (
                       <div className="absolute inset-0 flex items-center justify-center text-white/30 text-sm">
                         Sin imagen
                       </div>
@@ -957,6 +1228,172 @@ function EditableField({
         onChange={(e) => onChange(e.target.value)}
         className="bg-white/5 border-white/10 text-white h-9"
       />
+    </div>
+  )
+}
+
+function ArticuloCard({
+  articulo,
+  onView,
+  apiUrl,
+}: {
+  articulo: Articulo
+  onView: (id: number) => void
+  apiUrl: string | null
+}) {
+  const [imageLoading, setImageLoading] = useState(true)
+  const [imageError, setImageError] = useState(false)
+
+  const fmtMoney = (n: number) =>
+    new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 2 }).format(n || 0)
+
+  return (
+    <Card
+      className="bg-black/40 border-white/10 backdrop-blur-xl overflow-hidden hover:border-purple-500/50 transition cursor-pointer group"
+      onClick={() => onView(articulo.ARTICULO_ID)}
+    >
+      <div className="aspect-square bg-black/60 relative overflow-hidden">
+        {imageLoading && !imageError && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Loader2 className="w-6 h-6 text-purple-400 animate-spin" />
+          </div>
+        )}
+        {articulo.TIENE_IMAGEN && !imageError ? (
+          <img
+            src={`${apiUrl?.replace(/\/+$/, "")}/artics/${encodeURIComponent(articulo.ARTICULO_ID)}/imagen`}
+            alt={articulo.NOMBRE}
+            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+            onLoad={() => setImageLoading(false)}
+            onError={() => {
+              setImageLoading(false)
+              setImageError(true)
+            }}
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center text-white/20">
+            <Package className="w-12 h-12" />
+          </div>
+        )}
+      </div>
+      <div className="p-4 space-y-2">
+        <h3 className="text-white font-medium text-sm line-clamp-2 group-hover:text-purple-400 transition">
+          {articulo.NOMBRE}
+        </h3>
+        <div className="flex items-center justify-between text-xs text-white/50">
+          <span>SKU: {articulo.CLAVE_ARTICULO || "—"}</span>
+          <span>
+            {articulo.UNIDAD_VENTA}/{articulo.UNIDAD_COMPRA}
+          </span>
+        </div>
+        <div className="text-lg text-purple-400 font-semibold">{fmtMoney(articulo.PRECIO_LISTA)}</div>
+      </div>
+    </Card>
+  )
+}
+
+function FilterPopover({
+  columnKey,
+  columnLabel,
+  currentFilter,
+  onApply,
+  isNumeric,
+}: {
+  columnKey: string
+  columnLabel: string
+  currentFilter?: ColumnFilter
+  onApply: (filter: ColumnFilter | null) => void
+  isNumeric?: boolean
+}) {
+  const [operator, setOperator] = useState<FilterOperator>(currentFilter?.operator || "contains")
+  const [value, setValue] = useState(currentFilter?.value || "")
+  const [value2, setValue2] = useState(currentFilter?.value2 || "")
+
+  const operators: { value: FilterOperator; label: string }[] = isNumeric
+    ? [
+        { value: "equals", label: "Igual a" },
+        { value: "greaterThan", label: "Mayor que" },
+        { value: "lessThan", label: "Menor que" },
+        { value: "between", label: "Entre" },
+      ]
+    : [
+        { value: "contains", label: "Contiene" },
+        { value: "equals", label: "Igual a" },
+        { value: "startsWith", label: "Comienza con" },
+        { value: "endsWith", label: "Termina con" },
+      ]
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <Label className="text-white/70 text-xs mb-2">Filtrar {columnLabel}</Label>
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-white/50 text-xs">Operador</Label>
+        <Select value={operator} onValueChange={(val) => setOperator(val as FilterOperator)}>
+          <SelectTrigger className="bg-white/5 border-white/10 text-white">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {operators.map((op) => (
+              <SelectItem key={op.value} value={op.value}>
+                {op.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-white/50 text-xs">Valor</Label>
+        <Input
+          type={isNumeric ? "number" : "text"}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder="Ingrese valor..."
+          className="bg-white/5 border-white/10 text-white placeholder:text-white/30"
+        />
+      </div>
+
+      {operator === "between" && (
+        <div className="space-y-2">
+          <Label className="text-white/50 text-xs">Valor 2</Label>
+          <Input
+            type="number"
+            value={value2}
+            onChange={(e) => setValue2(e.target.value)}
+            placeholder="Valor máximo..."
+            className="bg-white/5 border-white/10 text-white placeholder:text-white/30"
+          />
+        </div>
+      )}
+
+      <div className="flex gap-2 pt-2">
+        <Button
+          size="sm"
+          onClick={() => {
+            if (value.trim()) {
+              onApply({ operator, value: value.trim(), value2: value2.trim() })
+            }
+          }}
+          className="bg-purple-600 hover:bg-purple-700 text-white flex-1"
+          disabled={!value.trim() || (operator === "between" && !value2.trim())}
+        >
+          Aplicar
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => {
+            setValue("")
+            setValue2("")
+            onApply(null)
+          }}
+          className="text-white/70 hover:text-white hover:bg-white/10"
+        >
+          Limpiar
+        </Button>
+      </div>
     </div>
   )
 }

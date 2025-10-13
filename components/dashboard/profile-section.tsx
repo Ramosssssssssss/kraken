@@ -634,7 +634,7 @@ export default function PerfilPage() {
                   <img
                     src={companyData.branding.logo || "/placeholder.svg"}
                     alt="Logo"
-                    className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                    className="w-15 h-15 rounded-lg object-contain flex-shrink-0"
                   />
                 ) : (
                   <div className="w-12 h-12 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center flex-shrink-0">
