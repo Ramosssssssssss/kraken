@@ -430,96 +430,9 @@ export default function Page() {
   useEffect(() => { if (sucursalId) localStorage.setItem("almacenId", sucursalId) }, [sucursalId])
   const sucursalActual = useMemo(() => SCS.find((s) => s.id === sucursalId) || null, [sucursalId])
 
-  const [hasBP, setHasBP] = useState(false)
   // Plantilla (desde registry)
   const [tplId, setTplId] = useState<TemplateId>(LABEL_TEMPLATES[0].id)
   const template = useMemo<LabelTemplate>(() => getTemplate(tplId), [tplId])
-
-  const [printerIp, setPrinterIp] = useState<string>("")
-  const [printerPort, setPrinterPort] = useState<string>("9100")
-
-  useEffect(() => {
-    setPrinterIp(localStorage.getItem("printerIp") || "")
-    setPrinterPort(localStorage.getItem("printerPort") || "9100")
-  }, [])
-  useEffect(() => { if (printerIp) localStorage.setItem("printerIp", printerIp) }, [printerIp])
-  useEffect(() => { if (printerPort) localStorage.setItem("printerPort", printerPort) }, [printerPort])
-  useEffect(() => {
-    (async () => {
-      const ok = await bpIsAvailable()
-      setHasBP(ok)
-    })()
-  }, [])
-
-
-  // --- imprimir directo por LAN (ZPL) ---
-  const handlePrintDirectLan = async () => {
-    if (!articles.length) return
-    if (!printerIp) {
-      new Noty({ type: "warning", layout: "topRight", theme: "mint", text: "Configura la IP de la impresora", timeout: 2200 }).show()
-      return
-    }
-    try {
-      const zpl = buildZplJobSmart(articles, template, 203) // ZQ511 a 203 dpi
-      const r = await fetch("/api/print-zpl", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ zpl, ip: printerIp, port: Number(printerPort || 9100) })
-        // Si fijas IP/puerto en .env del backend, puedes mandar solo { zpl }
-      })
-      const j = await r.json()
-      if (!r.ok || !j?.ok) throw new Error(j?.error || "Fallo de impresión")
-      new Noty({ type: "success", layout: "topRight", theme: "mint", text: "Enviado a la Zebra.", timeout: 2000 }).show()
-    } catch (e: any) {
-      new Noty({ type: "error", layout: "topRight", theme: "mint", text: `Error al imprimir: ${e?.message || e}`, timeout: 3500 }).show()
-    }
-  }
-
-  // Sustituye TODO el handlePrintBrowserPrint por esto:
-  const handlePrintBrowserPrint = async () => {
-    if (!articles.length) return
-    try {
-      // Genera ZPL (ZQ511 = 203 dpi)
-      const zpl = buildZplJobSmart(articles, template, 203)
-
-      // Usa tu helper centralizado (carga SDK, elige device y hace write)
-      await bpPrintZPL(zpl)
-
-      new Noty({
-        type: "success",
-        layout: "topRight",
-        theme: "mint",
-        text: "Enviado a Zebra (BrowserPrint).",
-        timeout: 2200
-      }).show()
-    } catch (e: any) {
-      // Fallback a compartir ZPL
-      console.warn("BrowserPrint error:", e)
-      new Noty({
-        type: "warning",
-        layout: "topRight",
-        theme: "mint",
-        text: "No se pudo usar BrowserPrint. Intentando compartir ZPL…",
-        timeout: 2000
-      }).show()
-      try {
-        const zpl = buildZplJobSmart(articles, template, 203)
-        shareZplToZebra(zpl, "etiquetas.zpl")
-      } catch (e2: any) {
-        new Noty({
-          type: "error",
-          layout: "topRight",
-          theme: "mint",
-          text: e2?.message || "No se pudo compartir el ZPL.",
-          timeout: 3200
-        }).show()
-      }
-    }
-  }
-
-
-
-
 
   // Artículos
   const [articles, setArticles] = useState<ArticleItem[]>([])
@@ -635,32 +548,7 @@ export default function Page() {
   }
 
   // ====== IMPRESIÓN ======
-  // Modal-only print para móvil (mantenemos el modal por si lo usas)
-  const [printOpen, setPrintOpen] = useState(false)
-  const printRef = useRef<HTMLDivElement | null>(null)
-
-  const handlePrintMobile = async () => {
-    if (!articles.length) return
-    try {
-      const zpl = buildZplJobSmart(articles, template, 203) // ZQ511 = 203dpi
-      // DESPUÉS
-      shareZplToZebra(zpl, "etiquetas.zpl")
-
-      new Noty({
-        type: "success", layout: "topRight", theme: "mint",
-        text: "Enviado a Zebra. Si PrintConnect tiene Auto Print, saldrá directo.", timeout: 2200
-      }).show()
-    } catch (e: any) {
-      new Noty({
-        type: "error", layout: "topRight", theme: "mint",
-        text: `No se pudo compartir: ${e?.message || e}`, timeout: 3500
-      }).show()
-    }
-  }
-
-
-
-  // Tu impresión existente (iframe) – desktop (HTML->print)
+  // HTML → window.print() (se mantiene)
   const handlePrint = () => {
     if (!articles.length) return
     const w = template.width
@@ -697,27 +585,22 @@ ${template.css(w, h, pad)}
         });
       }catch(e){}
     }
-
     function renderQRCodes(){
       try{
         document.querySelectorAll('canvas.qr').forEach(function(c){
           var val = c.getAttribute('data-value') || '';
-          // Ancho real del canvas en pantalla; si no hay layout, usa 140px como fallback
           var w = Math.max(40, Math.round((c.clientWidth || 0) || 140));
           QRCode.toCanvas(c, val, { errorCorrectionLevel: 'M', margin: 0, width: w });
         });
       }catch(e){}
     }
-
     window.addEventListener('load', function(){
       renderBarcodes();
       renderQRCodes();
-      // Pequeño delay para asegurar layout antes de imprimir
       setTimeout(function(){ window.print(); }, 0);
     });
   })();
 </script>
-
 </head><body>${labelsHTML}</body></html>`
     const f = document.createElement("iframe")
     Object.assign(f.style, { position: "fixed", right: "0", bottom: "0", width: "0", height: "0", border: "0", opacity: "0" })
@@ -726,42 +609,60 @@ ${template.css(w, h, pad)}
     d.open(); d.write(html); d.close()
     const cleanup = () => { try { document.body.removeChild(f) } catch { } }
     setTimeout(cleanup, 10000)
-      ; (f.contentWindow as any)?.addEventListener?.("afterprint", cleanup)
+    ;(f.contentWindow as any)?.addEventListener?.("afterprint", cleanup)
   }
 
-  const isMobile = useMemo(() => {
-    if (typeof window === "undefined") return false
-    return (window.matchMedia?.("(pointer: coarse)").matches ||
-      /Android|iPhone|iPad|iPod/i.test(navigator.userAgent))
-  }, [])
+  // Smart print: BrowserPrint → HTML print
+  type PrintPath = "browserprint" | "htmlPrint";
+  function pickPrintPath(hasBP: boolean): PrintPath {
+    return hasBP ? "browserprint" : "htmlPrint";
+  }
 
-  const onPrintClick = () => {
+  const handleSmartPrint = async () => {
     if (!articles.length) return
-    if (isMobile) {
-      const zpl = buildZplJobSmart(articles, template, 203) // ZQ511 = 203 dpi
+
+    // Revalida BrowserPrint por si cambió
+    let bpOk = false
+    try { bpOk = await bpIsAvailable() } catch { bpOk = false }
+
+    const path = pickPrintPath(bpOk)
+    const zpl = buildZplJobSmart(articles, template, 203)
+
+    const ok = (t:string)=> new Noty({ type:"success", layout:"topRight", theme:"mint", text:t, timeout:2200 }).show()
+    const warn = (t:string)=> new Noty({ type:"warning", layout:"topRight", theme:"mint", text:t, timeout:2200 }).show()
+    const err = (t:string)=> new Noty({ type:"error", layout:"topRight", theme:"mint", text:t, timeout:3000 }).show()
+
+    const tryBrowserPrint = async () => {
       try {
-        shareZplToZebra(zpl, "etiquetas.zpl")
-        new Noty({
-          type: "success",
-          layout: "topRight",
-          theme: "mint",
-          text: "Abre 'Zebra Print' en el panel de compartir para imprimir.",
-          timeout: 2200,
-        }).show()
-      } catch (e: any) {
-        new Noty({
-          type: "error",
-          layout: "topRight",
-          theme: "mint",
-          text: e?.message || "No se pudo compartir el ZPL.",
-          timeout: 3500,
-        }).show()
+        await bpPrintZPL(zpl)
+        ok("Enviado a Zebra (BrowserPrint).")
+        return true
+      } catch (e:any) {
+        console.warn("BrowserPrint falló:", e)
+        warn("No se pudo usar BrowserPrint; abriré la impresión del navegador…")
+        return false
       }
+    }
+
+    const tryHtmlPrint = () => {
+      try {
+        handlePrint()
+        ok("Abriendo diálogo de impresión del navegador…")
+        return true
+      } catch (e:any) {
+        console.warn("HTML print falló:", e)
+        err("No se pudo abrir la impresión del navegador.")
+        return false
+      }
+    }
+
+    if (path === "browserprint") {
+      if (await tryBrowserPrint()) return
+      tryHtmlPrint()
     } else {
-      handlePrint() // tu flujo HTML para desktop
+      tryHtmlPrint()
     }
   }
-
 
   // Preview barcodes cuando lista/plantilla cambian
   useEffect(() => {
@@ -828,7 +729,6 @@ ${template.css(w, h, pad)}
       videoRef.current.srcObject = s
       await videoRef.current.play()
 
-      // BarcodeDetector nativo si existe
       // @ts-ignore
       if ("BarcodeDetector" in window) {
         // @ts-ignore
@@ -862,7 +762,6 @@ ${template.css(w, h, pad)}
           return
         }
 
-        // fallback periódico con ZXing (FIX: usar videoRef.current)
         if (++missCount % 10 === 0 && videoRef.current && videoRef.current.videoWidth > 0) {
           const z = await tryZXingOnce(videoRef.current)
           const n2 = normalizeCandidate(z)
@@ -937,7 +836,6 @@ ${template.css(w, h, pad)}
         @supports (-webkit-touch-callout: none) {
           input, select, textarea, button { font-size: 16px; }
         }
-        /* ====== IMPRESIÓN SOLO DEL MODAL ====== */
         @media print {
           body * { visibility: hidden !important; }
           #print-area, #print-area * { visibility: visible !important; }
@@ -1078,29 +976,6 @@ ${template.css(w, h, pad)}
         </DialogContent>
       </Dialog>
 
-      {/* Dialog: Vista de impresión SOLO para móvil */}
-      <Dialog open={printOpen} onOpenChange={setPrintOpen}>
-        <DialogContent className="bg-white text-black border-gray-300 w-[96vw] max-w-[96vw] h-[90vh] sm:max-w-3xl overflow-hidden">
-          <DialogHeader className="no-print">
-            <DialogTitle>Vista de impresión</DialogTitle>
-          </DialogHeader>
-
-          {/* Área que SÍ se imprime */}
-          <div id="print-area" ref={printRef} className="relative">
-            {/* Se inyecta CSS + HTML dinámico en handlePrintMobile */}
-            <div className="print-body p-2" />
-          </div>
-
-          {/* Controles que NO se imprimen */}
-          <div className="no-print mt-3 flex gap-2 justify-end">
-            <Button variant="outline" onClick={() => setPrintOpen(false)}>Cerrar</Button>
-            <Button onClick={() => window.print()} className="bg-purple-600 hover:bg-purple-700">
-              <Printer className="w-4 h-4 mr-2" /> Imprimir
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
       {/* Contenido principal */}
       <div className="min-h-screen p-4 sm:p-6">
         <div className="max-w-7xl mx-auto">
@@ -1207,27 +1082,16 @@ ${template.css(w, h, pad)}
                     }}
                   />
 
+                  {/* ÚNICO botón de impresión: BrowserPrint → HTML print */}
                   <Button
-                    onClick={onPrintClick}
-                    className="col-span-full w-full justify-center h-11 bg-gray-600 hover:bg-gray-700 text-white border-0"
+                    onClick={handleSmartPrint}
+                    className="col-span-full w-full justify-center h-11 bg-purple-600 hover:bg-purple-700 text-white border-0"
                     disabled={!sucursalId || articles.length === 0}
                     title="Imprimir etiquetas"
                   >
                     <Printer className="w-4 h-4 mr-2" />
                     Imprimir ({totalLabels})
                   </Button>
-
-                  <Button
-                    onClick={handlePrintBrowserPrint}
-                    className="col-span-full w-full justify-center h-11 bg-purple-600 hover:bg-purple-700 text-white border-0"
-                    disabled={!sucursalId || articles.length === 0}
-                    title="Imprimir directo por BrowserPrint (Android)"
-                  >
-                    <Printer className="w-4 h-4 mr-2" />
-                    Imprimir (BrowserPrint)
-                  </Button>
-
-
 
                   <Button
                     type="button"
@@ -1403,9 +1267,13 @@ ${template.css(w, h, pad)}
           </div>
         </div>
       </div>
+
+      {/* Área invisible para @media print (reutilizado por handlePrint) */}
+      <div id="print-area" className="hidden" />
     </div>
   )
 }
+
 
 // ====== NumberField (simple) ======
 function NumberField({
