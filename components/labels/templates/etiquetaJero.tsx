@@ -183,7 +183,7 @@ export const Prueba2: LabelTemplate = {
      ========================= */
   renderZPL: (a, dpi: Dpi, opts?: { darkness?: number }) => {
     // Tamaño (coincide con el título)
-    const W = 69.9, H = 25.5
+    const W = 49.9, H = 25.5
 
     // Márgenes y gaps (equivalentes a gap: "3px 8px")
     const padX = 1.5, padY = 1.5

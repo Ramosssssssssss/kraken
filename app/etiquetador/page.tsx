@@ -656,7 +656,7 @@ export default function LabelGenerator() {
           ? `<canvas class="qr-canvas" data-value="${a.barcode}"></canvas>`
           : `<svg class="barcode-svg" data-value="${a.barcode}" data-format="${fmt}"></svg>`
         }
-          <div class="label-text">SKU ${esc(a.text)}</div>
+          <div class="label-text"> ${esc(a.text)}</div>
           ${showDesc && a.desc ? `<div class="desc-text">${esc(a.desc)}</div>` : ""}
         </div>
       </div>
