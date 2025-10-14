@@ -113,12 +113,12 @@ body{
 
   /* ========= ZPL que conserva el diseño del renderHTML (grid 3×6) ========= */
   renderZPL: (a, dpi: Dpi, opts?: { darkness?: number }) => {
-    const W = 25, H = 25
+    const W = 25, H = 25.4
 
     // padding y gaps (CSS: padding:1mm; gap:1px ≈ 0.26–0.3mm)
     const padX = 1, padY = 1
-    const rowGap = 0.3
-    const colGap = 0.3
+    const rowGap = 0.1
+    const colGap = 0.1
 
     // 3 columnas, 6 filas
     const colW = (W - padX * 2 - colGap * 2) / 3
@@ -150,7 +150,7 @@ body{
 
     // Tipografías aproximadas (px→mm ~ 0.2646):
     // desc ~7.6px ≈ 2.0mm; b ~7px ≈ 1.9mm; pm ~15px ≈ 4.0mm; pl ~6–7px ≈ 1.7–1.9mm
-    const desc   = textBox(aDesc.x, aDesc.y, aDesc.w, 2.0, 2, "L", dpi, a?.nombre ?? "", 0.45)
+    const desc   = textBox(aDesc.x, aDesc.y, aDesc.w, 2.0, 3, "L", dpi, a?.nombre ?? "", 0.45)
     const im     = textBox(aIm.x,   aIm.y,   aIm.w,   1.9, 1, "L", dpi, `G - ${Number.isFinite(a?.inventarioMaximo) ? a.inventarioMaximo : 0}`)
     const es     = textBox(aEs.x,   aEs.y,   aEs.w,   1.9, 1, "L", dpi, a?.estatus ?? "-")
     const un     = textBox(aUn.x,   aUn.y,   aUn.w,   1.9, 1, "L", dpi, a?.unidad ?? "")
