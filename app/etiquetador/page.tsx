@@ -326,6 +326,8 @@ const DOTS_PER_MM = 8 // 203 dpi ~ 8 dpmm
 
 function toDots(mm: number) { return Math.max(1, Math.round(mm * DOTS_PER_MM)) }
 
+/*********************************************************/
+
 function buildZplFromState(
   articles: { barcode: string; text: string; quantity: number; desc?: string }[],
   cfg: {
@@ -335,79 +337,65 @@ function buildZplFromState(
   },
   format: "CODE128" | "CODE128B" | "QR"
 ) {
-  const wmm = parseFloat(cfg.width || "50")
-  const hmm = parseFloat(cfg.height || "25")
-  const margin = Math.max(0, parseFloat(cfg.margin || "0"))
-  const barH = Math.max(4, parseFloat(cfg.barHeightMm || "20"))
-  const labelW = toDots(wmm)
-  const labelH = toDots(hmm)
-  const pad = toDots(margin)
-  const barHdp = toDots(barH)
+  const wmm = parseFloat(cfg.width || "50");
+  const hmm = parseFloat(cfg.height || "25");
+  const margin = Math.max(0, parseFloat(cfg.margin || "0"));
+  const barH = Math.max(4, parseFloat(cfg.barHeightMm || "20"));
 
-  // tipografías ZPL: ^A0,^A1… (no mapea “Arial/Times”; usamos ^A0)
-  const textH = Math.max(10, Math.round(parseFloat(cfg.fontSize || "10") * 1.4)) // alto aprox
-  const descH = Math.max(8, Math.round(parseFloat(cfg.descFontSize || "12") * 1.3))
-  const showDesc = !!cfg.showDesc
+  const labelW = toDots(wmm);
+  const labelH = toDots(hmm);
+  const pad = toDots(margin);
+  const barHd = toDots(barH);
 
-  const centerX = Math.max(0, Math.floor(labelW / 2))
-  const usableW = labelW - pad * 2
-  const usableH = labelH - pad * 2
+  // Alturas de texto (aprox) para ZPL (^A0)
+  const textH = Math.max(10, Math.round(parseFloat(cfg.fontSize || "10") * 1.4));
+  const descH = Math.max(8, Math.round(parseFloat(cfg.descFontSize || "12") * 1.3));
+  const showDesc = !!cfg.showDesc;
 
-  const blocks: string[] = []
+  const usableW = labelW - pad * 2;
+  const usableH = labelH - pad * 2;
+
+  const blocks: string[] = [];
   for (const a of articles) {
-    const copies = Math.max(1, Math.floor(a.quantity || 1))
+    const copies = Math.max(1, Math.floor(a.quantity || 1));
     for (let i = 0; i < copies; i++) {
-      // Layout simple en columna: código arriba, texto debajo, desc (opcional)
-      let y = pad
+      let y = pad;
 
-      // inicio etiqueta
       let z = `^XA
+^CI28
 ^PW${labelW}
 ^LL${labelH}
 ^LH0,0
-`
+`;
 
       if (format === "QR") {
-        // QR centrado
-        const qrSide = Math.min(usableW, usableH - toDots(2)) // lo más grande posible
-        const m = Math.max(2, Math.floor(qrSide / 30)) // módulo heurístico
-        const x = Math.max(pad, centerX - Math.floor(qrSide / 2))
-        z += `^FO${x},${y}^BQN,2,${Math.max(2, Math.min(10, Math.floor(m / 2)))}^FDLA,${a.barcode}^FS\n`
-        y += qrSide + toDots(1)
+        // QR (BQN), centrado
+        const qrSide = Math.min(usableW, usableH - toDots(2));
+        const moduleFactor = Math.max(2, Math.min(10, Math.floor(qrSide / 40))); // heurístico
+        const x = Math.max(pad, Math.floor((labelW - qrSide) / 2));
+        z += `^FO${x},${y}^BQN,2,${moduleFactor}^FDLA,${a.barcode}^FS\n`;
+        y += qrSide + toDots(1);
       } else {
-        // Barras CODE128/128B centradas
-        const x = pad
-        const bw = usableW
-        // ^BCN,h = Code128, N=Normal, h=alto
-        z += `^FO${x},${y}^BY2,2,${barHdp}^BCN,${barHdp},N,N,N^FD${a.barcode}^FS\n`
-        y += barHdp + toDots(1)
+        // Barcode 128 (Zebra no diferencia A/B en el comando ^BC)
+        z += `^FO${pad},${y}^BY2,2,${barHd}^BCN,${barHd},N,N,N^FD${a.barcode}^FS\n`;
+        y += barHd + toDots(1);
       }
 
-      // Texto principal (clave)
-      {
-        const x = pad
-        const maxW = usableW
-        z += `^FO${x},${y}^FB${maxW},1,0,C,0^A0N,${textH},${textH}^FD${a.text}^FS\n`
-        y += textH + toDots(1)
-      }
+      // Texto principal
+      z += `^FO${pad},${y}^FB${usableW},1,0,C,0^A0N,${textH},${textH}^FD${a.text}^FS\n`;
+      y += textH + toDots(1);
 
-      // Descripción opcional
+      // Descripción (opcional)
       if (showDesc && a.desc) {
-        const x = pad
-        const maxW = usableW
-        z += `^FO${x},${y}^FB${maxW},1,0,C,0^A0N,${descH},${descH}^FD${a.desc}^FS\n`
-        y += descH
+        z += `^FO${pad},${y}^FB${usableW},1,0,C,0^A0N,${descH},${descH}^FD${a.desc}^FS\n`;
       }
 
-      z += "^XZ\n"
-      blocks.push(z)
+      z += "^XZ\n";
+      blocks.push(z);
     }
   }
-  return blocks.join("")
+  return blocks.join("");
 }
-
-
-
 
 /*******************************************************/
 
@@ -956,45 +944,48 @@ ${bodyHtml}
   };
 
   // ==== Smart Print: intenta BrowserPrint; si no, abre print del navegador ====
-  const handleSmartPrint = async () => {
-    if (articles.length === 0) return
+ // === Smart Print: BrowserPrint -> window.print() ===
+const handleSmartPrint = async () => {
+  if (articles.length === 0) return;
 
-    // 1) ¿Hay BrowserPrint?
-    let hasBP = false
-    try { hasBP = await bpIsAvailable() } catch { hasBP = false }
+  // 1) intentar BrowserPrint
+  let okBP = false;
+  try { okBP = await bpIsAvailable(); } catch { okBP = false; }
 
-    if (hasBP) {
-      try {
-        const zpl = buildZplFromState(
-          articles.map(a => ({ barcode: a.barcode, text: a.text, quantity: a.quantity, desc: a.desc })),
-          {
-            width: labelConfig.width,
-            height: labelConfig.height,
-            margin: labelConfig.margin,
-            fontSize: labelConfig.fontSize,
-            barHeightMm: labelConfig.barHeightMm,
-            font: labelConfig.font,
-            showDesc: labelConfig.showDesc,
-            descFontSize: labelConfig.descFontSize
-          },
-          barcodeFormat
-        )
-        await bpPrintZPL(zpl)
-        new Noty({ type: "success", layout: "topRight", theme: "mint", text: "Enviado a Zebra (BrowserPrint).", timeout: 2200 }).show()
-        return
-      } catch (e: any) {
-        console.warn("BrowserPrint falló:", e)
-        new Noty({ type: "warning", layout: "topRight", theme: "mint", text: "No se pudo usar BrowserPrint; abriré la impresión del navegador…", timeout: 2200 }).show()
-      }
-    }
-
-    // 2) Fallback a HTML → window.print()
+  if (okBP) {
     try {
-      handlePrint()
-    } catch (e: any) {
-      new Noty({ type: "error", layout: "topRight", theme: "mint", text: e?.message || "No se pudo abrir la impresión del navegador.", timeout: 3000 }).show()
+      const zpl = buildZplFromState(
+        articles.map(a => ({
+          barcode: a.barcode,
+          text: a.text,
+          quantity: a.quantity,
+          desc: a.desc
+        })),
+        {
+          width: labelConfig.width,
+          height: labelConfig.height,
+          margin: labelConfig.margin,
+          fontSize: labelConfig.fontSize,
+          barHeightMm: labelConfig.barHeightMm,
+          font: labelConfig.font,
+          showDesc: labelConfig.showDesc,
+          descFontSize: labelConfig.descFontSize
+        },
+        barcodeFormat
+      );
+      await bpPrintZPL(zpl);
+      new Noty({ type: "success", layout: "topRight", theme: "mint", text: "Enviado a Zebra (BrowserPrint).", timeout: 2000 }).show();
+      return;
+    } catch (e:any) {
+      console.warn("BrowserPrint falló:", e);
+      new Noty({ type: "warning", layout: "topRight", theme: "mint", text: "No se pudo usar BrowserPrint; abriendo impresión del navegador…", timeout: 2200 }).show();
     }
   }
+
+  // 2) fallback a impresión del navegador (tu HTML actual)
+  handlePrint();
+};
+
 
 
   /******************************************************/
