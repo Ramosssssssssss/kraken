@@ -116,15 +116,15 @@ body{
     const W = 25, H = 25.4
 
     // padding y gaps (CSS: padding:1mm; gap:1px ≈ 0.26–0.3mm)
-    const padX = 1, padY = 1
-    const rowGap = 0.1
+    const padX = 1, padY = 0.2         // pequeño margen superior para no “cortar”
+    const rowGap = 0.2                  // un poco más de aire vertical
     const colGap = 0.1
 
     // 3 columnas, 6 filas
     const colW = (W - padX * 2 - colGap * 2) / 3
     // Reparto de alturas (suma = H - paddings - gaps)
     // [desc 2 filas][fila3][fila4][fila5][fila6]
-    const rows = [4.0, 4.0, 3.5, 4.5, 3.0, 2.5] // total 21.5mm
+    const rows = [3.4, 3.2, 3.0, 4.2, 3.2, 2.6]
 
     const start = zplStart(W, H, dpi, { darkness: opts?.darkness })
 
@@ -140,24 +140,24 @@ body{
 
     // Áreas mapeadas uno a uno con el HTML
     const aDesc = area(1, 1, 3, 4) // filas 1–2, col 1–3
-    const aIm   = area(3, 1, 4, 2) // G - inv
-    const aEs   = area(4, 1, 5, 2) // estatus
-    const aUn   = area(5, 1, 6, 2) // unidad
-    const aCo   = area(6, 1, 7, 2) // código
-    const aFe   = area(3, 2, 4, 4) // fecha (derecha)
-    const aPm   = area(4, 2, 6, 4) // precio grande (2 filas)
-    const aPl   = area(6, 2, 7, 4) // distribuidor (abajo derecha)
+    const aIm = area(3, 1, 4, 2) // G - inv
+    const aEs = area(4, 1, 5, 2) // estatus
+    const aUn = area(5, 1, 6, 2) // unidad
+    const aCo = area(6, 1, 7, 2) // código
+    const aFe = area(3, 2, 4, 4) // fecha (derecha)
+    const aPm = area(4, 2, 6, 4) // precio grande (2 filas)
+    const aPl = area(6, 2, 7, 4) // distribuidor (abajo derecha)
 
     // Tipografías aproximadas (px→mm ~ 0.2646):
     // desc ~7.6px ≈ 2.0mm; b ~7px ≈ 1.9mm; pm ~15px ≈ 4.0mm; pl ~6–7px ≈ 1.7–1.9mm
-    const desc   = textBox(aDesc.x, aDesc.y, aDesc.w, 2.0, 3, "L", dpi, a?.nombre ?? "", 0.45)
-    const im     = textBox(aIm.x,   aIm.y,   aIm.w,   1.9, 1, "L", dpi, `G - ${Number.isFinite(a?.inventarioMaximo) ? a.inventarioMaximo : 0}`)
-    const es     = textBox(aEs.x,   aEs.y,   aEs.w,   1.9, 1, "L", dpi, a?.estatus ?? "-")
-    const un     = textBox(aUn.x,   aUn.y,   aUn.w,   1.9, 1, "L", dpi, a?.unidad ?? "")
-    const co     = textBox(aCo.x,   aCo.y,   aCo.w,   1.9, 1, "L", dpi, String(a?.codigo ?? ""))
-    const fe     = textBox(aFe.x,   aFe.y,   aFe.w,   1.9, 1, "R", dpi, a?.fecha ?? "")
-    const pm     = textBox(aPm.x,   aPm.y,   aPm.w,   4.0, 1, "R", dpi, fmtMoneyZ(a?.precio ?? 0))
-    const pl     = textBox(aPl.x,   aPl.y,   aPl.w,   1.8, 1, "R", dpi, `Dist: ${fmtMoneyZ(a?.distribuidor ?? 0)}`)
+   const desc = textBox(aDesc.x, aDesc.y - 0.2, aDesc.w, 1.9, 2, "L", dpi, a?.nombre ?? "", 0.42)
+    const im = textBox(aIm.x, aIm.y, aIm.w, 1.9, 1, "L", dpi, `G - ${Number.isFinite(a?.inventarioMaximo) ? a.inventarioMaximo : 0}`)
+    const es = textBox(aEs.x, aEs.y, aEs.w, 1.9, 1, "L", dpi, a?.estatus ?? "-")
+    const un = textBox(aUn.x, aUn.y, aUn.w, 1.9, 1, "L", dpi, a?.unidad ?? "")
+    const co = textBox(aCo.x, aCo.y, aCo.w, 1.9, 1, "L", dpi, String(a?.codigo ?? ""))
+    const fe = textBox(aFe.x, aFe.y, aFe.w, 1.9, 1, "R", dpi, a?.fecha ?? "")
+    const pm = textBox(aPm.x, aPm.y, aPm.w, 3.6, 1, "R", dpi, fmtMoneyZ(a?.precio ?? 0))
+    const pl = textBox(aPl.x, aPl.y, aPl.w, 1.8, 1, "R", dpi, `Dist: ${fmtMoneyZ(a?.distribuidor ?? 0)}`)
 
     return `${start}
 ${desc}
