@@ -115,8 +115,7 @@ export default function ProcessesSection() {
   const allowed = new Set<number>(userData?.modulosKrknArr ?? [])
 
   // Regla: si viene una lista no vacía, filtra; si no viene nada, muestra todo (para no bloquear)
-  const effectiveModules =
-    allowed.size > 0 ? modules.filter((m) => allowed.has(m.id)) : modules
+const effectiveModules = modules // << siempre muestra todos
 
   const principales = effectiveModules.filter((m) => m.group === "principal")
   const alternativos = effectiveModules.filter((m) => m.group === "alternativo")

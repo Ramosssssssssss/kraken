@@ -34,6 +34,7 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover" // Added Popover for filter dropdown
 import * as XLSX from "xlsx"
+import { useOptimizedImage } from "@/hooks/use-optimized-image"
 
 type Articulo = {
   ARTICULO_ID: number
@@ -64,7 +65,7 @@ type ArticuloDetalle = {
   INVENTARIO_MINIMO?: number | null
   PUNTO_REORDEN?: number | null
   INVENTARIO_MAXIMO?: number | null
-  IMAGEN?: string // Added IMAGEN property
+  IMAGEN?: string | null // Base64 image data
 }
 
 const PER_PAGE_OPTIONS = [15, 25, 50, 100]
@@ -992,7 +993,7 @@ export default function ArticulosPage() {
                         src={`${apiUrl?.replace(/\/+$/, "")}/artics/${encodeURIComponent(selectedId)}/imagen`}
                         alt="Imagen del artículo"
                         className="w-full h-full object-contain"
-                        loading="lazy"
+                        onLoadStart={() => setImageLoading(true)}
                         onLoad={() => setImageLoading(false)}
                         onError={(e) => {
                           setImageLoading(false)
@@ -1241,33 +1242,31 @@ function ArticuloCard({
   onView: (id: number) => void
   apiUrl: string | null
 }) {
-  const [imageLoading, setImageLoading] = useState(true)
-  const [imageError, setImageError] = useState(false)
-
   const fmtMoney = (n: number) =>
     new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 2 }).format(n || 0)
+
+  const imageSrc = articulo.TIENE_IMAGEN
+    ? `${apiUrl?.replace(/\/+$/, "")}/artics/${encodeURIComponent(articulo.ARTICULO_ID)}/imagen`
+    : null
+
+  const { imageUrl, loading: imageLoading, error: imageError, elementRef } = useOptimizedImage(imageSrc, true)
 
   return (
     <Card
       className="bg-black/40 border-white/10 backdrop-blur-xl overflow-hidden hover:border-purple-500/50 transition cursor-pointer group"
       onClick={() => onView(articulo.ARTICULO_ID)}
     >
-      <div className="aspect-square bg-black/60 relative overflow-hidden">
+      <div ref={elementRef} className="aspect-square bg-black/60 relative overflow-hidden">
         {imageLoading && !imageError && (
           <div className="absolute inset-0 flex items-center justify-center">
             <Loader2 className="w-6 h-6 text-purple-400 animate-spin" />
           </div>
         )}
-        {articulo.TIENE_IMAGEN && !imageError ? (
+        {imageUrl && !imageError ? (
           <img
-            src={`${apiUrl?.replace(/\/+$/, "")}/artics/${encodeURIComponent(articulo.ARTICULO_ID)}/imagen`}
+            src={imageUrl || "/placeholder.svg"}
             alt={articulo.NOMBRE}
             className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
-            onLoad={() => setImageLoading(false)}
-            onError={() => {
-              setImageLoading(false)
-              setImageError(true)
-            }}
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-white/20">
