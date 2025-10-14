@@ -15,6 +15,62 @@ import Noty from "noty";
 import "noty/lib/noty.css";
 import "noty/lib/themes/mint.css";
 
+// ==== BrowserPrint helpers (SDK Zebra) ====
+type BPDevice = any
+
+function loadBrowserPrint(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if ((window as any).BrowserPrint) return resolve()
+    const s = document.createElement("script")
+    s.src = "https://cdn.jsdelivr.net/npm/@zebra/browser-print@3.1.250/dist/browser-print.min.js"
+    s.async = true
+    s.onload = () => resolve()
+    s.onerror = () => reject(new Error("No se pudo cargar el SDK de BrowserPrint"))
+    document.head.appendChild(s)
+  })
+}
+
+export async function bpIsAvailable(): Promise<boolean> {
+  try {
+    await loadBrowserPrint()
+    const BP = (window as any).BrowserPrint
+    return new Promise((resolve) => {
+      BP.getDefaultDevice("printer", (dev: BPDevice) => resolve(!!dev), () => resolve(false))
+    })
+  } catch {
+    return false
+  }
+}
+
+export async function bpPickDevice(): Promise<BPDevice | null> {
+  await loadBrowserPrint()
+  const BP = (window as any).BrowserPrint
+  return new Promise((resolve) => {
+    BP.getLocalDevices(
+      (devices: BPDevice[]) => {
+        const printers = (devices || []).filter((d: any) => d.deviceType === "printer")
+        resolve(printers[0] || null)
+      },
+      () => resolve(null),
+      "printer"
+    )
+  })
+}
+
+export async function bpPrintZPL(zpl: string): Promise<void> {
+  await loadBrowserPrint()
+  const BP = (window as any).BrowserPrint
+  const device = await new Promise<BPDevice | null>((resolve) => {
+    BP.getDefaultDevice("printer", (dev: BPDevice) => resolve(dev), () => resolve(null))
+  }) || await bpPickDevice()
+
+  if (!device) throw new Error("No hay impresoras BrowserPrint disponibles.")
+  return new Promise<void>((resolve, reject) => {
+    device.send(zpl, () => resolve(), (e: any) => reject(new Error(e?.message || "Fallo al enviar ZPL")))
+  })
+}
+
+
 interface ArticleItem {
   id: string
   text: string
@@ -264,6 +320,97 @@ function NumberField({
   )
 }
 
+/*********************************************************/
+// ==== ZPL builder (usa 203 dpi) ====
+const DOTS_PER_MM = 8 // 203 dpi ~ 8 dpmm
+
+function toDots(mm: number) { return Math.max(1, Math.round(mm * DOTS_PER_MM)) }
+
+function buildZplFromState(
+  articles: { barcode: string; text: string; quantity: number; desc?: string }[],
+  cfg: {
+    width: string; height: string; margin: string;
+    fontSize: string; barHeightMm: string; font: string;
+    showDesc?: boolean; descFontSize?: string;
+  },
+  format: "CODE128" | "CODE128B" | "QR"
+) {
+  const wmm = parseFloat(cfg.width || "50")
+  const hmm = parseFloat(cfg.height || "25")
+  const margin = Math.max(0, parseFloat(cfg.margin || "0"))
+  const barH = Math.max(4, parseFloat(cfg.barHeightMm || "20"))
+  const labelW = toDots(wmm)
+  const labelH = toDots(hmm)
+  const pad = toDots(margin)
+  const barHdp = toDots(barH)
+
+  // tipografías ZPL: ^A0,^A1… (no mapea “Arial/Times”; usamos ^A0)
+  const textH = Math.max(10, Math.round(parseFloat(cfg.fontSize || "10") * 1.4)) // alto aprox
+  const descH = Math.max(8, Math.round(parseFloat(cfg.descFontSize || "12") * 1.3))
+  const showDesc = !!cfg.showDesc
+
+  const centerX = Math.max(0, Math.floor(labelW / 2))
+  const usableW = labelW - pad * 2
+  const usableH = labelH - pad * 2
+
+  const blocks: string[] = []
+  for (const a of articles) {
+    const copies = Math.max(1, Math.floor(a.quantity || 1))
+    for (let i = 0; i < copies; i++) {
+      // Layout simple en columna: código arriba, texto debajo, desc (opcional)
+      let y = pad
+
+      // inicio etiqueta
+      let z = `^XA
+^PW${labelW}
+^LL${labelH}
+^LH0,0
+`
+
+      if (format === "QR") {
+        // QR centrado
+        const qrSide = Math.min(usableW, usableH - toDots(2)) // lo más grande posible
+        const m = Math.max(2, Math.floor(qrSide / 30)) // módulo heurístico
+        const x = Math.max(pad, centerX - Math.floor(qrSide / 2))
+        z += `^FO${x},${y}^BQN,2,${Math.max(2, Math.min(10, Math.floor(m / 2)))}^FDLA,${a.barcode}^FS\n`
+        y += qrSide + toDots(1)
+      } else {
+        // Barras CODE128/128B centradas
+        const x = pad
+        const bw = usableW
+        // ^BCN,h = Code128, N=Normal, h=alto
+        z += `^FO${x},${y}^BY2,2,${barHdp}^BCN,${barHdp},N,N,N^FD${a.barcode}^FS\n`
+        y += barHdp + toDots(1)
+      }
+
+      // Texto principal (clave)
+      {
+        const x = pad
+        const maxW = usableW
+        z += `^FO${x},${y}^FB${maxW},1,0,C,0^A0N,${textH},${textH}^FD${a.text}^FS\n`
+        y += textH + toDots(1)
+      }
+
+      // Descripción opcional
+      if (showDesc && a.desc) {
+        const x = pad
+        const maxW = usableW
+        z += `^FO${x},${y}^FB${maxW},1,0,C,0^A0N,${descH},${descH}^FD${a.desc}^FS\n`
+        y += descH
+      }
+
+      z += "^XZ\n"
+      blocks.push(z)
+    }
+  }
+  return blocks.join("")
+}
+
+
+
+
+/*******************************************************/
+
 export default function LabelGenerator() {
   const [labelConfig, setLabelConfig] = useState({
     size: "Default",
@@ -482,79 +629,79 @@ export default function LabelGenerator() {
   }, [])
 
   // Cambios con límites
- const handleConfigChange = (key: string, value: string | boolean) => {
-  setLabelConfig((prev) => {
-    if (key === "width") {
-      const w = clampMm(parseFloat(String(value)), MAX_W_MM)
-      // si estás en QR, re-clampa el QR porque cambia el ancho útil
-      if (barcodeFormat === "QR") {
-        const qr = clampQrSize(
-          parseFloat(prev.qrSizeMm || "16"),
-          w,
-          parseFloat(prev.height || "25"),
-          parseFloat(prev.margin || "0")
-        )
-        return { ...prev, width: String(w), qrSizeMm: String(qr) }
+  const handleConfigChange = (key: string, value: string | boolean) => {
+    setLabelConfig((prev) => {
+      if (key === "width") {
+        const w = clampMm(parseFloat(String(value)), MAX_W_MM)
+        // si estás en QR, re-clampa el QR porque cambia el ancho útil
+        if (barcodeFormat === "QR") {
+          const qr = clampQrSize(
+            parseFloat(prev.qrSizeMm || "16"),
+            w,
+            parseFloat(prev.height || "25"),
+            parseFloat(prev.margin || "0")
+          )
+          return { ...prev, width: String(w), qrSizeMm: String(qr) }
+        }
+        return { ...prev, width: String(w) }
       }
-      return { ...prev, width: String(w) }
-    }
 
-    if (key === "height") {
-      const h = clampMm(parseFloat(String(value)), MAX_H_MM)
-      const bar = clampBarHeight(parseFloat(prev.barHeightMm || "20"), h, parseFloat(prev.margin || "0"))
-      if (barcodeFormat === "QR") {
-        const qr = clampQrSize(
-          parseFloat(prev.qrSizeMm || "16"),
-          parseFloat(prev.width || "50"),
-          h,
-          parseFloat(prev.margin || "0")
-        )
-        return { ...prev, height: String(h), barHeightMm: String(bar), qrSizeMm: String(qr) }
+      if (key === "height") {
+        const h = clampMm(parseFloat(String(value)), MAX_H_MM)
+        const bar = clampBarHeight(parseFloat(prev.barHeightMm || "20"), h, parseFloat(prev.margin || "0"))
+        if (barcodeFormat === "QR") {
+          const qr = clampQrSize(
+            parseFloat(prev.qrSizeMm || "16"),
+            parseFloat(prev.width || "50"),
+            h,
+            parseFloat(prev.margin || "0")
+          )
+          return { ...prev, height: String(h), barHeightMm: String(bar), qrSizeMm: String(qr) }
+        }
+        return { ...prev, height: String(h), barHeightMm: String(bar) }
       }
-      return { ...prev, height: String(h), barHeightMm: String(bar) }
-    }
 
-    if (key === "margin") {
-      const margin = Math.max(0, parseFloat(String(value)))
-      const bar = clampBarHeight(
-        parseFloat(prev.barHeightMm || "20"),
-        parseFloat(prev.height || "25"),
-        margin
-      )
-      if (barcodeFormat === "QR") {
-        const qr = clampQrSize(
-          parseFloat(prev.qrSizeMm || "16"),
-          parseFloat(prev.width || "50"),
+      if (key === "margin") {
+        const margin = Math.max(0, parseFloat(String(value)))
+        const bar = clampBarHeight(
+          parseFloat(prev.barHeightMm || "20"),
           parseFloat(prev.height || "25"),
           margin
         )
-        return { ...prev, margin: String(margin), barHeightMm: String(bar), qrSizeMm: String(qr) }
+        if (barcodeFormat === "QR") {
+          const qr = clampQrSize(
+            parseFloat(prev.qrSizeMm || "16"),
+            parseFloat(prev.width || "50"),
+            parseFloat(prev.height || "25"),
+            margin
+          )
+          return { ...prev, margin: String(margin), barHeightMm: String(bar), qrSizeMm: String(qr) }
+        }
+        return { ...prev, margin: String(margin), barHeightMm: String(bar) }
       }
-      return { ...prev, margin: String(margin), barHeightMm: String(bar) }
-    }
 
-    if (key === "barHeightMm") {
-      const h = clampBarHeight(
-        parseFloat(String(value)),
-        parseFloat(prev.height || "25"),
-        parseFloat(prev.margin || "0")
-      )
-      // 👇 sincroniza QR SOLO si estás en formato QR
-      if (barcodeFormat === "QR") {
-        const qr = clampQrSize(
-          h, // usa el alto de barra como base para el tamaño del QR
-          parseFloat(prev.width || "50"),
+      if (key === "barHeightMm") {
+        const h = clampBarHeight(
+          parseFloat(String(value)),
           parseFloat(prev.height || "25"),
           parseFloat(prev.margin || "0")
         )
-        return { ...prev, barHeightMm: String(h), qrSizeMm: String(qr) }
+        // 👇 sincroniza QR SOLO si estás en formato QR
+        if (barcodeFormat === "QR") {
+          const qr = clampQrSize(
+            h, // usa el alto de barra como base para el tamaño del QR
+            parseFloat(prev.width || "50"),
+            parseFloat(prev.height || "25"),
+            parseFloat(prev.margin || "0")
+          )
+          return { ...prev, barHeightMm: String(h), qrSizeMm: String(qr) }
+        }
+        return { ...prev, barHeightMm: String(h) }
       }
-      return { ...prev, barHeightMm: String(h) }
-    }
 
-    return { ...prev, [key]: value }
-  })
-}
+      return { ...prev, [key]: value }
+    })
+  }
 
 
   const aplicarTamanoBD = (t: TamanoEtiqueta) => {
@@ -808,6 +955,46 @@ ${bodyHtml}
     }
   };
 
+  // ==== Smart Print: intenta BrowserPrint; si no, abre print del navegador ====
+  const handleSmartPrint = async () => {
+    if (articles.length === 0) return
+
+    // 1) ¿Hay BrowserPrint?
+    let hasBP = false
+    try { hasBP = await bpIsAvailable() } catch { hasBP = false }
+
+    if (hasBP) {
+      try {
+        const zpl = buildZplFromState(
+          articles.map(a => ({ barcode: a.barcode, text: a.text, quantity: a.quantity, desc: a.desc })),
+          {
+            width: labelConfig.width,
+            height: labelConfig.height,
+            margin: labelConfig.margin,
+            fontSize: labelConfig.fontSize,
+            barHeightMm: labelConfig.barHeightMm,
+            font: labelConfig.font,
+            showDesc: labelConfig.showDesc,
+            descFontSize: labelConfig.descFontSize
+          },
+          barcodeFormat
+        )
+        await bpPrintZPL(zpl)
+        new Noty({ type: "success", layout: "topRight", theme: "mint", text: "Enviado a Zebra (BrowserPrint).", timeout: 2200 }).show()
+        return
+      } catch (e: any) {
+        console.warn("BrowserPrint falló:", e)
+        new Noty({ type: "warning", layout: "topRight", theme: "mint", text: "No se pudo usar BrowserPrint; abriré la impresión del navegador…", timeout: 2200 }).show()
+      }
+    }
+
+    // 2) Fallback a HTML → window.print()
+    try {
+      handlePrint()
+    } catch (e: any) {
+      new Noty({ type: "error", layout: "topRight", theme: "mint", text: e?.message || "No se pudo abrir la impresión del navegador.", timeout: 3000 }).show()
+    }
+  }
 
 
   /******************************************************/
@@ -904,7 +1091,7 @@ ${bodyHtml}
                   </CardTitle>
 
                   <div className="flex items-center gap-2 text-white font-light text-xs sm:text-sm">
-                    <span className="shrink-0">v1.3.2</span>
+                    <span className="shrink-0">v1.4</span>
                     <Link
                       href="/actualizaciones"
                       className="text-purple-300 hover:text-purple-200"
@@ -1211,10 +1398,11 @@ ${bodyHtml}
                 </div>
 
                 <div className="flex gap-3 pt-2 sm:pt-4 flex-col sm:flex-row">
-                  <Button onClick={handlePrint} className="bg-gray-600 hover:bg-gray-700 text-white border-0 w-full sm:flex-1" disabled={articles.length === 0}>
+                  <Button onClick={handleSmartPrint} className="bg-gray-600 hover:bg-gray-700 text-white border-0 w-full sm:flex-1" disabled={articles.length === 0}>
                     <Printer className="w-4 h-4 mr-2" />
-                    Imprimir
+                    Imprimir (Browser/Print)
                   </Button>
+
                 </div>
                 <div className="flex gap-3 pt-2 sm:pt-4 flex-col sm:flex-row">
                   <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white border-0 w-full sm:w-auto" onClick={onPickExcelClick} title="Importar desde Excel/CSV">
