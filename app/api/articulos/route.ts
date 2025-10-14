@@ -4,7 +4,7 @@ import * as fb from "node-firebird"
 
 // ====== Configs por host ======
 const baseFbConfig: fb.Options = {
-  host: process.env.FIREBIRD_HOST || "85.215.109.213",
+  host: process.env.FIREBIRD_HOST || "74.208.83.240",
   port: Number(process.env.FIREBIRD_PORT || 3050),
   database: process.env.FB_DATABASE || "D:\\Microsip datos\\GUIMAR.FDB",
   user: process.env.FIREBIRD_USER || "SYSDBA",
