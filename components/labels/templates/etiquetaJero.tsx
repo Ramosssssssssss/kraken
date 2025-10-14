@@ -181,84 +181,101 @@ export const Prueba2: LabelTemplate = {
   /* =========================
      ZPL organizado en grid 4×6 (con QR)
      ========================= */
-  renderZPL: (a, dpi: Dpi, opts?: { darkness?: number }) => {
-    // Tamaño (coincide con el título)
-    const W = 49.9, H = 25.5
+renderZPL: (a, dpi: Dpi, opts?: { darkness?: number }) => {
+  // Tamaño (coincide con el título)
+  const W = 69.9, H = 25.5
 
-    // Márgenes y gaps (equivalentes a gap: "3px 8px")
-    const padX = 1.5, padY = 1.5
-    const rowGap = 0.8   // ~3 px
-    const colGap = 2.1   // ~8 px
+  // Márgenes y gaps (equivalentes a gap: "3px 8px")
+  const padX = 1.5, padY = 1.5
+  const rowGap = 0.8   // ~3 px
+  const colGap = 2.1   // ~8 px
 
-    // Grid 4×6
-    const colW = (W - padX * 2 - colGap * 3) / 4
-    // Alturas por fila (tuneadas para dar aire al precio)
-    const rows = [3.2, 3.0, 2.6, 4.2, 3.2, 3.1] // 6 filas
+  // Grid 4×6 (misma idea que en CSS, afinado para dar aire al precio)
+  const colW = (W - padX * 2 - colGap * 3) / 4
+  const rows = [3.2, 3.0, 2.6, 4.2, 3.2, 3.1] // 6 filas
 
-    const start = zplStart(W, H, dpi, { darkness: opts?.darkness })
+  const start = zplStart(W, H, dpi, { darkness: opts?.darkness })
 
-    const sum = (arr: number[], i: number, j: number) => arr.slice(i, j).reduce((s, v) => s + v, 0)
-    // grid-area: r1/c1 → r2/c2 (exclusivas r2, c2)
-    const area = (r1: number, c1: number, r2: number, c2: number) => {
-      const x = padX + (c1 - 1) * (colW + colGap)
-      const y = padY + sum(rows, 0, r1 - 1) + rowGap * (r1 - 1)
-      const w = (c2 - c1) * colW + (c2 - c1 - 1) * colGap
-      const h = sum(rows, r1 - 1, r2 - 1) + rowGap * Math.max(0, r2 - r1 - 1)
-      return { x, y, w, h }
-    }
+  const sum = (arr: number[], i: number, j: number) => arr.slice(i, j).reduce((s, v) => s + v, 0)
+  // grid-area: r1/c1 → r2/c2 (exclusivas r2, c2)
+  const area = (r1: number, c1: number, r2: number, c2: number) => {
+    const x = padX + (c1 - 1) * (colW + colGap)
+    const y = padY + sum(rows, 0, r1 - 1) + rowGap * (r1 - 1)
+    const w = (c2 - c1) * colW + (c2 - c1 - 1) * colGap
+    const h = sum(rows, r1 - 1, r2 - 1) + rowGap * Math.max(0, r2 - r1 - 1)
+    return { x, y, w, h }
+  }
 
-    // Áreas emparejadas al preview
-    const aDesc   = area(1, 1, 3, 4) // filas 1–2, cols 1–3
-    const aInv    = area(3, 1, 4, 2)
-    const aEst    = area(4, 1, 5, 2)
-    const aUni    = area(5, 1, 6, 2)
-    const aFecha  = area(3, 2, 4, 4)
-    const aPrecio = area(4, 2, 6, 4) // filas 4–5, cols 2–3
-    const aDist   = area(6, 3, 7, 4) // fila 6, col 3
-    const aQr     = area(6, 1, 7, 3) // fila 6, cols 1–2 (QR + código)
+  // Áreas que reflejan exactamente el CSS del renderHTML
+  const aDesc   = area(1, 1, 3, 4) // .desc
+  const aQR     = area(3, 1, 6, 2) // .co (QR + código)
+  const aEstatus= area(4, 1, 5, 2) // .es
+  const aInv    = area(6, 1, 7, 2) // .im (G - ...)
+  const aUni    = area(5, 4, 6, 5) // .un
+  const aCodTop = area(4, 4, 5, 5) // .co2 (código arriba-dcha)
+  const aFecha  = area(6, 4, 7, 5) // .fe
+  const aPrecio = area(3, 2, 6, 4) // .pm (entero grande)
+  const aCent   = area(3, 4, 4, 5) // .cents (al lado, subrayado)
+  const aDist   = area(6, 2, 7, 4) // .pl
 
-    // === Textos ===
-    const desc   = textBox(aDesc.x, aDesc.y, aDesc.w, 3.0, 2, "L", dpi, a?.nombre ?? "", 0.55)
-    const invMax = textBox(aInv.x, aInv.y, aInv.w, 2.4, 1, "L", dpi, `G - ${Number.isFinite(a?.inventarioMaximo) ? a.inventarioMaximo : 0}`)
-    const estatus= textBox(aEst.x, aEst.y, aEst.w, 2.4, 1, "L", dpi, a?.estatus ?? "-")
-    const unidad = textBox(aUni.x, aUni.y, aUni.w, 2.4, 1, "L", dpi, a?.unidad ?? "")
-    const fecha  = textBox(aFecha.x, aFecha.y, aFecha.w, 2.4, 1, "R", dpi, a?.fecha ?? "")
+  // === Textos base (coinciden con HTML) ===
+  const desc   = textBox(aDesc.x, aDesc.y, aDesc.w, 3.0, 2, "L", dpi, a?.nombre ?? "", 0.55)
+  const estatus= textBox(aEstatus.x, aEstatus.y, aEstatus.w, 2.4, 1, "L", dpi, a?.estatus ?? "-")
+  const invMax = textBox(aInv.x, aInv.y, aInv.w, 2.4, 1, "L", dpi, `G - ${Number.isFinite(a?.inventarioMaximo) ? a.inventarioMaximo : 0}`)
+  const unidad = textBox(aUni.x, aUni.y, aUni.w, 2.4, 1, "L", dpi, a?.unidad ?? "")
+  const codTop = textBox(aCodTop.x, aCodTop.y, aCodTop.w, 2.4, 1, "L", dpi, String(a?.codigo ?? ""))
+  const fecha  = textBox(aFecha.x, aFecha.y, aFecha.w, 2.4, 1, "R", dpi, a?.fecha ?? "")
 
-    // Precio grande (2 filas alto). Offset pequeño para centrado óptico
-    const price  = textBox(aPrecio.x, aPrecio.y + 0.2, aPrecio.w, 7.0, 1, "R", dpi, fmtMoneyZ(a?.precio ?? 0))
+  // === Precio principal: entero grande en .pm y centavos pequeños subrayados en .cents ===
+  const { precioFmt, centavos } = splitPriceParts(a?.precio)
+  const precioEntero = textBox(aPrecio.x, aPrecio.y + 0.2, aPrecio.w, 7.0, 1, "R", dpi, `$${precioFmt}`)
+  // Centavos: fuente menor y subrayado con ^GB simulando underline
+  const centTxt = textBox(aCent.x, aCent.y, aCent.w, 2.8, 1, "L", dpi, centavos)
+  const underline = (() => {
+    const x = aCent.x
+    const y = aCent.y + Math.max(0, aCent.h - 0.6) // ~0.6mm por encima del borde inferior
+    const w = Math.max(4, aCent.w)
+    return `^FO${toDots(x, dpi)},${toDots(y, dpi)}^GB${toDots(w, dpi)},1,1^FS`
+  })()
 
-    // Distribuidor abajo a la derecha
-    const dist   = textBox(aDist.x, aDist.y + 0.3, aDist.w, 2.3, 1, "R", dpi, `Distribuidor: ${fmtMoneyZ(a?.distribuidor ?? 0)}`)
+  // === Distribuidor centrado abajo (mantenemos formato compacto y legible) ===
+  const distTxt = textBox(aDist.x, aDist.y + 0.3, aDist.w, 2.6, 1, "C", dpi, `Dist: ${fmtMoneyZ(a?.distribuidor ?? 0)}`)
 
-    // === QR + código (Zebra ^BQN) ===
-    const qrMargin = 0.4
-    const qrSize = Math.min(aQr.w, aQr.h) - qrMargin * 2
-    const qrX = aQr.x + qrMargin
-    const qrY = aQr.y + qrMargin
-    const qrMagHint = dpi >= 300 ? 2 : 3 // 203dpi→3, 300dpi→2 (ajustable)
-    const qr = qrBox(qrX, qrY, qrSize, dpi, String(a?.codigo ?? ""), qrMagHint)
+  // === QR + código a la derecha, dentro del área .co ===
+  // Tamaño de QR ~12mm como en CSS (.qr { width/height: 12mm })
+  const qrFixed = 12
+  const qrMargin = 0.5
+  const qrSize = Math.min(qrFixed, Math.min(aQR.w, aQR.h) - qrMargin * 2)
+  const qrX = aQR.x + qrMargin
+  const qrY = aQR.y + (aQR.h - qrSize) / 2
+  const qrMagHint = dpi >= 300 ? 2 : 3 // 203dpi→3, 300dpi→2
+  const qr = qrBox(qrX, qrY, qrSize, dpi, String(a?.codigo ?? ""), qrMagHint)
 
-    // Código a la derecha del QR si hay espacio
-    const codeTextX = qrX + qrSize + 0.8
-    const codeTextW = Math.max(0, aQr.x + aQr.w - codeTextX)
-    const codeTextY = aQr.y + Math.max(0, (qrSize - 2.4) / 2)
-    const codeText  = codeTextW > 6
-      ? textBox(codeTextX, codeTextY, codeTextW, 2.4, 1, "L", dpi, String(a?.codigo ?? ""))
-      : ""
+  // Texto del código a la derecha del QR, ocupando el resto del ancho del área .co
+  const codeTextX = qrX + qrSize + 0.8
+  const codeTextW = Math.max(0, aQR.x + aQR.w - codeTextX)
+  const codeTextY = aQR.y + Math.max(0, (aQR.h - 2.4) / 2)
+  const codeRight = codeTextW > 6
+    ? textBox(codeTextX, codeTextY, codeTextW, 2.4, 1, "L", dpi, String(a?.codigo ?? ""))
+    : ""
 
-    return `${start}
+  return `${start}
 ${desc}
-${invMax}
 ${estatus}
+${invMax}
 ${unidad}
+${codTop}
 ${fecha}
-${price}
-${dist}
+${precioEntero}
+${centTxt}
+${underline}
+${distTxt}
 ${qr}
-${codeText}
+${codeRight}
 ^PQ1
 ${zplEnd}`
-  },
+},
+
 
   preview: (a) => {
     const { precioFmt, centavos } = splitPriceParts(a.precio)
