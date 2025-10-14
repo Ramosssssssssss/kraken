@@ -116,8 +116,8 @@ body{
     const W = 25, H = 25.4
 
     // padding y gaps (CSS: padding:1mm; gap:1px ≈ 0.26–0.3mm)
-    const padX = 1, padY = 0.2         // pequeño margen superior para no “cortar”
-    const rowGap = 0.2                  // un poco más de aire vertical
+    const padX = 0.2, padY = 0.2         // pequeño margen superior para no “cortar”
+    const rowGap = 0                 // un poco más de aire vertical
     const colGap = 0.1
 
     // 3 columnas, 6 filas
@@ -150,7 +150,7 @@ body{
 
     // Tipografías aproximadas (px→mm ~ 0.2646):
     // desc ~7.6px ≈ 2.0mm; b ~7px ≈ 1.9mm; pm ~15px ≈ 4.0mm; pl ~6–7px ≈ 1.7–1.9mm
-   const desc = textBox(aDesc.x, aDesc.y - 0.2, aDesc.w, 1.9, 2, "L", dpi, a?.nombre ?? "", 0.42)
+   const desc = textBox(aDesc.x, aDesc.y - 0.2, aDesc.w, 1.9, 3, "L", dpi, a?.nombre ?? "", 0.42)
     const im = textBox(aIm.x, aIm.y, aIm.w, 1.9, 1, "L", dpi, `G - ${Number.isFinite(a?.inventarioMaximo) ? a.inventarioMaximo : 0}`)
     const es = textBox(aEs.x, aEs.y, aEs.w, 1.9, 1, "L", dpi, a?.estatus ?? "-")
     const un = textBox(aUn.x, aUn.y, aUn.w, 1.9, 1, "L", dpi, a?.unidad ?? "")
