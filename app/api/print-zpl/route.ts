@@ -1,50 +1,67 @@
 // app/api/print-zpl/route.ts
-import type { NextRequest } from "next/server"
+export const runtime = "nodejs"
+
 import net from "net"
+import { NextResponse } from "next/server"
 
-export const runtime = "nodejs" // importante: NO edge
-export const dynamic = "force-dynamic"
+type Payload = {
+  zpl: string
+  ip?: string
+  port?: number
+}
 
-type Body = { host: string; port?: number; zpl: string; timeoutMs?: number }
+const PRINTER_IP = process.env.PRINTER_IP || ""     // opcional: fija tu IP aquí
+const PRINTER_PORT = Number(process.env.PRINTER_PORT || 9100)
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
+  let body: Payload
   try {
-    const { host, port = 9100, zpl, timeoutMs = 6000 } = (await req.json()) as Body
-    if (!host || !zpl) {
-      return new Response(JSON.stringify({ ok: false, error: "Faltan host o zpl" }), { status: 400 })
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ ok: false, error: "JSON inválido" }, { status: 400 })
+  }
+
+  const zpl = (body?.zpl || "").trim()
+  const ip  = (body?.ip || PRINTER_IP).trim()
+  const port = body?.port || PRINTER_PORT
+
+  if (!zpl) return NextResponse.json({ ok: false, error: "Falta ZPL" }, { status: 400 })
+  if (!ip)  return NextResponse.json({ ok: false, error: "Falta IP de la impresora" }, { status: 400 })
+  if (!Number.isFinite(port as number)) return NextResponse.json({ ok: false, error: "Puerto inválido" }, { status: 400 })
+
+  // Enviar a 9100/raw
+  try {
+    await sendRaw9100(ip, port, zpl)
+    return NextResponse.json({ ok: true })
+  } catch (err: any) {
+    return NextResponse.json({ ok: false, error: String(err?.message || err) }, { status: 502 })
+  }
+}
+
+function sendRaw9100(ip: string, port: number, data: string) {
+  return new Promise<void>((resolve, reject) => {
+    const socket = new net.Socket()
+    let settled = false
+
+    const cleanup = (err?: Error) => {
+      if (settled) return
+      settled = true
+      try { socket.destroy() } catch {}
+      err ? reject(err) : resolve()
     }
 
-    const result = await new Promise<{ ok: boolean; bytes?: number }>((resolve, reject) => {
-      const socket = new net.Socket()
-      let total = 0
-      const timer = setTimeout(() => {
-        try { socket.destroy() } catch {}
-        reject(new Error("Timeout al conectar/enviar a la impresora"))
-      }, timeoutMs)
+    socket.setTimeout(8000)
 
-      socket.once("error", (e) => {
-        clearTimeout(timer)
-        reject(e)
-      })
-
-      socket.connect(port, host, () => {
-        // Enviar ZPL como UTF-8; Zebra suele aceptarlo bien con ^CI28
-        const buf = Buffer.from(zpl, "utf8")
-        socket.write(buf, (err) => {
-          if (err) { clearTimeout(timer); socket.destroy(); reject(err); return }
-          total += buf.length
-          // Pequeña espera y cerramos
-          setTimeout(() => {
-            clearTimeout(timer)
-            socket.end()
-            resolve({ ok: true, bytes: total })
-          }, 100)
-        })
+    socket.on("connect", () => {
+      socket.write(data, "utf8", () => {
+        // Cierra el envío; algunos modelos requieren un pequeño delay
+        setTimeout(() => cleanup(), 50)
       })
     })
+    socket.on("timeout", () => cleanup(new Error("Tiempo de espera agotado")))
+    socket.on("error", (e) => cleanup(e as Error))
+    socket.on("close", () => cleanup())
 
-    return Response.json(result)
-  } catch (e: any) {
-    return new Response(JSON.stringify({ ok: false, error: e?.message || "Error al imprimir" }), { status: 500 })
-  }
+    socket.connect(port, ip)
+  })
 }

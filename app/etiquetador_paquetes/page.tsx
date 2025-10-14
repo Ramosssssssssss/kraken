@@ -13,6 +13,11 @@ import pLimit from "p-limit"
 import Noty from "noty";
 import "noty/lib/noty.css";
 import "noty/lib/themes/mint.css";
+import {
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+    DialogFooter
+} from "@/components/ui/dialog"
+
 
 // Select UI
 import {
@@ -666,6 +671,9 @@ export default function EtiquetadorPaquetes() {
     const [paquetes, setPaquetes] = useState("1")
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [showConfirm, setShowConfirm] = useState(false)
+    const [busyConfirm, setBusyConfirm] = useState(false)
+
 
     // Reemplaza tu upsert actual por este:
     const upsert = (it: PaqItem) =>
@@ -811,6 +819,120 @@ export default function EtiquetadorPaquetes() {
         }
     }
 
+    async function logConteoPaq(rows: { folio: string; paquetes: number }[]) {
+        const r = await fetch("/api/conteo_paq", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            body: JSON.stringify({ rows }),
+        })
+        const j = await r.json().catch(() => ({}))
+        if (!r.ok) throw new Error(j?.error || "No se pudo registrar el conteo")
+        return j
+    }
+    async function handleConfirmModal() {
+        if (!items.length) return
+        try {
+            setBusyConfirm(true)
+            const rows = items.map(i => ({ folio: i.folio, paquetes: i.quantity }))
+            await logConteoPaq(rows)
+            new Noty({ type: "success", layout: "topRight", theme: "mint", text: "Registro guardado.", timeout: 1400 }).show()
+        } catch (e: any) {
+            new Noty({ type: "error", layout: "topRight", theme: "mint", text: `No se pudo registrar: ${e.message}`, timeout: 2600 }).show()
+        } finally {
+            setBusyConfirm(false)
+            setShowConfirm(false)
+            handlePrint()
+        }
+    }
+
+    function ConfirmPrintModal({
+        open, onOpenChange, items, busy, onConfirm,
+    }: {
+        open: boolean
+        onOpenChange: (v: boolean) => void
+        items: PaqItem[]
+        busy: boolean
+        onConfirm: () => void
+    }) {
+        const total = items.reduce((s, x) => s + x.quantity, 0)
+
+        // Enter confirma
+        function onKeyDown(e: React.KeyboardEvent) {
+            if (e.key === "Enter" && !busy) {
+                e.preventDefault()
+                onConfirm()
+            }
+        }
+
+        return (
+            <Dialog open={open} onOpenChange={(v) => !busy && onOpenChange(v)}>
+                <DialogContent
+                    className="sm:max-w-[560px] border border-white/10 bg-gradient-to-b from-[#101426] to-[#1a1f35] text-zinc-100 shadow-2xl"
+                    onKeyDown={onKeyDown}
+                >
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-zinc-50">
+                            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-yellow-500/20 text-yellow-300">!</span>
+                            Confirmar impresión
+                            <span className="ml-2 text-xs text-violet-300 bg-violet-500/10 border border-violet-500/30 rounded-full px-2 py-0.5">
+                                {items.length} folio(s)
+                            </span>
+                        </DialogTitle>
+                        <DialogDescription className="text-zinc-400">
+                            Se enviará a la impresora y se registrará en <b className="text-zinc-200">CONTEO_PAQ</b>.
+                            Presiona <b>Enter</b> para confirmar o <b>Esc</b> para cancelar.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {/* Lista de folios */}
+                    <div className="mt-3 rounded-lg border border-white/10 bg-white/5 max-h-64 overflow-auto">
+                        {items.map((i) => (
+                            <div key={i.id} className="flex items-center justify-between px-3 py-2 border-b border-white/5 last:border-b-0">
+                                <div className="font-semibold text-zinc-100 tracking-wide truncate">{i.folio}</div>
+                                <div className="text-xs text-zinc-100 bg-zinc-700/40 border border-zinc-500/40 rounded-md px-2 py-0.5">
+                                    {i.quantity} paquete(s)
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Total */}
+                    <div className="mt-3 flex items-center justify-between rounded-lg border border-white/10 bg-gradient-to-r from-violet-500/10 to-zinc-500/10 px-3 py-2">
+                        <span className="font-medium text-zinc-200">Total de paquetes</span>
+                        <span className="font-bold text-zinc-50">{total}</span>
+                    </div>
+
+                    <DialogFooter className="mt-2">
+                        <button
+                            type="button"
+                            className="inline-flex items-center rounded-lg border border-white/15 bg-transparent px-4 py-2 font-semibold text-zinc-100 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-violet-500/50 disabled:opacity-60"
+                            onClick={() => onOpenChange(false)}
+                            disabled={busy}
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="button"
+                            onClick={onConfirm}
+                            disabled={busy}
+                            className="inline-flex items-center rounded-lg bg-gradient-to-tr from-violet-500 to-violet-700 px-4 py-2 font-bold text-white shadow-[0_6px_18px_rgba(139,92,246,0.35)] hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-violet-500/60 disabled:opacity-70"
+                        >
+                            {busy && (
+                                <svg className="mr-2 h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                                    <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-90" d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="4" />
+                                </svg>
+                            )}
+                            Imprimir y registrar
+                        </button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        )
+    }
+
+
+
     // ====== Print (usa la plantilla seleccionada actual)
     // Imprimir TODO junto respetando el formato de cada plantilla (mismo tamaño)
     const handlePrint = () => {
@@ -920,7 +1042,7 @@ export default function EtiquetadorPaquetes() {
                                 <CardTitle className="flex items-center gap-2 text-white">
                                     <Settings className="w-5 h-5 text-purple-300" /> Configuración
                                 </CardTitle>
-                                <span className="text-xs text-gray-300">v2.3</span>
+                                <span className="text-xs text-gray-300">v2.3.1</span>
                             </CardHeader>
                             <CardContent className="p-6 space-y-6">
                                 <div className="grid sm:grid-cols-2 gap-3">
@@ -983,13 +1105,14 @@ export default function EtiquetadorPaquetes() {
                                     </Button>
 
                                     <Button
-                                        onClick={handlePrint}
+                                        onClick={() => setShowConfirm(true)}
                                         className="bg-gray-600 hover:bg-gray-700 text-white border-0"
                                         disabled={items.length === 0}
                                     >
                                         <Printer className="w-4 h-4 mr-2" />
                                         Imprimir ({totalLabels})
                                     </Button>
+
                                 </div>
 
                                 {error && (
@@ -1123,8 +1246,16 @@ export default function EtiquetadorPaquetes() {
                         </div>
                     </div>
                 </div>
+
             </div>
-        </div>
+            <ConfirmPrintModal
+                open={showConfirm}
+                onOpenChange={setShowConfirm}
+                items={items}
+                busy={busyConfirm}
+                onConfirm={handleConfirmModal}
+            />
+        </div >
     )
 }
 
