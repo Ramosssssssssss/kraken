@@ -17,58 +17,148 @@ import "noty/lib/themes/mint.css";
 
 // ==== BrowserPrint helpers (SDK Zebra) ====
 type BPDevice = any
-
-function loadBrowserPrint(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if ((window as any).BrowserPrint) return resolve()
-    const s = document.createElement("script")
-    s.src = "https://cdn.jsdelivr.net/npm/@zebra/browser-print@3.1.250/dist/browser-print.min.js"
-    s.async = true
-    s.onload = () => resolve()
-    s.onerror = () => reject(new Error("No se pudo cargar el SDK de BrowserPrint"))
-    document.head.appendChild(s)
-  })
-}
-
-export async function bpIsAvailable(): Promise<boolean> {
-  try {
-    await loadBrowserPrint()
-    const BP = (window as any).BrowserPrint
-    return new Promise((resolve) => {
-      BP.getDefaultDevice("printer", (dev: BPDevice) => resolve(!!dev), () => resolve(false))
-    })
-  } catch {
-    return false
+/* ==================================================================== */
+// ====== BrowserPrint (Android/Zebra) ======
+declare global {
+  interface Window {
+    BrowserPrint?: any
+    Zebra?: any
   }
 }
 
-export async function bpPickDevice(): Promise<BPDevice | null> {
-  await loadBrowserPrint()
-  const BP = (window as any).BrowserPrint
-  return new Promise((resolve) => {
-    BP.getLocalDevices(
-      (devices: BPDevice[]) => {
-        const printers = (devices || []).filter((d: any) => d.deviceType === "printer")
-        resolve(printers[0] || null)
-      },
-      () => resolve(null),
-      "printer"
-    )
-  })
+async function ensureBrowserPrintLoaded(): Promise<void> {
+  if (typeof window === "undefined") return
+  if (window.BrowserPrint || (window as any).Zebra?.BrowserPrint) return
+
+  const candidates = [
+    "/browserprint/BrowserPrint-3.1.250.min.js",
+    "/browserprint/BrowserPrint-Zebra-1.1.250.min.js",
+  ]
+
+  for (const src of candidates) {
+    if (window.BrowserPrint || (window as any).Zebra?.BrowserPrint) return
+    if (document.querySelector(`script[data-bp="${src}"]`)) continue
+
+    await new Promise<void>((resolve) => {
+      const s = document.createElement("script")
+      s.async = true
+      s.dataset.bp = src
+      s.src = src
+      s.onload = () => resolve()
+      s.onerror = () => resolve()
+      document.head.appendChild(s)
+    })
+  }
+
+  if (!(window.BrowserPrint || (window as any).Zebra?.BrowserPrint)) {
+    throw new Error("No se pudo cargar BrowserPrint (Zebra/legacy).")
+  }
 }
 
-export async function bpPrintZPL(zpl: string): Promise<void> {
-  await loadBrowserPrint()
-  const BP = (window as any).BrowserPrint
-  const device = await new Promise<BPDevice | null>((resolve) => {
-    BP.getDefaultDevice("printer", (dev: BPDevice) => resolve(dev), () => resolve(null))
-  }) || await bpPickDevice()
-
-  if (!device) throw new Error("No hay impresoras BrowserPrint disponibles.")
-  return new Promise<void>((resolve, reject) => {
-    device.send(zpl, () => resolve(), (e: any) => reject(new Error(e?.message || "Fallo al enviar ZPL")))
-  })
+async function getBP(): Promise<any> {
+  await ensureBrowserPrintLoaded()
+  const BP = window.BrowserPrint || (window as any).Zebra?.BrowserPrint
+  if (!BP) throw new Error("BrowserPrint no disponible")
+  return BP
 }
+
+async function bpIsAvailable(): Promise<boolean> {
+  try {
+    const BP = await getBP()
+    return await new Promise<boolean>((res) => {
+      try {
+        BP.getDefaultDevice("printer", (_d: any) => res(true), () => res(false))
+      } catch { res(false) }
+    })
+  } catch { return false }
+}
+
+type ZebraDevice = {
+  name: string
+  deviceType: "printer"
+  uid?: string
+  connection?: string
+  write: (data: string, onOk?: () => void, onErr?: (e: any) => void) => void
+}
+
+async function bpGetOrPickDevice(): Promise<ZebraDevice> {
+  const BP = await getBP();
+
+  const dflt: ZebraDevice | null = await new Promise((res) =>
+    BP.getDefaultDevice("printer", (d: ZebraDevice | null) => res(d), () => res(null))
+  );
+  if (dflt) return dflt;
+
+  const devices: ZebraDevice[] = await new Promise((res, rej) =>
+    BP.getDevices((list: ZebraDevice[]) => res(list || []), (err: any) => rej(err), "printer")
+  );
+
+  const savedUid = localStorage.getItem("zebra_bp_uid");
+  let dev = savedUid ? devices.find(d => d.uid && d.uid === savedUid) : undefined;
+  if (!dev) dev = devices.find(d => /zq5|zebra|zq511/i.test(d.name || "")) || devices[0];
+
+  if (!dev) throw new Error("No se encontró impresora en BrowserPrint");
+
+  if (dev.uid && dev.uid !== savedUid) localStorage.setItem("zebra_bp_uid", dev.uid);
+  return dev;
+}
+
+async function bpPrintZPL(zpl: string): Promise<void> {
+  let firstAttempt = true;
+  const tryOnce = async (): Promise<void> => {
+    const dev = await bpGetOrPickDevice();
+
+    const sendFn: (data: string, ok: () => void, err: (e: any) => void) => void =
+      typeof (dev as any).send === "function"
+        ? (data, ok, err) => (dev as any).send(data, ok, err)
+        : (data, ok, err) => dev.write(data, ok, err);
+
+    const payload = (zpl.endsWith("\r\n") ? zpl : zpl.replace(/\n/g, "\r\n") + "\r\n");
+    const CHUNK = 8 * 1024;
+    const parts: string[] = [];
+    for (let i = 0; i < payload.length; i += CHUNK) parts.push(payload.slice(i, i + CHUNK));
+
+    const maybeConnect = (cb: () => void, onErr: (e: any) => void) => {
+      const fn = (dev as any).connect || (dev as any).open;
+      if (typeof fn === "function") {
+        try { fn.call(dev, cb, onErr); } catch (e) { onErr(e); }
+      } else cb();
+    };
+    const maybeClose = () => {
+      const fn = (dev as any).disconnect || (dev as any).close;
+      try { if (typeof fn === "function") fn.call(dev, () => { }, () => { }); } catch { }
+    };
+
+    await new Promise<void>((resolve, reject) => {
+      let settled = false;
+      const done = (f: () => void) => { if (!settled) { settled = true; f(); } };
+
+      const sendNext = (i: number) => {
+        if (i >= parts.length) return done(() => { maybeClose(); resolve(); });
+        sendFn(parts[i], () => sendNext(i + 1), (e: any) => done(() => { maybeClose(); reject(e); }));
+      };
+
+      try { sendFn("~HS\r\n", () => { }, () => { }); } catch { }
+      maybeConnect(() => { sendNext(0); }, (e: any) => done(() => { maybeClose(); reject(e); }));
+
+      setTimeout(() => done(() => { maybeClose(); reject(new Error("Timeout al enviar a BrowserPrint")); }), 15000);
+    });
+  };
+
+  try {
+    await tryOnce();
+  } catch (e: any) {
+    if (firstAttempt) {
+      firstAttempt = false;
+      localStorage.removeItem("zebra_bp_uid");
+      await tryOnce();
+    } else {
+      throw e;
+    }
+  }
+}
+
+
 
 
 interface ArticleItem {
@@ -320,13 +410,9 @@ function NumberField({
   )
 }
 
-/*********************************************************/
-// ==== ZPL builder (usa 203 dpi) ====
-const DOTS_PER_MM = 8 // 203 dpi ~ 8 dpmm
-
-function toDots(mm: number) { return Math.max(1, Math.round(mm * DOTS_PER_MM)) }
-
-/*********************************************************/
+// ==== ZPL builder (203 dpi) ====
+const DOTS_PER_MM = 8; // 203 dpi ≈ 8 dots/mm
+const toDots = (mm: number) => Math.max(1, Math.round(mm * DOTS_PER_MM));
 
 function buildZplFromState(
   articles: { barcode: string; text: string; quantity: number; desc?: string }[],
@@ -347,7 +433,6 @@ function buildZplFromState(
   const pad = toDots(margin);
   const barHd = toDots(barH);
 
-  // Alturas de texto (aprox) para ZPL (^A0)
   const textH = Math.max(10, Math.round(parseFloat(cfg.fontSize || "10") * 1.4));
   const descH = Math.max(8, Math.round(parseFloat(cfg.descFontSize || "12") * 1.3));
   const showDesc = !!cfg.showDesc;
@@ -369,23 +454,19 @@ function buildZplFromState(
 `;
 
       if (format === "QR") {
-        // QR (BQN), centrado
-        const qrSide = Math.min(usableW, usableH - toDots(2));
-        const moduleFactor = Math.max(2, Math.min(10, Math.floor(qrSide / 40))); // heurístico
+        const qrSide = Math.min(usableW, usableH);
+        const moduleFactor = Math.max(2, Math.min(10, Math.floor(qrSide / 40)));
         const x = Math.max(pad, Math.floor((labelW - qrSide) / 2));
         z += `^FO${x},${y}^BQN,2,${moduleFactor}^FDLA,${a.barcode}^FS\n`;
         y += qrSide + toDots(1);
       } else {
-        // Barcode 128 (Zebra no diferencia A/B en el comando ^BC)
         z += `^FO${pad},${y}^BY2,2,${barHd}^BCN,${barHd},N,N,N^FD${a.barcode}^FS\n`;
         y += barHd + toDots(1);
       }
 
-      // Texto principal
       z += `^FO${pad},${y}^FB${usableW},1,0,C,0^A0N,${textH},${textH}^FD${a.text}^FS\n`;
       y += textH + toDots(1);
 
-      // Descripción (opcional)
       if (showDesc && a.desc) {
         z += `^FO${pad},${y}^FB${usableW},1,0,C,0^A0N,${descH},${descH}^FD${a.desc}^FS\n`;
       }
@@ -944,47 +1025,52 @@ ${bodyHtml}
   };
 
   // ==== Smart Print: intenta BrowserPrint; si no, abre print del navegador ====
- // === Smart Print: BrowserPrint -> window.print() ===
-const handleSmartPrint = async () => {
-  if (articles.length === 0) return;
+  // === Smart Print: BrowserPrint -> window.print() ===
+  // === Smart Print: intenta BrowserPrint y cae a impresión del navegador ===
+  const handleSmartPrint = async () => {
+    if (articles.length === 0) return;
 
-  // 1) intentar BrowserPrint
-  let okBP = false;
-  try { okBP = await bpIsAvailable(); } catch { okBP = false; }
+    // Pre-carga opcional del SDK para reducir latencia la primera vez
+    try { await ensureBrowserPrintLoaded(); } catch { }
 
-  if (okBP) {
-    try {
-      const zpl = buildZplFromState(
-        articles.map(a => ({
-          barcode: a.barcode,
-          text: a.text,
-          quantity: a.quantity,
-          desc: a.desc
-        })),
-        {
-          width: labelConfig.width,
-          height: labelConfig.height,
-          margin: labelConfig.margin,
-          fontSize: labelConfig.fontSize,
-          barHeightMm: labelConfig.barHeightMm,
-          font: labelConfig.font,
-          showDesc: labelConfig.showDesc,
-          descFontSize: labelConfig.descFontSize
-        },
-        barcodeFormat
-      );
-      await bpPrintZPL(zpl);
-      new Noty({ type: "success", layout: "topRight", theme: "mint", text: "Enviado a Zebra (BrowserPrint).", timeout: 2000 }).show();
-      return;
-    } catch (e:any) {
-      console.warn("BrowserPrint falló:", e);
-      new Noty({ type: "warning", layout: "topRight", theme: "mint", text: "No se pudo usar BrowserPrint; abriendo impresión del navegador…", timeout: 2200 }).show();
+    // 1) Intentar BrowserPrint
+    let okBP = false;
+    try { okBP = await bpIsAvailable(); } catch { okBP = false; }
+
+    if (okBP) {
+      try {
+        const zpl = buildZplFromState(
+          articles.map(a => ({
+            barcode: a.barcode,
+            text: a.text,
+            quantity: a.quantity,
+            desc: a.desc
+          })),
+          {
+            width: labelConfig.width,
+            height: labelConfig.height,
+            margin: labelConfig.margin,
+            fontSize: labelConfig.fontSize,
+            barHeightMm: labelConfig.barHeightMm,
+            font: labelConfig.font,
+            showDesc: labelConfig.showDesc,
+            descFontSize: labelConfig.descFontSize
+          },
+          barcodeFormat
+        );
+        await bpPrintZPL(zpl);
+        new Noty({ type: "success", layout: "topRight", theme: "mint", text: "Enviado a Zebra (BrowserPrint).", timeout: 2000 }).show();
+        return;
+      } catch (e: any) {
+        console.warn("BrowserPrint falló:", e);
+        new Noty({ type: "warning", layout: "topRight", theme: "mint", text: "No se pudo usar BrowserPrint; abriendo impresión del navegador…", timeout: 2200 }).show();
+      }
     }
-  }
 
-  // 2) fallback a impresión del navegador (tu HTML actual)
-  handlePrint();
-};
+    // 2) Fallback a tu impresión por navegador
+    handlePrint();
+  };
+
 
 
 
@@ -1389,10 +1475,15 @@ const handleSmartPrint = async () => {
                 </div>
 
                 <div className="flex gap-3 pt-2 sm:pt-4 flex-col sm:flex-row">
-                  <Button onClick={handleSmartPrint} className="bg-gray-600 hover:bg-gray-700 text-white border-0 w-full sm:flex-1" disabled={articles.length === 0}>
+                  <Button
+                    onClick={handleSmartPrint}
+                    className="bg-gray-600 hover:bg-gray-700 text-white border-0 w-full sm:flex-1"
+                    disabled={articles.length === 0}
+                  >
                     <Printer className="w-4 h-4 mr-2" />
                     Imprimir (Browser/Print)
                   </Button>
+
 
                 </div>
                 <div className="flex gap-3 pt-2 sm:pt-4 flex-col sm:flex-row">
