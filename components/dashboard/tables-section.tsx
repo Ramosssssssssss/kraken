@@ -98,11 +98,13 @@ function TableHeaders() {
 export default function OrdersBoardVertical() {
   const router = useRouter()
   const { apiUrl, isReady } = useCompany()
+    // Simula datos de órdenes vacíos   
 
   const emptyOrders = Array(5).fill(null)
 
   const handleOrderClick = (orderId: number) => {
     console.log("Navegar a orden:", orderId)
+    router.push(`/ordenes/${orderId}`)
   }
 
   const handleRefresh = () => {
