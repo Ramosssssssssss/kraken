@@ -424,7 +424,7 @@ function NumberField({
 }
 
 // ==== ZPL builder (203 dpi) ====
-// Convierte mm → dots según DPI
+// mm -> dots
 function toDotsWithDpi(mm: number, dpi: number) {
   return Math.max(1, Math.round(mm * (dpi / 25.4)));
 }
@@ -433,17 +433,14 @@ type ZplCfg = {
   width: string;        // mm
   height: string;       // mm
   margin: string;       // mm
-  fontSize: string;     // px (usamos escala aproximada a dots)
+  fontSize: string;     // px
   barHeightMm: string;  // mm
-  font: string;         // no afecta ZPL A0, pero lo dejamos por compat
+  font: string;
   showDesc?: boolean;
   descFontSize?: string; // px
+  topShiftMm?: string;   // mm opcional para ^LT (positivo = baja todo)
 };
 
-/**
- * Genera ZPL para 1..n artículos, centrando el código/QR y
- * ajustando el grosor de módulo para llenar el ancho útil.
- */
 function buildZplFromState(
   articles: { barcode: string; text: string; quantity: number; desc?: string }[],
   cfg: ZplCfg,
@@ -452,38 +449,54 @@ function buildZplFromState(
 ) {
   const toDots = (mm: number) => toDotsWithDpi(mm, dpi);
 
-  // --- dimensiones físicas ---
   const wmm = parseFloat(cfg.width || "50");
   const hmm = parseFloat(cfg.height || "25");
   const margin = Math.max(0, parseFloat(cfg.margin || "0"));
   const barH = Math.max(4, parseFloat(cfg.barHeightMm || "20"));
+  const topShiftDots = toDots(Math.max(0, parseFloat(cfg.topShiftMm || "0")));
 
   const labelW = toDots(wmm);
   const labelH = toDots(hmm);
   const pad    = toDots(margin);
   const barHd  = toDots(barH);
 
-  // ~Escala de fuente: 1px ≈ 1.4 dots para A0 (aprox.)
-  const textH = Math.max(10, Math.round(parseFloat(cfg.fontSize || "10") * 1.4));
+  // Escalas aproximadas para fuente A0
+  const textH = Math.max(10, Math.round(parseFloat(cfg.fontSize || "12") * 1.4));
   const descH = Math.max(8,  Math.round(parseFloat(cfg.descFontSize || "12") * 1.3));
   const showDesc = !!cfg.showDesc;
 
   const usableW = Math.max(8, labelW - pad * 2);
   const usableH = Math.max(8, labelH - pad * 2);
 
-  // Estimación de módulos para Code128 (aprox).
-  // len símbolos + (start + checksum) ≈ 2, stop ≈ 13 módulos, quiet zones ~20
+  // Estimación módulos Code128 con “fudge” para quiet zones
   const estimateCode128Modules = (data: string) => {
     const len = Math.max(1, data.length);
-    return 11 * (len + 2) + 13 + 20;
+    const base = 11 * (len + 2) + 13; // barras + start/cksum + stop
+    const quiet = 32;                  // ajuste extra (↑ de 20)
+    return base + quiet;
   };
 
-  const lines: string[] = [];
+  const out: string[] = [];
 
   for (const a of articles) {
     const copies = Math.max(1, Math.floor(a.quantity || 1));
     for (let i = 0; i < copies; i++) {
-      let y = pad;
+      // --- calcular alturas del bloque para centrar vertical ---
+      const gapDots = toDots(1); // separaciones pequeñas
+      let blockH = 0;
+
+      if (format === "QR") {
+        const qrSide = Math.min(usableW, usableH);
+        blockH += qrSide;
+      } else {
+        blockH += barHd;
+      }
+      blockH += gapDots;                     // gap bajo símbolo
+      blockH += textH;                       // línea principal
+      if (showDesc && a.desc) blockH += gapDots + descH;
+
+      // y centrado vertical
+      let y = pad + Math.max(0, Math.floor((usableH - blockH) / 2)) + topShiftDots;
 
       let z = `^XA
 ^CI28
@@ -493,61 +506,51 @@ function buildZplFromState(
 ^PW${labelW}
 ^LL${labelH}
 ^LH0,0
+^LT${topShiftDots}
 `;
 
       if (format === "QR") {
-        // Lado del QR limitado por el área útil
         const qrSide = Math.min(usableW, usableH);
-        // Tamaño de módulo del QR (BQN parámetro 3). Con dpi altos permite más.
         const qrModule = Math.max(2, Math.min(12, Math.floor(qrSide / 40)));
-        // Centrado horizontal
         const x = pad + Math.max(0, Math.floor((usableW - qrSide) / 2));
-
         z += `^FO${x},${y}^BQN,2,${qrModule}^FDLA,${a.barcode}^FS\r\n`;
-        y += qrSide + toDots(1);
+        y += qrSide + gapDots;
       } else {
         // === CODE128 / CODE128B ===
-        // 1) Estima número de módulos y calcula grosor de módulo en dots para llenar 'usableW'
         const totalModules = estimateCode128Modules(a.barcode);
 
-        // Límites de módulo por legibilidad/impresora
+        // Límites de módulo según DPI
         const MAX_MODULE = dpi >= 600 ? 8 : dpi >= 300 ? 6 : 4;
         const MIN_MODULE = 1;
 
-        let moduleDots = Math.max(MIN_MODULE, Math.floor(usableW / totalModules));
+        let moduleDots = Math.floor(usableW / totalModules);
         moduleDots = Math.min(MAX_MODULE, Math.max(MIN_MODULE, moduleDots));
 
-        // Ancho total estimado en dots
         const totalWidthDots = moduleDots * totalModules;
-
-        // Centrado horizontal
         const x = pad + Math.max(0, Math.floor((usableW - totalWidthDots) / 2));
 
-        // ^BY: ^BY<module>,<wide:narrow ratio>,<bar height>
-        const ratio = 2; // 2 es seguro y legible; sube si necesitas más contraste
-        z += `^BY${moduleDots},${ratio},${barHd}\r\n`;
+        z += `^BY${moduleDots},2,${barHd}\r\n`;
         z += `^FO${x},${y}^BCN,${barHd},N,N,N^FD${a.barcode}^FS\r\n`;
-        y += barHd + toDots(1);
+        y += barHd + gapDots;
       }
 
-      // Texto principal centrado
+      // Texto principal (centrado)
       z += `^FO${pad},${y}^FB${usableW},1,0,C,0^A0N,${textH},${textH}^FD${a.text}^FS\r\n`;
-      y += textH + toDots(1);
+      y += textH;
 
-      // Descripción (opcional) centrada
+      // Descripción (opcional, centrada)
       if (showDesc && a.desc) {
+        y += gapDots;
         z += `^FO${pad},${y}^FB${usableW},1,0,C,0^A0N,${descH},${descH}^FD${a.desc}^FS\r\n`;
       }
 
       z += "^XZ\r\n";
-      lines.push(z);
+      out.push(z);
     }
   }
 
-  return lines.join("");
+  return out.join("");
 }
-
-
 
 
 /*******************************************************/
