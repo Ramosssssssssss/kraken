@@ -424,33 +424,35 @@ function NumberField({
 }
 
 // ==== ZPL builder (203 dpi) ====
+// Convierte mm → dots según DPI
 function toDotsWithDpi(mm: number, dpi: number) {
   return Math.max(1, Math.round(mm * (dpi / 25.4)));
 }
 
 type ZplCfg = {
-  width: string;
-  height: string;
-  margin: string;
-  fontSize: string;
-  barHeightMm: string;
-  font: string;
+  width: string;        // mm
+  height: string;       // mm
+  margin: string;       // mm
+  fontSize: string;     // px (usamos escala aproximada a dots)
+  barHeightMm: string;  // mm
+  font: string;         // no afecta ZPL A0, pero lo dejamos por compat
   showDesc?: boolean;
-  descFontSize?: string;
+  descFontSize?: string; // px
 };
 
+/**
+ * Genera ZPL para 1..n artículos, centrando el código/QR y
+ * ajustando el grosor de módulo para llenar el ancho útil.
+ */
 function buildZplFromState(
   articles: { barcode: string; text: string; quantity: number; desc?: string }[],
-  cfg: {
-    width: string; height: string; margin: string;
-    fontSize: string; barHeightMm: string; font: string;
-    showDesc?: boolean; descFontSize?: string;
-  },
+  cfg: ZplCfg,
   format: "CODE128" | "CODE128B" | "QR",
-  dpi = 203
+  dpi: number
 ) {
-  const toDots = (mm: number) => Math.max(1, Math.round(mm * (dpi / 25.4)));
+  const toDots = (mm: number) => toDotsWithDpi(mm, dpi);
 
+  // --- dimensiones físicas ---
   const wmm = parseFloat(cfg.width || "50");
   const hmm = parseFloat(cfg.height || "25");
   const margin = Math.max(0, parseFloat(cfg.margin || "0"));
@@ -461,21 +463,23 @@ function buildZplFromState(
   const pad    = toDots(margin);
   const barHd  = toDots(barH);
 
-  const textH  = Math.max(10, Math.round(parseFloat(cfg.fontSize || "10") * 1.4));
-  const descH  = Math.max(8, Math.round(parseFloat(cfg.descFontSize || "12") * 1.3));
+  // ~Escala de fuente: 1px ≈ 1.4 dots para A0 (aprox.)
+  const textH = Math.max(10, Math.round(parseFloat(cfg.fontSize || "10") * 1.4));
+  const descH = Math.max(8,  Math.round(parseFloat(cfg.descFontSize || "12") * 1.3));
   const showDesc = !!cfg.showDesc;
 
-  const usableW = Math.max(1, labelW - pad * 2);
-  const usableH = Math.max(1, labelH - pad * 2);
+  const usableW = Math.max(8, labelW - pad * 2);
+  const usableH = Math.max(8, labelH - pad * 2);
 
-  // util para estimar módulos de Code128 (aprox): 11 módulos por símbolo
-  // + start (11) + checksum (11) + stop (13) + quiet zones (≈20 módulos)
+  // Estimación de módulos para Code128 (aprox).
+  // len símbolos + (start + checksum) ≈ 2, stop ≈ 13 módulos, quiet zones ~20
   const estimateCode128Modules = (data: string) => {
     const len = Math.max(1, data.length);
-    return 11 * (len + 2) + 13 + 20; // ≈ “símbolos + start + checksum + stop + quiet”
+    return 11 * (len + 2) + 13 + 20;
   };
 
-  const blocks: string[] = [];
+  const lines: string[] = [];
+
   for (const a of articles) {
     const copies = Math.max(1, Math.floor(a.quantity || 1));
     for (let i = 0; i < copies; i++) {
@@ -492,47 +496,57 @@ function buildZplFromState(
 `;
 
       if (format === "QR") {
+        // Lado del QR limitado por el área útil
         const qrSide = Math.min(usableW, usableH);
-        const moduleFactor = Math.max(2, Math.min(10, Math.floor(qrSide / 40)));
-        const x = Math.max(pad, Math.floor((labelW - qrSide) / 2));
-        z += `^FO${x},${y}^BQN,2,${moduleFactor}^FDLA,${a.barcode}^FS\n`;
+        // Tamaño de módulo del QR (BQN parámetro 3). Con dpi altos permite más.
+        const qrModule = Math.max(2, Math.min(12, Math.floor(qrSide / 40)));
+        // Centrado horizontal
+        const x = pad + Math.max(0, Math.floor((usableW - qrSide) / 2));
+
+        z += `^FO${x},${y}^BQN,2,${qrModule}^FDLA,${a.barcode}^FS\r\n`;
         y += qrSide + toDots(1);
       } else {
-        // === Ajuste de ancho para CODE128 / CODE128B ===
+        // === CODE128 / CODE128B ===
+        // 1) Estima número de módulos y calcula grosor de módulo en dots para llenar 'usableW'
         const totalModules = estimateCode128Modules(a.barcode);
-        // módulo en dots para llenar el ancho útil
-        let moduleDots = Math.max(1, Math.floor(usableW / totalModules));
 
-        // límites razonables por DPI para legibilidad/escáner:
-        const MIN_MODULE = 1;                      // en dots
-        const MAX_MODULE = dpi >= 300 ? 6 : 4;     // no exagerar el trazo
-        moduleDots = Math.max(MIN_MODULE, Math.min(MAX_MODULE, moduleDots));
+        // Límites de módulo por legibilidad/impresora
+        const MAX_MODULE = dpi >= 600 ? 8 : dpi >= 300 ? 6 : 4;
+        const MIN_MODULE = 1;
 
+        let moduleDots = Math.max(MIN_MODULE, Math.floor(usableW / totalModules));
+        moduleDots = Math.min(MAX_MODULE, Math.max(MIN_MODULE, moduleDots));
+
+        // Ancho total estimado en dots
         const totalWidthDots = moduleDots * totalModules;
-        // centrado horizontal dentro del área útil
+
+        // Centrado horizontal
         const x = pad + Math.max(0, Math.floor((usableW - totalWidthDots) / 2));
 
-        // r=2 (ratio ancho:estrecho) suele funcionar bien con Code128
-        const ratio = 2;
-        z += `^BY${moduleDots},${ratio},${barHd}\n`;
-        z += `^FO${x},${y}^BCN,${barHd},N,N,N^FD${a.barcode}^FS\n`;
+        // ^BY: ^BY<module>,<wide:narrow ratio>,<bar height>
+        const ratio = 2; // 2 es seguro y legible; sube si necesitas más contraste
+        z += `^BY${moduleDots},${ratio},${barHd}\r\n`;
+        z += `^FO${x},${y}^BCN,${barHd},N,N,N^FD${a.barcode}^FS\r\n`;
         y += barHd + toDots(1);
       }
 
-      // Texto principal (centrado, ancho útil)
-      z += `^FO${pad},${y}^FB${usableW},1,0,C,0^A0N,${textH},${textH}^FD${a.text}^FS\n`;
+      // Texto principal centrado
+      z += `^FO${pad},${y}^FB${usableW},1,0,C,0^A0N,${textH},${textH}^FD${a.text}^FS\r\n`;
       y += textH + toDots(1);
 
+      // Descripción (opcional) centrada
       if (showDesc && a.desc) {
-        z += `^FO${pad},${y}^FB${usableW},1,0,C,0^A0N,${descH},${descH}^FD${a.desc}^FS\n`;
+        z += `^FO${pad},${y}^FB${usableW},1,0,C,0^A0N,${descH},${descH}^FD${a.desc}^FS\r\n`;
       }
 
-      z += "^XZ\n";
-      blocks.push(z);
+      z += "^XZ\r\n";
+      lines.push(z);
     }
   }
-  return blocks.join("");
+
+  return lines.join("");
 }
+
 
 
 
