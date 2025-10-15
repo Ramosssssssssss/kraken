@@ -500,7 +500,7 @@ function buildZplFromState(
       // y inicial centrado + offset firmado
       let y = pad + Math.max(0, Math.floor((usableH - blockH) / 2)) + topShiftDots;
 
-    let z = `^XA
+      let z = `^XA
 ^CI28
 ^MUd
 ^MNY
@@ -513,12 +513,23 @@ function buildZplFromState(
 
 
       if (format === "QR") {
+        // calcula el tamaño del QR en dots
         const qrSide = Math.min(usableW, usableH);
+
+        // tamaño del módulo (bloques del QR)
         const module = Math.max(2, Math.min(12, Math.floor(qrSide / 40)));
-        const x = pad + Math.max(0, Math.floor((usableW - qrSide) / 2));
-        z += `^FO${x},${y}^BQN,2,${module}^FDLA,${a.barcode}^FS\r\n`;
+
+        // margen interno (quiet zone) – ajustable
+        const quietZoneDots = toDots(2); // ← 2 mm de margen blanco a cada lado
+
+        // centra el código dentro del área útil con margen incluido
+        const x = pad + Math.max(0, Math.floor((usableW - qrSide) / 2)) + quietZoneDots;
+        const yAdjusted = y + quietZoneDots;
+
+        z += `^FO${x},${yAdjusted}^BQN,2,${module}^FDLA,${a.barcode}^FS\r\n`;
         y += qrSide + gapDots;
-      } else {
+      }
+      else {
         // CODE128 / CODE128B centrado horizontal
         const totalModules = estimateCode128Modules(a.barcode);
 
