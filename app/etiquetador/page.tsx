@@ -570,6 +570,7 @@ export default function LabelGenerator() {
     xDimPx: "1.2",
     showDesc: true,
     descFontSize: "18",
+    topShiftMm: "0",
   });
 
   const [barcodeFormat, setBarcodeFormat] =
@@ -794,6 +795,58 @@ export default function LabelGenerator() {
       }
     })();
   }, []);
+async function bpDetectPrinterDpi(): Promise<203|300|600> {
+  try {
+    const BP = await getBP();
+    const dev = await new Promise<any>((res) =>
+      BP.getDefaultDevice("printer", (d:any)=>res(d), ()=>res(null))
+    );
+    if (!dev) return 203;
+
+    const send = (cmd: string) => new Promise<string>((resolve) => {
+      // Algunos BrowserPrint tienen sendThenRead, otros solo send/read
+      const tryRead = () => {
+        try {
+          if (typeof dev.read === "function") {
+            dev.read((data:string)=>resolve(String(data||"")), ()=>resolve(""));
+          } else {
+            resolve("");
+          }
+        } catch { resolve(""); }
+      };
+      try {
+        if (typeof dev.sendThenRead === "function") {
+          dev.sendThenRead(cmd, (data:string)=>resolve(String(data||"")), ()=>resolve(""));
+        } else if (typeof dev.send === "function") {
+          dev.send(cmd, tryRead, tryRead);
+        } else if (typeof dev.write === "function") {
+          dev.write(cmd, tryRead, tryRead);
+        } else {
+          resolve("");
+        }
+      } catch { resolve(""); }
+    });
+
+    // ^HH devuelve configuración donde suele salir la resolución del cabezal
+    const resp = await send("^XA^HH^XZ");
+    const txt = resp.toUpperCase();
+
+    // Intenta encontrar 203 / 300 / 600 en líneas típicas
+    if (/203\s*DPI|DPI[:=]\s*203|RESOLUTION.*203/i.test(resp)) return 203;
+    if (/300\s*DPI|DPI[:=]\s*300|RESOLUTION.*300/i.test(resp)) return 300;
+    if (/600\s*DPI|DPI[:=]\s*600|RESOLUTION.*600/i.test(resp)) return 600;
+
+    // Algunas ZQ devuelven el modelo; inferimos por nombre si no hay DPI textual
+    const name = (dev?.name || "").toUpperCase();
+    if (/ZQ5/.test(name)) {
+      // ZQ511/521 suelen venir en 203 o 300; si no hubo match arriba, asumimos 203
+      return 203;
+    }
+    return 203;
+  } catch {
+    return 203;
+  }
+}
 
   // Config con límites
   const handleConfigChange = (key: string, value: string | boolean) => {
@@ -1051,21 +1104,23 @@ ${bodyHtml}
 
     if (okBP) {
       try {
-        const zpl = buildZplFromState(
-          articles.map(a => ({ barcode: a.barcode, text: a.text, quantity: a.quantity, desc: a.desc })),
-          {
-            width: labelConfig.width,
-            height: labelConfig.height,
-            margin: labelConfig.margin,
-            fontSize: labelConfig.fontSize,
-            barHeightMm: labelConfig.barHeightMm,
-            font: labelConfig.font,
-            showDesc: labelConfig.showDesc,
-            descFontSize: labelConfig.descFontSize,
-          },
-          barcodeFormat,
-          printerDpi
-        );
+       const zpl = buildZplFromState(
+  articles.map(a => ({ barcode: a.barcode, text: a.text, quantity: a.quantity, desc: a.desc })),
+  {
+    width: labelConfig.width,
+    height: labelConfig.height,
+    margin: labelConfig.margin,
+    fontSize: labelConfig.fontSize,
+    barHeightMm: labelConfig.barHeightMm,
+    font: labelConfig.font,
+    showDesc: labelConfig.showDesc,
+    descFontSize: labelConfig.descFontSize,
+    topShiftMm: labelConfig.topShiftMm,   // ⬅️ usa el valor del estado
+  },
+  barcodeFormat,
+  printerDpi
+);
+
         await bpPrintZPL(zpl);
         new Noty({ type: "success", layout: "topRight", theme: "mint", text: `Enviado a Zebra (${printerDpi} DPI).`, timeout: 2000 }).show();
         return;
