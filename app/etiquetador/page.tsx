@@ -446,10 +446,13 @@ function buildZplFromState(
     for (let i = 0; i < copies; i++) {
       let y = pad;
 
-      let z = `^XA
+let z = `^XA
 ^CI28
-^PW${labelW}
-^LL${labelH}
+^MNY           // Tear-off (o ^MNR si usas rewind). Ajusta al hardware real.
+^PR4           // Velocidad de impresión razonable (1–8). No afecta medidas.
+^MD0           // Densidad (oscurecimiento). No afecta medidas.
+^PW${labelW}   // Ancho en dots (de mm → dots)
+^LL${labelH}   // Largo en dots (de mm → dots)
 ^LH0,0
 `;
 
