@@ -198,14 +198,27 @@ type TamanoEtiqueta = {
 }
 
 // ~96dpi aprox para preview
+// ~96dpi aprox para preview
 const mmToPx = (mm: number) => Math.max(1, Math.round(mm * 3.78))
 
 // Límites físicos
-const MAX_W_MM = 135 // ancho/largo máximo
-const MAX_H_MM = 300 // alto máximo
+const MAX_W_MM = 135
+const MAX_H_MM = 300
 
 const clampMm = (mm: number, max: number) =>
   Number.isFinite(mm) ? Math.max(1, Math.min(max, mm)) : 1
+
+// …clampBarHeight, clampQrSize…
+
+// mm — presets típicos
+const SIZE_PRESETS = [
+  { id: "50x25", name: "50 × 25 mm (2\"×1\")", w: 50, h: 25, m: 2, barH: 16, fontPx: 12 },
+  { id: "60x40", name: "60 × 40 mm", w: 60, h: 40, m: 2, barH: 20, fontPx: 14 },
+  { id: "80x50", name: "80 × 50 mm", w: 80, h: 50, m: 3, barH: 22, fontPx: 16 },
+  { id: "100x50", name: "100 × 50 mm (4\"×2\")", w: 100, h: 50, m: 3, barH: 24, fontPx: 18 },
+  { id: "100x75", name: "100 × 75 mm (4\"×3\")", w: 100, h: 75, m: 3, barH: 28, fontPx: 20 },
+  { id: "100x150", name: "100 × 150 mm (4\"×6\")", w: 100, h: 150, m: 4, barH: 40, fontPx: 22 },
+];
 
 // Evita que el alto de barras exceda el área útil
 const clampBarHeight = (barMm: number, labelH: number, marginMm: number) => {
@@ -437,20 +450,20 @@ function buildZplFromState(
   const pxToDots = (px: number) => Math.max(1, Math.round(px * (dpi / 96)));
 
   // Entradas (mm / px)
-  const wmm    = parseFloat(cfg.width || "50");
-  const hmm    = parseFloat(cfg.height || "25");
+  const wmm = parseFloat(cfg.width || "50");
+  const hmm = parseFloat(cfg.height || "25");
   const margin = Math.max(0, parseFloat(cfg.margin || "0"));
-  const barH   = Math.max(4, parseFloat(cfg.barHeightMm || "20"));
+  const barH = Math.max(4, parseFloat(cfg.barHeightMm || "20"));
 
   // Conversión a dots
   const labelW = toDots(wmm);
   const labelH = toDots(hmm);
-  const pad    = toDots(margin);
-  const barHd  = toDots(barH);
+  const pad = toDots(margin);
+  const barHd = toDots(barH);
 
   // Texto en dots (desde px CSS)
-  const textH  = Math.max(10, pxToDots(parseFloat(cfg.fontSize || "10")));
-  const descH  = Math.max(8,  pxToDots(parseFloat(cfg.descFontSize || "12")));
+  const textH = Math.max(10, pxToDots(parseFloat(cfg.fontSize || "10")));
+  const descH = Math.max(8, pxToDots(parseFloat(cfg.descFontSize || "12")));
   const showDesc = !!cfg.showDesc;
 
   // Área útil
@@ -551,7 +564,7 @@ export default function LabelGenerator() {
   const [isLoadingTamanos, setIsLoadingTamanos] = useState(false);
   const [tamanosError, setTamanosError] = useState<string | null>(null);
   const [selectedTamanoId, setSelectedTamanoId] = useState<string>("");
-
+  const [selectedPresetId, setSelectedPresetId] = useState<string>("");
   // DPI autodetectado
   const [printerDpi, setPrinterDpi] = useState<203 | 300 | 600>(203);
   const [dpiMsg, setDpiMsg] = useState<string>("Detectando DPI…");
@@ -559,7 +572,18 @@ export default function LabelGenerator() {
   // ===== importación Excel =====
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   type ImportRow = { code: string; copies: number };
-
+  function aplicarPreset(id: string) {
+    const p = SIZE_PRESETS.find(x => x.id === id);
+    if (!p) return;
+    setLabelConfig(prev => ({
+      ...prev,
+      width: String(p.w),
+      height: String(p.h),
+      margin: String(p.m),
+      barHeightMm: String(p.barH),
+      fontSize: String(p.fontPx),
+    }));
+  }
   function normalizeRow(obj: any): ImportRow | null {
     const codeKeys = ["codigo", "código", "code", "clave", "clavearticulo", "clave_articulo"];
     const copiesKeys = ["copias", "copies", "cantidad", "qty", "cantidadcopias"];
@@ -918,10 +942,9 @@ export default function LabelGenerator() {
         Array.from({ length: a.quantity }, () => `
       <div class="page">
         <div class="label ${fmt === "QR" ? "row" : "column"}">
-          ${
-            fmt === "QR"
-              ? `<canvas class="qr-canvas" data-value="${a.barcode}"></canvas>`
-              : `<svg class="barcode-svg" data-value="${a.barcode}" data-format="${fmt}"></svg>`
+          ${fmt === "QR"
+            ? `<canvas class="qr-canvas" data-value="${a.barcode}"></canvas>`
+            : `<svg class="barcode-svg" data-value="${a.barcode}" data-format="${fmt}"></svg>`
           }
           <div class="label-text">${esc(a.text)}</div>
           ${showDesc && a.desc ? `<div class="desc-text">${esc(a.desc)}</div>` : ""}
@@ -984,7 +1007,7 @@ ${bodyHtml}
       document.body.appendChild(iframe);
       const doc = iframe.contentDocument!;
       doc.open(); doc.write(printHtml); doc.close();
-      const cleanup = () => { try { document.body.removeChild(iframe); } catch {} };
+      const cleanup = () => { try { document.body.removeChild(iframe); } catch { } };
       setTimeout(cleanup, 10000);
     }
   };
@@ -993,7 +1016,7 @@ ${bodyHtml}
   const handleSmartPrint = async () => {
     if (articles.length === 0) return;
 
-    try { await ensureBrowserPrintLoaded(); } catch {}
+    try { await ensureBrowserPrintLoaded(); } catch { }
 
     let okBP = false;
     try { okBP = await bpIsAvailable(); } catch { okBP = false; }
@@ -1183,35 +1206,25 @@ ${bodyHtml}
 
                 {/* Tamaños BD */}
                 <div className="space-y-2">
-                  <Label className="text-gray-100 font-medium text-sm sm:text-base">Tamaño de etiqueta</Label>
+                  <Label className="text-gray-100 font-medium text-sm sm:text-base">
+                    Tamaño típico (presets)
+                  </Label>
                   <Select
-                    value={selectedTamanoId}
-                    onValueChange={(value) => {
-                      setSelectedTamanoId(value);
-                      const t = tamanos.find(x => String(x.id) === value);
-                      if (t) aplicarTamanoBD(t);
+                    value={selectedPresetId}
+                    onValueChange={(id) => {
+                      setSelectedPresetId(id);
+                      aplicarPreset(id);
+                      // opcional: limpia el tamaño BD seleccionado si quieres
+                      setSelectedTamanoId("");
                     }}
                   >
                     <SelectTrigger className="bg-gray-700 border-gray-500 text-white w-full">
-                      <SelectValue placeholder={isLoadingTamanos ? "Cargando..." : "Selecciona un tamaño"} />
+                      <SelectValue placeholder="Selecciona un tamaño típico" />
                     </SelectTrigger>
                     <SelectContent className="bg-gray-700 border-gray-500 max-h-64 overflow-y-auto">
-                      {isLoadingTamanos && (
-                        <div className="px-3 py-2 text-sm text-gray-300 flex items-center gap-2">
-                          <Loader2 className="w-4 h-4 animate-spin" /> Cargando…
-                        </div>
-                      )}
-                      {tamanosError && (
-                        <div className="px-3 py-2 text-sm text-red-300 flex items-center gap-2">
-                          <AlertCircle className="w-4 h-4" /> {tamanosError}
-                        </div>
-                      )}
-                      {!isLoadingTamanos && !tamanosError && tamanos.length === 0 && (
-                        <div className="px-3 py-2 text-sm text-gray-300">No hay tamaños guardados</div>
-                      )}
-                      {tamanos.map(t => (
-                        <SelectItem key={t.id} value={String(t.id)} className="text-white">
-                          {t.nombre} — {t.width}×{t.height}mm (margen {t.margen}mm)
+                      {SIZE_PRESETS.map(p => (
+                        <SelectItem key={p.id} value={p.id} className="text-white">
+                          {p.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1438,12 +1451,12 @@ ${bodyHtml}
                       <div className="text-center text-gray-400"><p>Agrega artículos para ver la vista previa</p></div>
                     ) : (
                       <div className="grid gap-3 sm:gap-4 justify-center w-full"
-                           style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${cellW}px, 1fr))` }}>
+                        style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${cellW}px, 1fr))` }}>
                         {articles.slice(0, 1).map((a) => (
                           <div key={a.id} className="flex items-center justify-center"
-                               style={{ width: `${cellW}px`, height: `${cellH}px`, overflow: "hidden" }}>
+                            style={{ width: `${cellW}px`, height: `${cellH}px`, overflow: "hidden" }}>
                             <div className="bg-white rounded-md shadow-lg border-2 border-gray-300 flex flex-col items-center justify-center relative"
-                                 style={{ width: `${naturalW}px`, height: `${naturalH}px`, transform: `scale(${previewScale})`, transformOrigin: "top left", padding: `${previewPad}px` }}>
+                              style={{ width: `${naturalW}px`, height: `${naturalH}px`, transform: `scale(${previewScale})`, transformOrigin: "top left", padding: `${previewPad}px` }}>
                               {barcodeFormat === "QR" ? (
                                 <QRCodeSVG value={a.barcode} sizePx={mmToPx(parseFloat(labelConfig.qrSizeMm))} />
                               ) : (
@@ -1457,14 +1470,14 @@ ${bodyHtml}
                               )}
 
                               <div className="text-black text-center font-medium"
-                                   style={{ fontSize: `${Math.max(10, Number.parseInt(labelConfig.fontSize) * 0.8)}px`, marginTop: "6px", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                                   title={a.text}>
+                                style={{ fontSize: `${Math.max(10, Number.parseInt(labelConfig.fontSize) * 0.8)}px`, marginTop: "6px", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                                title={a.text}>
                                 {a.text}
                               </div>
                               {labelConfig.showDesc && a.desc && (
                                 <div className="text-black text-center"
-                                     style={{ fontSize: `${Math.max(6, parseFloat(labelConfig.descFontSize || "12"))}px`, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                                     title={a.desc}>
+                                  style={{ fontSize: `${Math.max(6, parseFloat(labelConfig.descFontSize || "12"))}px`, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                                  title={a.desc}>
                                   {a.desc}
                                 </div>
                               )}
