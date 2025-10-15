@@ -426,34 +426,43 @@ type ZplCfg = {
   descFontSize?: string;
 };
 
-
-
 function buildZplFromState(
   articles: { barcode: string; text: string; quantity: number; desc?: string }[],
   cfg: ZplCfg,
   format: "CODE128" | "CODE128B" | "QR",
-  dpi: number // <--- nuevo
+  dpi: 203 | 300 | 600
 ) {
+  // Helpers por DPI
   const toDots = (mm: number) => toDotsWithDpi(mm, dpi);
+  const pxToDots = (px: number) => Math.max(1, Math.round(px * (dpi / 96)));
 
-  const wmm = parseFloat(cfg.width || "50");
-  const hmm = parseFloat(cfg.height || "25");
+  // Entradas (mm / px)
+  const wmm    = parseFloat(cfg.width || "50");
+  const hmm    = parseFloat(cfg.height || "25");
   const margin = Math.max(0, parseFloat(cfg.margin || "0"));
-  const barH = Math.max(4, parseFloat(cfg.barHeightMm || "20"));
+  const barH   = Math.max(4, parseFloat(cfg.barHeightMm || "20"));
 
+  // Conversión a dots
   const labelW = toDots(wmm);
   const labelH = toDots(hmm);
-  const pad = toDots(margin);
-  const barHd = toDots(barH);
+  const pad    = toDots(margin);
+  const barHd  = toDots(barH);
 
-  const textH = Math.max(10, Math.round(parseFloat(cfg.fontSize || "10") * 1.4));
-  const descH = Math.max(8, Math.round(parseFloat(cfg.descFontSize || "12") * 1.3));
+  // Texto en dots (desde px CSS)
+  const textH  = Math.max(10, pxToDots(parseFloat(cfg.fontSize || "10")));
+  const descH  = Math.max(8,  pxToDots(parseFloat(cfg.descFontSize || "12")));
   const showDesc = !!cfg.showDesc;
 
-  const usableW = labelW - pad * 2;
-  const usableH = labelH - pad * 2;
+  // Área útil
+  const usableW = Math.max(8, labelW - pad * 2);
+  const usableH = Math.max(8, labelH - pad * 2);
+
+  // Escalar ancho de módulo del barcode con DPI (aprox lineal)
+  // 203→2, 300→3, 600→6
+  const byModule = Math.max(2, Math.round(2 * dpi / 203));
 
   const blocks: string[] = [];
+
   for (const a of articles) {
     const copies = Math.max(1, Math.floor(a.quantity || 1));
     for (let i = 0; i < copies; i++) {
@@ -461,28 +470,35 @@ function buildZplFromState(
 
       let z = `^XA
 ^CI28
-^MNY           
-^PR4         
-^MD0          
-^PW${labelW}  
-^LL${labelH}   
+^MNY
+^PR4
+^MD0
+^PW${labelW}
+^LL${labelH}
 ^LH0,0
 `;
 
       if (format === "QR") {
+        // lado máximo del QR dentro del área útil
         const qrSide = Math.min(usableW, usableH);
+        // Tamaño de módulo para ZPL (BQN: parámetro 3 = magnificación)
+        // Aproximación: quepan ~ 40 módulos de datos + márgenes
         const moduleFactor = Math.max(2, Math.min(10, Math.floor(qrSide / 40)));
         const x = Math.max(pad, Math.floor((labelW - qrSide) / 2));
         z += `^FO${x},${y}^BQN,2,${moduleFactor}^FDLA,${a.barcode}^FS\n`;
         y += qrSide + toDots(1);
       } else {
-        z += `^FO${pad},${y}^BY2,2,${barHd}^BCN,${barHd},N,N,N^FD${a.barcode}^FS\n`;
+        // Código 128
+        // ^BY{module}, {ratio}, {bar height in dots}
+        z += `^FO${pad},${y}^BY${byModule},2,${barHd}^BCN,${barHd},N,N,N^FD${a.barcode}^FS\n`;
         y += barHd + toDots(1);
       }
 
+      // Texto principal centrado
       z += `^FO${pad},${y}^FB${usableW},1,0,C,0^A0N,${textH},${textH}^FD${a.text}^FS\n`;
       y += textH + toDots(1);
 
+      // Descripción opcional
       if (showDesc && a.desc) {
         z += `^FO${pad},${y}^FB${usableW},1,0,C,0^A0N,${descH},${descH}^FD${a.desc}^FS\n`;
       }
@@ -491,8 +507,10 @@ function buildZplFromState(
       blocks.push(z);
     }
   }
+
   return blocks.join("");
 }
+
 
 /*******************************************************/
 
@@ -507,261 +525,277 @@ export default function LabelGenerator() {
     font: "Arial",
     quantity: "1",
     barHeightMm: "20",
-    qrSizeMm: "16",   // 👉 tamaño del QR en milímetros
-    xDimPx: "1.2", // grosor de módulo (px)
-    // 👇 NUEVO
+    qrSizeMm: "16",
+    xDimPx: "1.2",
     showDesc: true,
-    descFontSize: "10",
-  })
-  const [barcodeFormat, setBarcodeFormat] = useState<"CODE128" | "CODE128B" | "QR">("CODE128")
-  // arriba, junto a otros useState:
+    descFontSize: "18",
+  });
+
+  const [barcodeFormat, setBarcodeFormat] =
+    useState<"CODE128" | "CODE128B" | "QR">("CODE128");
+
+  const [articles, setArticles] = useState<ArticleItem[]>([]);
+  const [templates, setTemplates] = useState<LabelTemplate[]>([]);
+  const [templateName, setTemplateName] = useState("");
+  const [selectedTemplate, setSelectedTemplate] = useState("");
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+
+  // búsqueda
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  // tamaños BD
+  const [tamanos, setTamanos] = useState<TamanoEtiqueta[]>([]);
+  const [isLoadingTamanos, setIsLoadingTamanos] = useState(false);
+  const [tamanosError, setTamanosError] = useState<string | null>(null);
+  const [selectedTamanoId, setSelectedTamanoId] = useState<string>("");
+
+  // DPI autodetectado
   const [printerDpi, setPrinterDpi] = useState<203 | 300 | 600>(203);
-  const [articles, setArticles] = useState<ArticleItem[]>([])
-  const [templates, setTemplates] = useState<LabelTemplate[]>([])
-  const [templateName, setTemplateName] = useState("")
-  const [selectedTemplate, setSelectedTemplate] = useState("")
-  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false)
+  const [dpiMsg, setDpiMsg] = useState<string>("Detectando DPI…");
 
-  // búsqueda de artículos
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
-  const [isSearching, setIsSearching] = useState(false)
-  const [searchError, setSearchError] = useState<string | null>(null)
-  const abortRef = useRef<AbortController | null>(null)
+  // ===== importación Excel =====
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  type ImportRow = { code: string; copies: number };
 
-  // tamaños guardados (BD)
-  const [tamanos, setTamanos] = useState<TamanoEtiqueta[]>([])
-  const [isLoadingTamanos, setIsLoadingTamanos] = useState(false)
-  const [tamanosError, setTamanosError] = useState<string | null>(null)
-  const [selectedTamanoId, setSelectedTamanoId] = useState<string>("")
+  function normalizeRow(obj: any): ImportRow | null {
+    const codeKeys = ["codigo", "código", "code", "clave", "clavearticulo", "clave_articulo"];
+    const copiesKeys = ["copias", "copies", "cantidad", "qty", "cantidadcopias"];
 
-  // dentro de LabelGenerator, debajo de los useState:
-  const resetArticles = () => {
-    if (articles.length === 0) return;
-
-    setArticles([]);
-    new Noty({
-      type: "success",
-      layout: "topRight",
-      theme: "mint",
-      text: "Se eliminaron todos los artículos",
-      timeout: 2500,
-      progressBar: true,
-    }).show();
-  };
-
-  // ======= IMPORTACIÓN DESDE EXCEL =======
-  const fileInputRef = useRef<HTMLInputElement | null>(null)
-  type ImportRow = { code: string; copies: number }
-
-  function normalizeRow(obj: any, idx: number): ImportRow | null {
-    const codeKeys = ['codigo', 'código', 'code', 'clave', 'clavearticulo', 'clave_articulo']
-    const copiesKeys = ['copias', 'copies', 'cantidad', 'qty', 'cantidadcopias']
-
-    let code = ''
-    let copiesRaw: any = undefined
+    let code = "";
+    let copiesRaw: any = undefined;
     for (const k of Object.keys(obj)) {
-      const key = String(k).toLowerCase().replace(/\s|_/g, '')
-      if (!code && codeKeys.includes(key)) code = String(obj[k] ?? '').trim()
-      if (copiesRaw == null && copiesKeys.includes(key)) copiesRaw = obj[k]
+      const key = String(k).toLowerCase().replace(/\s|_/g, "");
+      if (!code && codeKeys.includes(key)) code = String(obj[k] ?? "").trim();
+      if (copiesRaw == null && copiesKeys.includes(key)) copiesRaw = obj[k];
     }
 
     if (!code && (obj.A != null || obj.B != null)) {
-      code = String(obj.A ?? '').trim()
-      copiesRaw = obj.B
+      code = String(obj.A ?? "").trim();
+      copiesRaw = obj.B;
     }
 
-    if (!code) return null
+    if (!code) return null;
 
-    let copies = Number.parseInt(String(copiesRaw ?? '1'), 10)
-    if (!Number.isFinite(copies) || copies < 1) copies = 1
-    return { code, copies }
+    let copies = Number.parseInt(String(copiesRaw ?? "1"), 10);
+    if (!Number.isFinite(copies) || copies < 1) copies = 1;
+    return { code, copies };
   }
 
   async function handleExcelFile(file: File) {
     try {
-      const XLSX = (await import('xlsx')).default ?? (await import('xlsx'))
-      const data = await file.arrayBuffer()
-      const wb = XLSX.read(data, { type: 'array' })
-      const ws = wb.Sheets[wb.SheetNames[0]]
-      if (!ws) throw new Error('La hoja 1 está vacía o no existe.')
+      const XLSX = (await import("xlsx")).default ?? (await import("xlsx"));
+      const data = await file.arrayBuffer();
+      const wb = XLSX.read(data, { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      if (!ws) throw new Error("La hoja 1 está vacía o no existe.");
 
-      const rowsRaw: any[] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
-      if (rowsRaw.length === 0) throw new Error('No hay datos en el archivo.')
+      const rowsRaw: any[] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+      if (rowsRaw.length === 0) throw new Error("No hay datos en el archivo.");
 
-      const asObjects = XLSX.utils.sheet_to_json(ws, { defval: '' }) as any[]
+      const asObjects = XLSX.utils.sheet_to_json(ws, { defval: "" }) as any[];
       const normalizedA = asObjects
         .map(normalizeRow)
-        .filter((r): r is ImportRow => !!r?.code)
+        .filter((r): r is ImportRow => !!r?.code);
 
-      let normalized = normalizedA
+      let normalized = normalizedA;
       if (normalized.length === 0) {
-        const AisHeader = String(rowsRaw[0]?.[0] ?? '').toLowerCase().includes('odigo') // soporta "codigo"/"código"
-        const startIdx = AisHeader ? 1 : 0
-        const fromAB = rowsRaw.slice(startIdx).map((arr) => {
-          const code = String(arr?.[0] ?? '').trim()
-          const copiesRaw = arr?.[1]
-          if (!code) return null
-          let copies = Number.parseInt(String(copiesRaw ?? '1'), 10)
-          if (!Number.isFinite(copies) || copies < 1) copies = 1
-          return { code, copies } as ImportRow
-        }).filter(Boolean) as ImportRow[]
-        normalized = fromAB
+        const AisHeader = String(rowsRaw[0]?.[0] ?? "")
+          .toLowerCase()
+          .includes("odigo");
+        const startIdx = AisHeader ? 1 : 0;
+        const fromAB = rowsRaw
+          .slice(startIdx)
+          .map((arr) => {
+            const code = String(arr?.[0] ?? "").trim();
+            const copiesRaw = arr?.[1];
+            if (!code) return null;
+            let copies = Number.parseInt(String(copiesRaw ?? "1"), 10);
+            if (!Number.isFinite(copies) || copies < 1) copies = 1;
+            return { code, copies } as ImportRow;
+          })
+          .filter(Boolean) as ImportRow[];
+        normalized = fromAB;
       }
 
       if (normalized.length === 0) {
-        throw new Error('No se pudieron interpretar filas válidas (se esperan columnas: código y copias).')
+        throw new Error(
+          "No se pudieron interpretar filas válidas (se esperan columnas: código y copias)."
+        );
       }
 
-      mergeImportedArticles(normalized)
+      mergeImportedArticles(normalized);
     } catch (err: any) {
-      alert(err?.message || 'Error al leer el archivo.')
+      alert(err?.message || "Error al leer el archivo.");
     } finally {
-      if (fileInputRef.current) fileInputRef.current.value = ''
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
 
-  // === NUEVO: helper para insertar o acumular por código ===
-  // upsertArticleByCode: acepta desc y la conserva
   function upsertArticleByCode(code: string, qty: number, desc?: string) {
-    const clean = String(code || '').trim()
-    const safeQty = Math.max(1, Math.floor(qty || 1))
-    if (!clean) return
+    const clean = String(code || "").trim();
+    const safeQty = Math.max(1, Math.floor(qty || 1));
+    if (!clean) return;
 
-    setArticles(prev => {
-      const idx = prev.findIndex(a => a.barcode === clean)
+    setArticles((prev) => {
+      const idx = prev.findIndex((a) => a.barcode === clean);
       if (idx !== -1) {
-        const next = [...prev]
+        const next = [...prev];
         next[idx] = {
           ...next[idx],
           quantity: next[idx].quantity + safeQty,
-          // si antes no tenía desc y ahora sí, guárdala
-          desc: next[idx].desc || desc
-        }
-        return next
+          desc: next[idx].desc || desc,
+        };
+        return next;
       }
       return [
         ...prev,
         {
           id: `${Date.now()}_${clean}_${Math.random().toString(36).slice(2, 7)}`,
-          text: clean,           // sigue guardando la clave como texto base
+          text: clean,
           barcode: clean,
           quantity: safeQty,
-          desc                     // <-- NUEVO
+          desc,
         },
-      ]
-    })
+      ];
+    });
   }
 
-
   function mergeImportedArticles(rows: ImportRow[]) {
-    // Reutilizamos el helper para evitar duplicar lógica.
     for (const r of rows) {
-      if (!r?.code) continue
-      upsertArticleByCode(r.code, r.copies)
+      if (!r?.code) continue;
+      upsertArticleByCode(r.code, r.copies);
     }
   }
 
   function onPickExcelClick() {
-    fileInputRef.current?.click()
+    fileInputRef.current?.click();
   }
 
   function onExcelInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (file) handleExcelFile(file)
+    const file = e.target.files?.[0];
+    if (file) handleExcelFile(file);
   }
 
   function downloadTemplate() {
-    const csv = 'codigo,copias\nABC123,1\nXYZ001,3\n'
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'plantilla_importacion.csv'
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    URL.revokeObjectURL(url)
+    const csv = "codigo,copias\nABC123,1\nXYZ001,3\n";
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "plantilla_importacion.csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   }
 
-  // plantillas locales
+  // Plantillas locales
   useEffect(() => {
-    const savedTemplates = localStorage.getItem("labelTemplates")
-    if (savedTemplates) setTemplates(JSON.parse(savedTemplates))
-  }, [])
+    const savedTemplates = localStorage.getItem("labelTemplates");
+    if (savedTemplates) setTemplates(JSON.parse(savedTemplates));
+  }, []);
   useEffect(() => {
-    localStorage.setItem("labelTemplates", JSON.stringify(templates))
-  }, [templates])
+    localStorage.setItem("labelTemplates", JSON.stringify(templates));
+  }, [templates]);
 
-  // Cargar tamaños desde /api/tamano_etiquetas
+  // Tamaños desde API
   useEffect(() => {
     const load = async () => {
       try {
-        setIsLoadingTamanos(true)
-        setTamanosError(null)
-        const r = await fetch("/api/tamano_etiquetas", { headers: { Accept: "application/json" } })
-        const json = await r.json()
-        if (!r.ok || !json?.ok) throw new Error(json?.error || "No se pudieron cargar los tamaños")
-        setTamanos(Array.isArray(json.data) ? json.data : [])
+        setIsLoadingTamanos(true);
+        setTamanosError(null);
+        const r = await fetch("/api/tamano_etiquetas", {
+          headers: { Accept: "application/json" },
+        });
+        const json = await r.json();
+        if (!r.ok || !json?.ok) throw new Error(json?.error || "No se pudieron cargar los tamaños");
+        setTamanos(Array.isArray(json.data) ? json.data : []);
       } catch (e: any) {
-        setTamanosError(e?.message || "Error de red")
-        setTamanos([])
+        setTamanosError(e?.message || "Error de red");
+        setTamanos([]);
       } finally {
-        setIsLoadingTamanos(false)
+        setIsLoadingTamanos(false);
       }
-    }
-    load()
-  }, [])
+    };
+    load();
+  }, []);
 
-  // Cambios con límites
+  // Autodetect DPI al montar
+  useEffect(() => {
+    (async () => {
+      try {
+        await ensureBrowserPrintLoaded();
+        const available = await bpIsAvailable();
+        if (!available) {
+          setDpiMsg("Zebra no detectada (usando 203 DPI)");
+          return;
+        }
+        setDpiMsg("Detectando DPI…");
+        const dpi = await bpDetectPrinterDpi();
+        setPrinterDpi(dpi);
+        setDpiMsg(`DPI detectado: ${dpi}`);
+      } catch {
+        setDpiMsg("No se pudo detectar DPI (usando 203)");
+      }
+    })();
+  }, []);
+
+  // Config con límites
   const handleConfigChange = (key: string, value: string | boolean) => {
     setLabelConfig((prev) => {
       if (key === "width") {
-        const w = clampMm(parseFloat(String(value)), MAX_W_MM)
-        // si estás en QR, re-clampa el QR porque cambia el ancho útil
+        const w = clampMm(parseFloat(String(value)), MAX_W_MM);
         if (barcodeFormat === "QR") {
           const qr = clampQrSize(
             parseFloat(prev.qrSizeMm || "16"),
             w,
             parseFloat(prev.height || "25"),
             parseFloat(prev.margin || "0")
-          )
-          return { ...prev, width: String(w), qrSizeMm: String(qr) }
+          );
+          return { ...prev, width: String(w), qrSizeMm: String(qr) };
         }
-        return { ...prev, width: String(w) }
+        return { ...prev, width: String(w) };
       }
 
       if (key === "height") {
-        const h = clampMm(parseFloat(String(value)), MAX_H_MM)
-        const bar = clampBarHeight(parseFloat(prev.barHeightMm || "20"), h, parseFloat(prev.margin || "0"))
+        const h = clampMm(parseFloat(String(value)), MAX_H_MM);
+        const bar = clampBarHeight(
+          parseFloat(prev.barHeightMm || "20"),
+          h,
+          parseFloat(prev.margin || "0")
+        );
         if (barcodeFormat === "QR") {
           const qr = clampQrSize(
             parseFloat(prev.qrSizeMm || "16"),
             parseFloat(prev.width || "50"),
             h,
             parseFloat(prev.margin || "0")
-          )
-          return { ...prev, height: String(h), barHeightMm: String(bar), qrSizeMm: String(qr) }
+          );
+          return { ...prev, height: String(h), barHeightMm: String(bar), qrSizeMm: String(qr) };
         }
-        return { ...prev, height: String(h), barHeightMm: String(bar) }
+        return { ...prev, height: String(h), barHeightMm: String(bar) };
       }
 
       if (key === "margin") {
-        const margin = Math.max(0, parseFloat(String(value)))
+        const margin = Math.max(0, parseFloat(String(value)));
         const bar = clampBarHeight(
           parseFloat(prev.barHeightMm || "20"),
           parseFloat(prev.height || "25"),
           margin
-        )
+        );
         if (barcodeFormat === "QR") {
           const qr = clampQrSize(
             parseFloat(prev.qrSizeMm || "16"),
             parseFloat(prev.width || "50"),
             parseFloat(prev.height || "25"),
             margin
-          )
-          return { ...prev, margin: String(margin), barHeightMm: String(bar), qrSizeMm: String(qr) }
+          );
+          return { ...prev, margin: String(margin), barHeightMm: String(bar), qrSizeMm: String(qr) };
         }
-        return { ...prev, margin: String(margin), barHeightMm: String(bar) }
+        return { ...prev, margin: String(margin), barHeightMm: String(bar) };
       }
 
       if (key === "barHeightMm") {
@@ -769,43 +803,41 @@ export default function LabelGenerator() {
           parseFloat(String(value)),
           parseFloat(prev.height || "25"),
           parseFloat(prev.margin || "0")
-        )
-        // 👇 sincroniza QR SOLO si estás en formato QR
+        );
         if (barcodeFormat === "QR") {
           const qr = clampQrSize(
-            h, // usa el alto de barra como base para el tamaño del QR
+            h,
             parseFloat(prev.width || "50"),
             parseFloat(prev.height || "25"),
             parseFloat(prev.margin || "0")
-          )
-          return { ...prev, barHeightMm: String(h), qrSizeMm: String(qr) }
+          );
+          return { ...prev, barHeightMm: String(h), qrSizeMm: String(qr) };
         }
-        return { ...prev, barHeightMm: String(h) }
+        return { ...prev, barHeightMm: String(h) };
       }
 
-      return { ...prev, [key]: value }
-    })
-  }
-
+      return { ...prev, [key]: value };
+    });
+  };
 
   const aplicarTamanoBD = (t: TamanoEtiqueta) => {
-    const w = clampMm(t.width, MAX_W_MM)
-    const h = clampMm(t.height, MAX_H_MM)
-    const m = Math.max(0, t.margen || 0)
-    const bar = clampBarHeight(t.altoBarra ?? 20, h, m)
+    const w = clampMm(t.width, MAX_W_MM);
+    const h = clampMm(t.height, MAX_H_MM);
+    const m = Math.max(0, t.margen || 0);
+    const bar = clampBarHeight(t.altoBarra ?? 20, h, m);
 
-    setLabelConfig(prev => ({
+    setLabelConfig((prev) => ({
       ...prev,
       width: String(w),
       height: String(h),
       margin: String(m),
       fontSize: String(t.fontSizeClaveArticulo),
       barHeightMm: String(bar),
-    }))
-  }
+    }));
+  };
 
   const saveTemplate = () => {
-    if (!templateName.trim()) return
+    if (!templateName.trim()) return;
     const newTemplate: LabelTemplate = {
       id: Date.now().toString(),
       name: templateName,
@@ -817,48 +849,54 @@ export default function LabelGenerator() {
         fontSize: labelConfig.fontSize,
         font: labelConfig.font,
       },
-    }
-    setTemplates((prev) => [...prev, newTemplate])
-    setTemplateName("")
-    setIsTemplateModalOpen(false)
-  }
+    };
+    setTemplates((prev) => [...prev, newTemplate]);
+    setTemplateName("");
+    setIsTemplateModalOpen(false);
+  };
 
   const loadTemplate = (templateId: string) => {
-    const t = templates.find((x) => x.id === templateId)
-    if (!t) return
-    setLabelConfig(prev => ({ ...prev, ...t.config }))
-    setSelectedTemplate(templateId)
-  }
+    const t = templates.find((x) => x.id === templateId);
+    if (!t) return;
+    setLabelConfig((prev) => ({ ...prev, ...t.config }));
+    setSelectedTemplate(templateId);
+  };
 
   const deleteTemplate = (templateId: string) => {
-    setTemplates((prev) => prev.filter((t) => t.id !== templateId))
-    if (selectedTemplate === templateId) setSelectedTemplate("")
-  }
+    setTemplates((prev) => prev.filter((t) => t.id !== templateId));
+    if (selectedTemplate === templateId) setSelectedTemplate("");
+  };
 
-  // === MODIFICADO: Agregar artículo (acumula si ya existe el código)
-  // addArticle: permite pasar desc
   const addArticle = (claveOverride?: string, descOverride?: string) => {
-    const clave = (claveOverride ?? labelConfig.text).trim()
-    if (!clave) return
-    const qty = Number.parseInt(labelConfig.quantity, 10) || 1
-
-    upsertArticleByCode(clave, qty, descOverride) // <-- pasa desc
-
-    setLabelConfig((prev) => ({ ...prev, text: "", quantity: "1" }))
-    setSearchResults([])
-    setSearchError(null)
-  }
-
+    const clave = (claveOverride ?? labelConfig.text).trim();
+    if (!clave) return;
+    const qty = Number.parseInt(labelConfig.quantity, 10) || 1;
+    upsertArticleByCode(clave, qty, descOverride);
+    setLabelConfig((prev) => ({ ...prev, text: "", quantity: "1" }));
+    setSearchResults([]);
+    setSearchError(null);
+  };
 
   const removeArticle = (id: string) => {
-    setArticles((prev) => prev.filter((a) => a.id !== id))
-  }
+    setArticles((prev) => prev.filter((a) => a.id !== id));
+  };
 
-  // 👉 Imprime en la MISMA pestaña (iframe oculto). Papel = etiqueta exacta.
-  // 👉 Imprimir etiquetas
-  const isMobile = () =>
-    /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const resetArticles = () => {
+    if (articles.length === 0) return;
+    setArticles([]);
+    new Noty({
+      type: "success",
+      layout: "topRight",
+      theme: "mint",
+      text: "Se eliminaron todos los artículos",
+      timeout: 2500,
+      progressBar: true,
+    }).show();
+  };
 
+  const isMobile = () => /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  // === Impresión nativa del navegador (fallback) ===
   const handlePrint = () => {
     if (articles.length === 0) return;
 
@@ -869,101 +907,44 @@ export default function LabelGenerator() {
     const fontPx = parseFloat(labelConfig.fontSize);
     const fontFamily = labelConfig.font;
     const fmt = barcodeFormat;
-    const showDesc = !!labelConfig.showDesc
-    const descFontPx = Math.max(6, parseFloat(labelConfig.descFontSize || "12"))
-    // Escapar caracteres para evitar inyección
+    const showDesc = !!labelConfig.showDesc;
+    const descFontPx = Math.max(6, parseFloat(labelConfig.descFontSize || "12"));
+
     const esc = (s: string) =>
-      String(s)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
+      String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-
-    const bodyHtml = articles.map(a =>
-      Array.from({ length: a.quantity }, () => `
+    const bodyHtml = articles
+      .map((a) =>
+        Array.from({ length: a.quantity }, () => `
       <div class="page">
         <div class="label ${fmt === "QR" ? "row" : "column"}">
-          ${fmt === "QR"
-          ? `<canvas class="qr-canvas" data-value="${a.barcode}"></canvas>`
-          : `<svg class="barcode-svg" data-value="${a.barcode}" data-format="${fmt}"></svg>`
-        }
-          <div class="label-text"> ${esc(a.text)}</div>
+          ${
+            fmt === "QR"
+              ? `<canvas class="qr-canvas" data-value="${a.barcode}"></canvas>`
+              : `<svg class="barcode-svg" data-value="${a.barcode}" data-format="${fmt}"></svg>`
+          }
+          <div class="label-text">${esc(a.text)}</div>
           ${showDesc && a.desc ? `<div class="desc-text">${esc(a.desc)}</div>` : ""}
         </div>
-      </div>
-    `).join("")
-    ).join("");
-
+      </div>`).join("")
+      ).join("");
 
     const printHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Etiquetas</title>
+<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Etiquetas</title>
 <style>
   @page { size: ${labelW}mm ${labelH}mm; margin: 0; }
-
-  html, body {
-    margin: 0;
-    padding: 0;
-    width: ${labelW}mm;     /* 👈 tamaño físico exacto */
-    height: ${labelH}mm;    /* 👈 tamaño físico exacto */
-    font-family: ${fontFamily};
-  }
-
-  /* Mejor consistencia de dimensiones */
+  html, body { margin: 0; padding: 0; width: ${labelW}mm; height: ${labelH}mm; font-family: ${fontFamily}; }
   *, *::before, *::after { box-sizing: border-box; }
-
-  .page {
-    width: ${labelW}mm;     /* 👈 NO 100% */
-    height: ${labelH}mm;    /* 👈 NO 100% */
-    padding: ${padding}mm;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    break-after: page;      /* 👈 reemplaza page-break-after */
-    overflow: hidden;       /* evita que nada “empuje” la página */
-  }
-
-  .label {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column; 
-    align-items: center;
-    justify-content: center;
-    gap: 0;
-  }
-
+  .page { width: ${labelW}mm; height: ${labelH}mm; padding: ${padding}mm; display:flex; align-items:center; justify-content:center; break-after:page; overflow:hidden; }
+  .label { width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0; }
   .barcode-svg { width: 100%; height: ${barH}mm; }
   .qr-canvas { width: ${labelConfig.qrSizeMm}mm; height: ${labelConfig.qrSizeMm}mm; }
-
-  .desc-text {
-  width: ${labelW}mm; 
-    font-size: ${descFontPx}px; text-align: center;
-    width: 100%; max-width: 100%;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
-.label-text {
-  width: 100%;        /* ✅ o elimínala */
-  font-size: ${fontPx}px !important;
-  font-weight: bold;
-  text-align: center;
-  word-break: break-word;
-}
-
-
-  @media print {
-    html, body {
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-  }
+  .desc-text { font-size:${descFontPx}px; text-align:center; width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .label-text { width:100%; font-size:${fontPx}px !important; font-weight:600; text-align:center; word-break:break-word; }
+  @media print { html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 </style>
-</head>
-<body>
+</head><body>
 ${bodyHtml}
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
@@ -972,96 +953,55 @@ ${bodyHtml}
   function render() {
     document.querySelectorAll('svg.barcode-svg').forEach(svg=>{
       try {
-        JsBarcode(svg, svg.dataset.value, {
-          format: svg.dataset.format,
-          displayValue: false,
-          margin: 0,
-          width: 1.2
-        });
-        svg.setAttribute('preserveAspectRatio', 'none');
+        JsBarcode(svg, svg.dataset.value, { format: svg.dataset.format, displayValue:false, margin:0, width:1.2 });
+        svg.setAttribute('preserveAspectRatio','none');
       } catch(e){}
     });
-
     document.querySelectorAll('canvas.qr-canvas').forEach(c=>{
       try {
-        // Lee el tamaño CSS en px (derivado de mm)
         const rect = c.getBoundingClientRect();
-        // Escala el bitmap para impresión (2x ayuda a nitidez en drivers)
         const devicePx = Math.ceil(rect.width * 2);
-        c.width  = devicePx;
-        c.height = devicePx;
-        QRCode.toCanvas(c, c.dataset.value, {
-          errorCorrectionLevel: "M",
-          margin: 0,
-          width: devicePx
-        });
-        // Mantén el tamaño físico en la página
-        c.style.width  = rect.width + 'px';
+        c.width = devicePx; c.height = devicePx;
+        QRCode.toCanvas(c, c.dataset.value, { errorCorrectionLevel:"M", margin:0, width:devicePx });
+        c.style.width = rect.width + 'px';
         c.style.height = rect.width + 'px';
       } catch(e){}
     });
   }
-
-  window.addEventListener('load', ()=>{
-    render();
-    setTimeout(()=>{ window.print(); }, 200);
-  });
-
+  window.addEventListener('load', ()=>{ render(); setTimeout(()=>{ window.print(); }, 200); });
   window.addEventListener('afterprint', ()=>{ try{ window.close(); }catch(e){} });
 })();
 </script>
-
-</body>
-</html>`;
+</body></html>`;
 
     if (isMobile()) {
-      // 📱 en móvil: nueva pestaña/ventana
-      const w = window.open('', '_blank', 'noopener,noreferrer');
-      if (!w) {
-        alert('Activa las ventanas emergentes para imprimir las etiquetas.');
-        return;
-      }
-      w.document.open();
-      w.document.write(printHtml);
-      w.document.close();
+      const w = window.open("", "_blank", "noopener,noreferrer");
+      if (!w) { alert("Activa las ventanas emergentes para imprimir las etiquetas."); return; }
+      w.document.open(); w.document.write(printHtml); w.document.close();
     } else {
-      // 💻 en desktop: iframe oculto como antes
       const iframe = document.createElement("iframe");
-      iframe.style.position = "fixed";
-      iframe.style.width = "0";
-      iframe.style.height = "0";
-      iframe.style.border = "0";
+      iframe.style.position = "fixed"; iframe.style.width = "0"; iframe.style.height = "0"; iframe.style.border = "0";
       document.body.appendChild(iframe);
       const doc = iframe.contentDocument!;
       doc.open(); doc.write(printHtml); doc.close();
-      const cleanup = () => { try { document.body.removeChild(iframe); } catch { } };
+      const cleanup = () => { try { document.body.removeChild(iframe); } catch {} };
       setTimeout(cleanup, 10000);
     }
   };
 
-  // ==== Smart Print: intenta BrowserPrint; si no, abre print del navegador ====
-  // === Smart Print: BrowserPrint -> window.print() ===
-  // === Smart Print: intenta BrowserPrint y cae a impresión del navegador ===
+  // === Smart Print: BrowserPrint -> fallback navegador ===
   const handleSmartPrint = async () => {
     if (articles.length === 0) return;
 
-    // Pre-carga opcional del SDK para reducir latencia la primera vez
-    try { await ensureBrowserPrintLoaded(); } catch { }
+    try { await ensureBrowserPrintLoaded(); } catch {}
 
-    // 1) Intentar BrowserPrint
     let okBP = false;
     try { okBP = await bpIsAvailable(); } catch { okBP = false; }
 
     if (okBP) {
       try {
-        // dentro de handleSmartPrint -> if (okBP) { ... }
         const zpl = buildZplFromState(
-          articles.map(a => ({
-            barcode: a.barcode,
-            text: a.text,
-            quantity: a.quantity,
-            desc: a.desc
-          })),
+          articles.map(a => ({ barcode: a.barcode, text: a.text, quantity: a.quantity, desc: a.desc })),
           {
             width: labelConfig.width,
             height: labelConfig.height,
@@ -1070,14 +1010,13 @@ ${bodyHtml}
             barHeightMm: labelConfig.barHeightMm,
             font: labelConfig.font,
             showDesc: labelConfig.showDesc,
-            descFontSize: labelConfig.descFontSize
+            descFontSize: labelConfig.descFontSize,
           },
           barcodeFormat,
-          printerDpi // 👈 faltaba
+          printerDpi
         );
-
         await bpPrintZPL(zpl);
-        new Noty({ type: "success", layout: "topRight", theme: "mint", text: "Enviado a Zebra (BrowserPrint).", timeout: 2000 }).show();
+        new Noty({ type: "success", layout: "topRight", theme: "mint", text: `Enviado a Zebra (${printerDpi} DPI).`, timeout: 2000 }).show();
         return;
       } catch (e: any) {
         console.warn("BrowserPrint falló:", e);
@@ -1085,98 +1024,83 @@ ${bodyHtml}
       }
     }
 
-    // 2) Fallback a tu impresión por navegador
     handlePrint();
   };
 
-
-
-
-  /******************************************************/
-  const totalLabels = useMemo(() => articles.reduce((s, a) => s + a.quantity, 0), [articles])
+  const totalLabels = useMemo(
+    () => articles.reduce((s, a) => s + a.quantity, 0),
+    [articles]
+  );
 
   // búsqueda con debounce
   useEffect(() => {
-    const q = labelConfig.text.trim()
-    setSearchError(null)
-    if (abortRef.current) {
-      abortRef.current.abort()
-      abortRef.current = null
-    }
+    const q = labelConfig.text.trim();
+    setSearchError(null);
+    if (abortRef.current) { abortRef.current.abort(); abortRef.current = null; }
     if (q.length < 2) {
-      setSearchResults([])
-      setIsSearching(false)
-      return
+      setSearchResults([]); setIsSearching(false); return;
     }
-    const controller = new AbortController()
-    abortRef.current = controller
+    const controller = new AbortController();
+    abortRef.current = controller;
     const t = setTimeout(async () => {
       try {
-        setIsSearching(true)
+        setIsSearching(true);
         const r = await fetch(`/api/articulos?q=${encodeURIComponent(q)}`, {
           method: "GET",
           signal: controller.signal,
           headers: { Accept: "application/json" },
-        })
-        const json = await r.json()
-        if (!r.ok || !json?.ok) throw new Error(json?.error || "Error buscando artículos")
-        setSearchResults(Array.isArray(json.data) ? json.data : [])
+        });
+        const json = await r.json();
+        if (!r.ok || !json?.ok) throw new Error(json?.error || "Error buscando artículos");
+        setSearchResults(Array.isArray(json.data) ? json.data : []);
       } catch (err: any) {
         if (err?.name !== "AbortError") {
-          setSearchError(err?.message || "Error de red")
-          setSearchResults([])
+          setSearchError(err?.message || "Error de red");
+          setSearchResults([]);
         }
       } finally {
-        setIsSearching(false)
+        setIsSearching(false);
       }
-    }, 300)
-    return () => {
-      clearTimeout(t)
-      controller.abort()
-    }
-  }, [labelConfig.text])
+    }, 300);
+    return () => { clearTimeout(t); controller.abort(); };
+  }, [labelConfig.text]);
 
   const onArticleKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
     if (e.key === "Enter") {
-      e.preventDefault()
+      e.preventDefault();
       if (searchResults.length > 0) {
-        const first = searchResults[0]
-        addArticle(first.claveArticulo, first.nombre) // ← pasa la desc
+        const first = searchResults[0];
+        addArticle(first.claveArticulo, first.nombre);
       } else if (labelConfig.text.trim()) {
-        addArticle()
+        addArticle();
       }
     }
+  };
 
-  }
-
-  // ===== PREVIEW que nunca se desborda =====
-  const naturalW = mmToPx(parseFloat(labelConfig.width))
-  const naturalH = mmToPx(parseFloat(labelConfig.height))
-  const previewPad = Math.max(0, parseInt(labelConfig.margin))
-  const previewBarHeightPx = mmToPx(parseFloat(labelConfig.barHeightMm || "20"))
-
-  const previewScale = 1
-  const cellW = naturalW
-  const cellH = naturalH
+  // ===== Preview medidas =====
+  const naturalW = mmToPx(parseFloat(labelConfig.width));
+  const naturalH = mmToPx(parseFloat(labelConfig.height));
+  const previewPad = Math.max(0, parseInt(labelConfig.margin));
+  const previewBarHeightPx = mmToPx(parseFloat(labelConfig.barHeightMm || "20"));
+  const previewScale = 1;
+  const cellW = naturalW;
+  const cellH = naturalH;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-purple-900">
-      {/* Oculta spinners nativos en inputs numéricos + mejora iOS */}
       <style jsx global>{`
-      input.no-spin::-webkit-outer-spin-button,
-      input.no-spin::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-      input.no-spin { -moz-appearance: textfield; }
-      @supports (-webkit-touch-callout: none) {
-        input, select, textarea, button { font-size: 16px; }
-      }
-    `}</style>
+        input.no-spin::-webkit-outer-spin-button,
+        input.no-spin::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input.no-spin { -moz-appearance: textfield; }
+        @supports (-webkit-touch-callout: none) {
+          input, select, textarea, button { font-size: 16px; }
+        }
+      `}</style>
 
-      {/* Padding adaptativo */}
       <div className="min-h-screen p-4 sm:p-6">
         <div className="max-w-[1200px] mx-auto">
-          {/* Grid principal: 1 columna en móvil, 2 en ≥lg */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-stretch min-h-0">
-            {/* Panel de Configuración (izquierda) */}
+            {/* Izquierda */}
             <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm h-full flex flex-col w-full">
               <CardHeader className="border-b border-gray-600 w-full">
                 <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -1184,14 +1108,10 @@ ${bodyHtml}
                     <Settings className="w-5 h-5 text-purple-300" />
                     <span>Configuración</span>
                   </CardTitle>
-
-                  <div className="flex items-center gap-2 text-white font-light text-xs sm:text-sm">
-                    <span className="shrink-0">v1.4</span>
-                    <Link
-                      href="/actualizaciones"
-                      className="text-purple-300 hover:text-purple-200"
-                      title="Ver historial de actualizaciones"
-                    >
+                  <div className="flex items-center gap-3 text-white font-light text-xs sm:text-sm">
+                    <span className="shrink-0">v1.4.2</span>
+                    <span className="text-purple-300">{dpiMsg}</span>
+                    <Link href="/actualizaciones" className="text-purple-300 hover:text-purple-200" title="Ver historial de actualizaciones">
                       <Info className="w-4 h-4" />
                     </Link>
                   </div>
@@ -1199,7 +1119,7 @@ ${bodyHtml}
               </CardHeader>
 
               <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-                {/* Campo de artículo con búsqueda */}
+                {/* Búsqueda / artículo */}
                 <div className="space-y-2 relative">
                   <Label className="text-gray-100 font-medium text-sm sm:text-base">Artículo (clave)</Label>
                   <div className="flex gap-2 flex-col sm:flex-row">
@@ -1213,8 +1133,8 @@ ${bodyHtml}
                     />
                     <Button
                       onClick={() => {
-                        if (searchResults.length > 0) addArticle(searchResults[0].claveArticulo)
-                        else if (labelConfig.text.trim()) addArticle()
+                        if (searchResults.length > 0) addArticle(searchResults[0].claveArticulo);
+                        else if (labelConfig.text.trim()) addArticle();
                       }}
                       className="bg-purple-600 hover:bg-purple-700 text-white border-0 w-full sm:w-auto"
                       disabled={!labelConfig.text.trim()}
@@ -1247,10 +1167,9 @@ ${bodyHtml}
                               key={`${item.claveArticulo}-${idx}`}
                               className="px-3 py-2 text-sm text-gray-100 hover:bg-gray-700 cursor-pointer flex items-center justify-between gap-2"
                               onClick={() => {
-                                setLabelConfig(prev => ({ ...prev, text: item.claveArticulo }))
-                                addArticle(item.claveArticulo, item.nombre) // ← pasa la desc
+                                setLabelConfig(prev => ({ ...prev, text: item.claveArticulo }));
+                                addArticle(item.claveArticulo, item.nombre);
                               }}
-
                             >
                               <span className="truncate max-w-[60%] sm:max-w-none">{item.nombre}</span>
                               <span className="text-purple-300 ml-2 shrink-0">{item.claveArticulo}</span>
@@ -1262,15 +1181,15 @@ ${bodyHtml}
                   )}
                 </div>
 
-                {/* Tamaño guardado (BD) */}
+                {/* Tamaños BD */}
                 <div className="space-y-2">
                   <Label className="text-gray-100 font-medium text-sm sm:text-base">Tamaño de etiqueta</Label>
                   <Select
                     value={selectedTamanoId}
                     onValueChange={(value) => {
-                      setSelectedTamanoId(value)
-                      const t = tamanos.find(x => String(x.id) === value)
-                      if (t) aplicarTamanoBD(t)
+                      setSelectedTamanoId(value);
+                      const t = tamanos.find(x => String(x.id) === value);
+                      if (t) aplicarTamanoBD(t);
                     }}
                   >
                     <SelectTrigger className="bg-gray-700 border-gray-500 text-white w-full">
@@ -1299,12 +1218,13 @@ ${bodyHtml}
                   </Select>
                 </div>
 
-                {/* Formato de código de barras */}
+                {/* Formato */}
                 <div className="space-y-2">
                   <Label className="text-gray-100 font-medium text-sm sm:text-base">Formato de código de barras</Label>
-                  <Select value={barcodeFormat}
+                  <Select
+                    value={barcodeFormat}
                     onValueChange={(v: "CODE128" | "CODE128B" | "QR") => {
-                      setBarcodeFormat(v)
+                      setBarcodeFormat(v);
                       if (v === "QR") {
                         setLabelConfig(prev => {
                           const qr = clampQrSize(
@@ -1312,9 +1232,9 @@ ${bodyHtml}
                             parseFloat(prev.width || "50"),
                             parseFloat(prev.height || "25"),
                             parseFloat(prev.margin || "0")
-                          )
-                          return { ...prev, qrSizeMm: String(qr) }
-                        })
+                          );
+                          return { ...prev, qrSizeMm: String(qr) };
+                        });
                       }
                     }}
                   >
@@ -1329,7 +1249,7 @@ ${bodyHtml}
                   </Select>
                 </div>
 
-                {/* Plantillas locales */}
+                {/* Manual / Plantillas */}
                 <div className="flex justify-between items-center gap-3 flex-wrap">
                   <Label className="text-gray-100 font-medium text-base">Configurar etiqueta manual</Label>
                   <Dialog open={isTemplateModalOpen} onOpenChange={setIsTemplateModalOpen}>
@@ -1340,9 +1260,7 @@ ${bodyHtml}
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="bg-gray-800 border-gray-600 text-white w-full max-w-[95vw] sm:max-w-lg">
-                      <DialogHeader>
-                        <DialogTitle className="text-white">Crear Nueva Plantilla</DialogTitle>
-                      </DialogHeader>
+                      <DialogHeader><DialogTitle className="text-white">Crear Nueva Plantilla</DialogTitle></DialogHeader>
                       <div className="space-y-4">
                         <div className="space-y-2">
                           <Label className="text-gray-200">Nombre de la plantilla</Label>
@@ -1364,12 +1282,9 @@ ${bodyHtml}
                           </div>
                         </div>
                         <div className="flex gap-2 flex-col sm:flex-row justify-end">
-                          <Button variant="ghost" onClick={() => setIsTemplateModalOpen(false)} className="text-gray-300 hover:text-white w-full sm:w-auto">
-                            Cancelar
-                          </Button>
+                          <Button variant="ghost" onClick={() => setIsTemplateModalOpen(false)} className="text-gray-300 hover:text-white w-full sm:w-auto">Cancelar</Button>
                           <Button onClick={saveTemplate} disabled={!templateName.trim()} className="bg-purple-600 hover:bg-purple-700 text-white w-full sm:w-auto">
-                            <Save className="w-4 h-4 mr-2" />
-                            Guardar
+                            <Save className="w-4 h-4 mr-2" /> Guardar
                           </Button>
                         </div>
                       </div>
@@ -1377,83 +1292,42 @@ ${bodyHtml}
                   </Dialog>
                 </div>
 
-                {/* Etiqueta */}
+                {/* Medidas */}
                 <div className="space-y-2">
                   <Label className="text-gray-100 font-medium">Margen interno (mm)</Label>
-                  <NumberField
-                    value={labelConfig.margin}
-                    onChange={(v) => handleConfigChange("margin", v)}
-                    min={1}
-                    step={0.5}
-                    ariaLabel="Margen interno en milímetros"
-                  />
+                  <NumberField value={labelConfig.margin} onChange={(v) => handleConfigChange("margin", v)} min={3} step={0.5} ariaLabel="Margen interno en milímetros" />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-gray-100 font-medium">Ancho (mm)</Label>
-                    <NumberField
-                      value={labelConfig.width}
-                      onChange={(v) => handleConfigChange("width", v)}
-                      min={1}
-                      max={135}
-                      step={1}
-                      ariaLabel="Ancho en milímetros"
-                    />
+                    <NumberField value={labelConfig.width} onChange={(v) => handleConfigChange("width", v)} min={1} max={135} step={1} ariaLabel="Ancho en milímetros" />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-gray-100 font-medium">Alto (mm)</Label>
-                    <NumberField
-                      value={labelConfig.height}
-                      onChange={(v) => handleConfigChange("height", v)}
-                      min={1}
-                      max={300}
-                      step={1}
-                      ariaLabel="Alto en milímetros"
-                    />
+                    <NumberField value={labelConfig.height} onChange={(v) => handleConfigChange("height", v)} min={1} max={300} step={1} ariaLabel="Alto en milímetros" />
                   </div>
                 </div>
 
-                {/* Alto de barras */}
                 <div className="space-y-2">
                   <Label className="text-gray-100 font-medium">Alto barras (mm)</Label>
-                  <NumberField
-                    value={labelConfig.barHeightMm}
-                    onChange={(v) => handleConfigChange("barHeightMm", v)}
-                    min={4}
-                    step={1}
-                    ariaLabel="Alto de las barras en milímetros"
-                  />
+                  <NumberField value={labelConfig.barHeightMm} onChange={(v) => handleConfigChange("barHeightMm", v)} min={4} step={1} ariaLabel="Alto de las barras en milímetros" />
                 </div>
 
                 <div className="space-y-2">
                   <Label className="text-gray-100 font-medium">Número de impresiones</Label>
-                  <NumberField
-                    value={labelConfig.quantity}
-                    onChange={(v) => handleConfigChange("quantity", v)}
-                    min={1}
-                    step={1}
-                    ariaLabel="Número de impresiones"
-                  />
+                  <NumberField value={labelConfig.quantity} onChange={(v) => handleConfigChange("quantity", v)} min={1} step={1} ariaLabel="Número de impresiones" />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-gray-100 font-medium">Tamaño del código (px)</Label>
-                    <NumberField
-                      value={labelConfig.fontSize}
-                      onChange={(v) => handleConfigChange("fontSize", v)}
-                      min={6}
-                      step={1}
-                      ariaLabel="Tamaño de fuente en píxeles"
-                    />
+                    <NumberField value={labelConfig.fontSize} onChange={(v) => handleConfigChange("fontSize", v)} min={6} step={1} ariaLabel="Tamaño de fuente en píxeles" />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-gray-100 font-medium">Fuente</Label>
                     <Select value={labelConfig.font} onValueChange={(value) => handleConfigChange("font", value)}>
-                      <SelectTrigger className="bg-gray-700 border-gray-500 text-white w-full">
-                        <SelectValue />
-                      </SelectTrigger>
+                      <SelectTrigger className="bg-gray-700 border-gray-500 text-white w-full"><SelectValue /></SelectTrigger>
                       <SelectContent className="bg-gray-700 border-gray-500">
                         <SelectItem value="Arial" className="text-white">Arial</SelectItem>
                         <SelectItem value="Helvetica" className="text-white">Helvetica</SelectItem>
@@ -1462,52 +1336,36 @@ ${bodyHtml}
                     </Select>
                   </div>
                 </div>
-                {/* Mostrar descripción y tamaño */}
+
+                {/* Descripción */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="showDesc" className="text-gray-100 font-medium">Mostrar descripción</Label>
                     <div className="flex items-center gap-2 bg-gray-700 border border-gray-500 rounded-md px-3 py-2">
-                      <input
-                        id="showDesc"
-                        type="checkbox"
-                        checked={!!labelConfig.showDesc}
-                        onChange={(e) => handleConfigChange("showDesc", e.target.checked)}
-                        className="h-4 w-4 accent-purple-600"
-                      />
+                      <input id="showDesc" type="checkbox" checked={!!labelConfig.showDesc} onChange={(e) => handleConfigChange("showDesc", e.target.checked)} className="h-4 w-4 accent-purple-600" />
                       <span className="text-gray-200 text-sm">Imprimir texto debajo del código</span>
                     </div>
                   </div>
-
                   <div className="space-y-2">
                     <Label className="text-gray-100 font-medium">Tamaño descripción (px)</Label>
                     <NumberField
                       value={labelConfig.descFontSize}
                       onChange={(v) => handleConfigChange("descFontSize", v)}
-                      min={6}
-                      step={1}
-                      ariaLabel="Tamaño de la descripción en píxeles"
-                      // deshabilitado si no se imprime descripción
+                      min={6} step={1} ariaLabel="Tamaño de la descripción en píxeles"
                       className={labelConfig.showDesc ? "" : "opacity-50 pointer-events-none"}
                     />
                   </div>
                 </div>
 
                 <div className="flex gap-3 pt-2 sm:pt-4 flex-col sm:flex-row">
-                  <Button
-                    onClick={handleSmartPrint}
-                    className="bg-gray-600 hover:bg-gray-700 text-white border-0 w-full sm:flex-1"
-                    disabled={articles.length === 0}
-                  >
-                    <Printer className="w-4 h-4 mr-2" />
-                    Imprimir (Browser/Print)
+                  <Button onClick={handleSmartPrint} className="bg-gray-600 hover:bg-gray-700 text-white border-0 w-full sm:flex-1" disabled={articles.length === 0}>
+                    <Printer className="w-4 h-4 mr-2" /> Imprimir (Browser/Print)
                   </Button>
-
-
                 </div>
+
                 <div className="flex gap-3 pt-2 sm:pt-4 flex-col sm:flex-row">
                   <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white border-0 w-full sm:w-auto" onClick={onPickExcelClick} title="Importar desde Excel/CSV">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Importar Excel
+                    <Plus className="w-4 h-4 mr-2" /> Importar Excel
                   </Button>
                   <Button size="sm" variant="ghost" className="text-gray-300 hover:text-white w-full sm:w-auto" onClick={downloadTemplate} title="Descargar plantilla CSV">
                     Descargar plantilla
@@ -1516,32 +1374,21 @@ ${bodyHtml}
               </CardContent>
             </Card>
 
-            {/* Derecha: Tabla + Preview, misma altura que izquierda */}
+            {/* Derecha: Tabla + Preview */}
             <div className="flex flex-col gap-4 sm:gap-6 h-full min-h-0">
-              {/* Tabla de artículos */}
               <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm flex-1 flex min-h-0">
                 <CardHeader className="border-b border-gray-600 shrink-0">
                   <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <CardTitle className="text-white text-lg sm:text-xl">
-                      Artículos ({articles.length})
-                    </CardTitle>
-
+                    <CardTitle className="text-white text-lg sm:text-xl">Artículos ({articles.length})</CardTitle>
                     <div className="flex items-center gap-2 flex-wrap">
                       <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={onExcelInputChange} className="hidden" />
-
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={resetArticles}
-                        disabled={articles.length === 0}
+                      <Button size="sm" variant="ghost" onClick={resetArticles} disabled={articles.length === 0}
                         title="Eliminar todos los artículos"
                         className="text-red-400 hover:text-red-300 hover:bg-red-900/20 disabled:opacity-40 disabled:cursor-not-allowed"
-                        aria-label="Eliminar todos los artículos"
-                      >
+                        aria-label="Eliminar todos los artículos">
                         <RotateCcw className="w-4 h-4" />
                       </Button>
-
-                      <span className="text-sm text-purple-300"> Total: {totalLabels} etiquetas </span>
+                      <span className="text-sm text-purple-300">Total: {totalLabels} etiquetas</span>
                     </div>
                   </div>
                 </CardHeader>
@@ -1558,12 +1405,7 @@ ${bodyHtml}
                           <div className="flex-1 min-w-0">
                             <p className="text-white font-medium truncate">{a.text}</p>
                             <p className="text-gray-300 text-sm truncate">Código: {a.barcode}</p>
-                            {a.desc && (
-                              <p className="text-gray-300 text-xs truncate" title={a.desc}>
-                                {a.desc}
-                              </p>
-                            )}
-
+                            {a.desc && <p className="text-gray-300 text-xs truncate" title={a.desc}>{a.desc}</p>}
                           </div>
                           <div className="flex items-center gap-3 shrink-0">
                             <span className="text-purple-300 font-medium">{a.quantity}x</span>
@@ -1578,7 +1420,6 @@ ${bodyHtml}
                 </CardContent>
               </Card>
 
-              {/* Vista previa (con escalado para no desbordar) */}
               <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm flex-1 flex min-h-0">
                 <CardHeader className="border-b border-gray-600 shrink-0">
                   <div className="flex items-center justify-between flex-wrap gap-2">
@@ -1594,37 +1435,17 @@ ${bodyHtml}
                 <CardContent className="p-4 sm:p-6 flex-1 flex flex-col min-h-0">
                   <div className="bg-gray-900/60 rounded-lg p-4 sm:p-8 min-h-[220px] sm:min-h-[300px] flex-1 flex items-center justify-center relative overflow-auto min-h-0">
                     {articles.length === 0 ? (
-                      <div className="text-center text-gray-400">
-                        <p>Agrega artículos para ver la vista previa</p>
-                      </div>
+                      <div className="text-center text-gray-400"><p>Agrega artículos para ver la vista previa</p></div>
                     ) : (
-                      <div
-                        className="grid gap-3 sm:gap-4 justify-center w-full"
-                        style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${cellW}px, 1fr))` }}
-                      >
+                      <div className="grid gap-3 sm:gap-4 justify-center w-full"
+                           style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${cellW}px, 1fr))` }}>
                         {articles.slice(0, 1).map((a) => (
-                          <div
-                            key={a.id}
-                            className="flex items-center justify-center"
-                            style={{ width: `${cellW}px`, height: `${cellH}px`, overflow: "hidden" }}
-                          >
-                            {/* Etiqueta "real" escalada para caber siempre */}
-                            <div
-                              className="bg-white rounded-md shadow-lg border-2 border-gray-300 flex flex-col items-center justify-center relative"
-                              style={{
-                                width: `${naturalW}px`,
-                                height: `${naturalH}px`,
-                                transform: `scale(${previewScale})`,
-                                transformOrigin: "top left",
-                                padding: `${previewPad}px`,
-                              }}
-                            >
-                              {/* 1) Código de barras */}
+                          <div key={a.id} className="flex items-center justify-center"
+                               style={{ width: `${cellW}px`, height: `${cellH}px`, overflow: "hidden" }}>
+                            <div className="bg-white rounded-md shadow-lg border-2 border-gray-300 flex flex-col items-center justify-center relative"
+                                 style={{ width: `${naturalW}px`, height: `${naturalH}px`, transform: `scale(${previewScale})`, transformOrigin: "top left", padding: `${previewPad}px` }}>
                               {barcodeFormat === "QR" ? (
-                                <QRCodeSVG
-                                  value={a.barcode}
-                                  sizePx={mmToPx(parseFloat(labelConfig.qrSizeMm))}
-                                />
+                                <QRCodeSVG value={a.barcode} sizePx={mmToPx(parseFloat(labelConfig.qrSizeMm))} />
                               ) : (
                                 <BarcodeSVG
                                   value={a.barcode}
@@ -1635,37 +1456,18 @@ ${bodyHtml}
                                 />
                               )}
 
-                              {/* 2) Texto debajo */}
-                              <div
-                                className="text-black text-center font-medium"
-                                style={{
-                                  fontSize: `${Math.max(10, Number.parseInt(labelConfig.fontSize) * 0.8)}px`,
-                                  marginTop: "6px",
-                                  maxWidth: "100%",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                }}
-                                title={a.text}
-                              >
+                              <div className="text-black text-center font-medium"
+                                   style={{ fontSize: `${Math.max(10, Number.parseInt(labelConfig.fontSize) * 0.8)}px`, marginTop: "6px", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                                   title={a.text}>
                                 {a.text}
                               </div>
                               {labelConfig.showDesc && a.desc && (
-                                <div
-                                  className="text-black text-center"
-                                  style={{
-                                    fontSize: `${Math.max(6, parseFloat(labelConfig.descFontSize || "12"))}px`,
-                                    maxWidth: "100%",
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    whiteSpace: "nowrap",
-                                  }}
-                                  title={a.desc}
-                                >
+                                <div className="text-black text-center"
+                                     style={{ fontSize: `${Math.max(6, parseFloat(labelConfig.descFontSize || "12"))}px`, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                                     title={a.desc}>
                                   {a.desc}
                                 </div>
                               )}
-
                             </div>
                           </div>
                         ))}
@@ -1679,8 +1481,7 @@ ${bodyHtml}
         </div>
       </div>
     </div>
-  )
-
+  );
 }
 
 /****************************VERSION ESTABLE********************************/
