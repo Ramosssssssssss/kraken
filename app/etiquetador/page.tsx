@@ -438,7 +438,7 @@ type ZplCfg = {
   font: string;
   showDesc?: boolean;
   descFontSize?: string; // px
-  topShiftMm?: string;   // mm opcional para ^LT (positivo = baja todo)
+  topShiftMm?: string;   // mm (puede ser negativo para subir)
 };
 
 function buildZplFromState(
@@ -451,14 +451,14 @@ function buildZplFromState(
 
   const wmm = parseFloat(cfg.width || "50");
   const hmm = parseFloat(cfg.height || "25");
-  const margin = Math.max(0, parseFloat(cfg.margin || "0"));
-  const barH = Math.max(4, parseFloat(cfg.barHeightMm || "20"));
-  const topShiftDots = toDots(Math.max(0, parseFloat(cfg.topShiftMm || "0")));
+  const marginMm = Math.max(0, parseFloat(cfg.margin || "0"));
+  const barHmm = Math.max(4, parseFloat(cfg.barHeightMm || "20"));
+  const topShiftDots = toDots(parseFloat(cfg.topShiftMm ?? "0") || 0); // ⬅️ firmado
 
   const labelW = toDots(wmm);
   const labelH = toDots(hmm);
-  const pad    = toDots(margin);
-  const barHd  = toDots(barH);
+  const pad    = toDots(marginMm);
+  const barHd  = toDots(barHmm);
 
   // Escalas aproximadas para fuente A0
   const textH = Math.max(10, Math.round(parseFloat(cfg.fontSize || "12") * 1.4));
@@ -468,11 +468,13 @@ function buildZplFromState(
   const usableW = Math.max(8, labelW - pad * 2);
   const usableH = Math.max(8, labelH - pad * 2);
 
-  // Estimación módulos Code128 con “fudge” para quiet zones
+  const gapDots = toDots(0.6); // gap pequeño
+
+  // Estimación módulos Code128 con margen silencioso
   const estimateCode128Modules = (data: string) => {
     const len = Math.max(1, data.length);
     const base = 11 * (len + 2) + 13; // barras + start/cksum + stop
-    const quiet = 32;                  // ajuste extra (↑ de 20)
+    const quiet = 24;                 // “quiet zone” a cada lado
     return base + quiet;
   };
 
@@ -481,21 +483,19 @@ function buildZplFromState(
   for (const a of articles) {
     const copies = Math.max(1, Math.floor(a.quantity || 1));
     for (let i = 0; i < copies; i++) {
-      // --- calcular alturas del bloque para centrar vertical ---
-      const gapDots = toDots(1); // separaciones pequeñas
+      // Altura total del bloque para centrar verticalmente
       let blockH = 0;
-
       if (format === "QR") {
         const qrSide = Math.min(usableW, usableH);
         blockH += qrSide;
       } else {
         blockH += barHd;
       }
-      blockH += gapDots;                     // gap bajo símbolo
-      blockH += textH;                       // línea principal
+      blockH += gapDots;          // separación bajo símbolo
+      blockH += textH;            // línea principal
       if (showDesc && a.desc) blockH += gapDots + descH;
 
-      // y centrado vertical
+      // y inicial centrado + offset firmado
       let y = pad + Math.max(0, Math.floor((usableH - blockH) / 2)) + topShiftDots;
 
       let z = `^XA
@@ -506,26 +506,21 @@ function buildZplFromState(
 ^PW${labelW}
 ^LL${labelH}
 ^LH0,0
-^LT${topShiftDots}
 `;
 
       if (format === "QR") {
         const qrSide = Math.min(usableW, usableH);
-        const qrModule = Math.max(2, Math.min(12, Math.floor(qrSide / 40)));
+        const module = Math.max(2, Math.min(12, Math.floor(qrSide / 40)));
         const x = pad + Math.max(0, Math.floor((usableW - qrSide) / 2));
-        z += `^FO${x},${y}^BQN,2,${qrModule}^FDLA,${a.barcode}^FS\r\n`;
+        z += `^FO${x},${y}^BQN,2,${module}^FDLA,${a.barcode}^FS\r\n`;
         y += qrSide + gapDots;
       } else {
-        // === CODE128 / CODE128B ===
+        // CODE128 / CODE128B centrado horizontal
         const totalModules = estimateCode128Modules(a.barcode);
-
-        // Límites de módulo según DPI
         const MAX_MODULE = dpi >= 600 ? 8 : dpi >= 300 ? 6 : 4;
         const MIN_MODULE = 1;
-
         let moduleDots = Math.floor(usableW / totalModules);
         moduleDots = Math.min(MAX_MODULE, Math.max(MIN_MODULE, moduleDots));
-
         const totalWidthDots = moduleDots * totalModules;
         const x = pad + Math.max(0, Math.floor((usableW - totalWidthDots) / 2));
 
@@ -534,11 +529,11 @@ function buildZplFromState(
         y += barHd + gapDots;
       }
 
-      // Texto principal (centrado)
+      // Texto principal centrado
       z += `^FO${pad},${y}^FB${usableW},1,0,C,0^A0N,${textH},${textH}^FD${a.text}^FS\r\n`;
       y += textH;
 
-      // Descripción (opcional, centrada)
+      // Descripción opcional centrada
       if (showDesc && a.desc) {
         y += gapDots;
         z += `^FO${pad},${y}^FB${usableW},1,0,C,0^A0N,${descH},${descH}^FD${a.desc}^FS\r\n`;
@@ -551,6 +546,7 @@ function buildZplFromState(
 
   return out.join("");
 }
+
 
 
 /*******************************************************/
