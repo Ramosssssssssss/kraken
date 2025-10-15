@@ -441,41 +441,41 @@ type ZplCfg = {
 
 function buildZplFromState(
   articles: { barcode: string; text: string; quantity: number; desc?: string }[],
-  cfg: ZplCfg,
+  cfg: {
+    width: string; height: string; margin: string;
+    fontSize: string; barHeightMm: string; font: string;
+    showDesc?: boolean; descFontSize?: string;
+  },
   format: "CODE128" | "CODE128B" | "QR",
-  dpi: 203 | 300 | 600
+  dpi = 203
 ) {
-  // Helpers por DPI
-  const toDots = (mm: number) => toDotsWithDpi(mm, dpi);
-  const pxToDots = (px: number) => Math.max(1, Math.round(px * (dpi / 96)));
+  const toDots = (mm: number) => Math.max(1, Math.round(mm * (dpi / 25.4)));
 
-  // Entradas (mm / px)
   const wmm = parseFloat(cfg.width || "50");
   const hmm = parseFloat(cfg.height || "25");
   const margin = Math.max(0, parseFloat(cfg.margin || "0"));
   const barH = Math.max(4, parseFloat(cfg.barHeightMm || "20"));
 
-  // Conversión a dots
   const labelW = toDots(wmm);
   const labelH = toDots(hmm);
-  const pad = toDots(margin);
-  const barHd = toDots(barH);
+  const pad    = toDots(margin);
+  const barHd  = toDots(barH);
 
-  // Texto en dots (desde px CSS)
-  const textH = Math.max(10, pxToDots(parseFloat(cfg.fontSize || "10")));
-  const descH = Math.max(8, pxToDots(parseFloat(cfg.descFontSize || "12")));
+  const textH  = Math.max(10, Math.round(parseFloat(cfg.fontSize || "10") * 1.4));
+  const descH  = Math.max(8, Math.round(parseFloat(cfg.descFontSize || "12") * 1.3));
   const showDesc = !!cfg.showDesc;
 
-  // Área útil
-  const usableW = Math.max(8, labelW - pad * 2);
-  const usableH = Math.max(8, labelH - pad * 2);
+  const usableW = Math.max(1, labelW - pad * 2);
+  const usableH = Math.max(1, labelH - pad * 2);
 
-  // Escalar ancho de módulo del barcode con DPI (aprox lineal)
-  // 203→2, 300→3, 600→6
-  const byModule = Math.max(2, Math.round(2 * dpi / 203));
+  // util para estimar módulos de Code128 (aprox): 11 módulos por símbolo
+  // + start (11) + checksum (11) + stop (13) + quiet zones (≈20 módulos)
+  const estimateCode128Modules = (data: string) => {
+    const len = Math.max(1, data.length);
+    return 11 * (len + 2) + 13 + 20; // ≈ “símbolos + start + checksum + stop + quiet”
+  };
 
   const blocks: string[] = [];
-
   for (const a of articles) {
     const copies = Math.max(1, Math.floor(a.quantity || 1));
     for (let i = 0; i < copies; i++) {
@@ -492,26 +492,37 @@ function buildZplFromState(
 `;
 
       if (format === "QR") {
-        // lado máximo del QR dentro del área útil
         const qrSide = Math.min(usableW, usableH);
-        // Tamaño de módulo para ZPL (BQN: parámetro 3 = magnificación)
-        // Aproximación: quepan ~ 40 módulos de datos + márgenes
         const moduleFactor = Math.max(2, Math.min(10, Math.floor(qrSide / 40)));
         const x = Math.max(pad, Math.floor((labelW - qrSide) / 2));
         z += `^FO${x},${y}^BQN,2,${moduleFactor}^FDLA,${a.barcode}^FS\n`;
         y += qrSide + toDots(1);
       } else {
-        // Código 128
-        // ^BY{module}, {ratio}, {bar height in dots}
-        z += `^FO${pad},${y}^BY${byModule},2,${barHd}^BCN,${barHd},N,N,N^FD${a.barcode}^FS\n`;
+        // === Ajuste de ancho para CODE128 / CODE128B ===
+        const totalModules = estimateCode128Modules(a.barcode);
+        // módulo en dots para llenar el ancho útil
+        let moduleDots = Math.max(1, Math.floor(usableW / totalModules));
+
+        // límites razonables por DPI para legibilidad/escáner:
+        const MIN_MODULE = 1;                      // en dots
+        const MAX_MODULE = dpi >= 300 ? 6 : 4;     // no exagerar el trazo
+        moduleDots = Math.max(MIN_MODULE, Math.min(MAX_MODULE, moduleDots));
+
+        const totalWidthDots = moduleDots * totalModules;
+        // centrado horizontal dentro del área útil
+        const x = pad + Math.max(0, Math.floor((usableW - totalWidthDots) / 2));
+
+        // r=2 (ratio ancho:estrecho) suele funcionar bien con Code128
+        const ratio = 2;
+        z += `^BY${moduleDots},${ratio},${barHd}\n`;
+        z += `^FO${x},${y}^BCN,${barHd},N,N,N^FD${a.barcode}^FS\n`;
         y += barHd + toDots(1);
       }
 
-      // Texto principal centrado
+      // Texto principal (centrado, ancho útil)
       z += `^FO${pad},${y}^FB${usableW},1,0,C,0^A0N,${textH},${textH}^FD${a.text}^FS\n`;
       y += textH + toDots(1);
 
-      // Descripción opcional
       if (showDesc && a.desc) {
         z += `^FO${pad},${y}^FB${usableW},1,0,C,0^A0N,${descH},${descH}^FD${a.desc}^FS\n`;
       }
@@ -520,9 +531,9 @@ function buildZplFromState(
       blocks.push(z);
     }
   }
-
   return blocks.join("");
 }
+
 
 
 /*******************************************************/
