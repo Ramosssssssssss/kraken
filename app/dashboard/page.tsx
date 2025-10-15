@@ -56,6 +56,7 @@ const ALLOWED_SECTIONS = new Set([
   "CONFIGURACION",
     "ADMIN",
 
+
   // nuevas que van a placeholder
   "ADUANA",
   "AUDITORÍA",
@@ -70,7 +71,6 @@ const PLACEHOLDER_SECTIONS = new Set([
   "INTEGRACIONES",
   "KPI'S",
   "LAYOUT",
-  "TABLEROS",
 ])
 /* ---------- Wrapper con Suspense ---------- */
 export default function DashboardPage() {
@@ -171,10 +171,9 @@ const renderContent = useMemo(() => {
       return <InventorySection />
     case "EMBARQUES":
       return <EmbarquesSection />
-    // OJO: si quieres que INTEGRACIONES también sea placeholder,
-    // quita esta línea y lo manejará el guard clause de arriba.
-    // case "INTEGRACIONES":
-    //   return <IntegrationsSection />
+          case "TABLEROS":
+      return <TablesSection />
+
     case "CONFIGURACION":
       return <ConfigurationSection />
           case "ADMIN":
