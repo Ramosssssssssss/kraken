@@ -411,18 +411,31 @@ function NumberField({
 }
 
 // ==== ZPL builder (203 dpi) ====
-const DOTS_PER_MM = 8; // 203 dpi ≈ 8 dots/mm
-const toDots = (mm: number) => Math.max(1, Math.round(mm * DOTS_PER_MM));
+function toDotsWithDpi(mm: number, dpi: number) {
+  return Math.max(1, Math.round(mm * (dpi / 25.4)));
+}
+
+type ZplCfg = {
+  width: string;
+  height: string;
+  margin: string;
+  fontSize: string;
+  barHeightMm: string;
+  font: string;
+  showDesc?: boolean;
+  descFontSize?: string;
+};
+
+
 
 function buildZplFromState(
   articles: { barcode: string; text: string; quantity: number; desc?: string }[],
-  cfg: {
-    width: string; height: string; margin: string;
-    fontSize: string; barHeightMm: string; font: string;
-    showDesc?: boolean; descFontSize?: string;
-  },
-  format: "CODE128" | "CODE128B" | "QR"
+  cfg: ZplCfg,
+  format: "CODE128" | "CODE128B" | "QR",
+  dpi: number // <--- nuevo
 ) {
+  const toDots = (mm: number) => toDotsWithDpi(mm, dpi);
+
   const wmm = parseFloat(cfg.width || "50");
   const hmm = parseFloat(cfg.height || "25");
   const margin = Math.max(0, parseFloat(cfg.margin || "0"));
@@ -446,13 +459,13 @@ function buildZplFromState(
     for (let i = 0; i < copies; i++) {
       let y = pad;
 
-let z = `^XA
+      let z = `^XA
 ^CI28
-^MNY           // Tear-off (o ^MNR si usas rewind). Ajusta al hardware real.
-^PR4           // Velocidad de impresión razonable (1–8). No afecta medidas.
-^MD0           // Densidad (oscurecimiento). No afecta medidas.
-^PW${labelW}   // Ancho en dots (de mm → dots)
-^LL${labelH}   // Largo en dots (de mm → dots)
+^MNY           
+^PR4         
+^MD0          
+^PW${labelW}  
+^LL${labelH}   
 ^LH0,0
 `;
 
@@ -496,14 +509,13 @@ export default function LabelGenerator() {
     barHeightMm: "20",
     qrSizeMm: "16",   // 👉 tamaño del QR en milímetros
     xDimPx: "1.2", // grosor de módulo (px)
-
-
     // 👇 NUEVO
     showDesc: true,
-    descFontSize: "18",
+    descFontSize: "10",
   })
   const [barcodeFormat, setBarcodeFormat] = useState<"CODE128" | "CODE128B" | "QR">("CODE128")
-
+  // arriba, junto a otros useState:
+  const [printerDpi, setPrinterDpi] = useState<203 | 300 | 600>(203);
   const [articles, setArticles] = useState<ArticleItem[]>([])
   const [templates, setTemplates] = useState<LabelTemplate[]>([])
   const [templateName, setTemplateName] = useState("")
@@ -1042,6 +1054,7 @@ ${bodyHtml}
 
     if (okBP) {
       try {
+        // dentro de handleSmartPrint -> if (okBP) { ... }
         const zpl = buildZplFromState(
           articles.map(a => ({
             barcode: a.barcode,
@@ -1059,8 +1072,10 @@ ${bodyHtml}
             showDesc: labelConfig.showDesc,
             descFontSize: labelConfig.descFontSize
           },
-          barcodeFormat
+          barcodeFormat,
+          printerDpi // 👈 faltaba
         );
+
         await bpPrintZPL(zpl);
         new Noty({ type: "success", layout: "topRight", theme: "mint", text: "Enviado a Zebra (BrowserPrint).", timeout: 2000 }).show();
         return;
@@ -1368,7 +1383,7 @@ ${bodyHtml}
                   <NumberField
                     value={labelConfig.margin}
                     onChange={(v) => handleConfigChange("margin", v)}
-                    min={3}
+                    min={1}
                     step={0.5}
                     ariaLabel="Margen interno en milímetros"
                   />
