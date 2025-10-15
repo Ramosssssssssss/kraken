@@ -31,17 +31,38 @@ function selectFbConfigByHost(hostname: string): fb.Options {
   return hostname === "goumam.krkn.mx" ? goumamFbConfig : baseFbConfig
 }
 
-function queryFirebird<T = any>(fbOptions: fb.Options, sql: string, params: any[] = []): Promise<T[]> {
-  return new Promise((resolve, reject) => {
-    fb.attach(fbOptions, (err, db) => {
-      if (err || !db) return reject(err)
-      db.query(sql, params, (qErr: any, rows: any[]) => {
-        try { db.detach(() => {}) } catch {}
-        if (qErr) return reject(qErr)
-        resolve(rows || [])
+/**
+ * Ejecuta una consulta a Firebird con reintentos y backoff exponencial.
+ */
+async function queryFirebird<T = any>(
+  fbOptions: fb.Options,
+  sql: string,
+  params: any[] = [],
+  maxRetries = 3,
+  baseDelayMs = 500
+): Promise<T[]> {
+  let attempt = 0
+  while (true) {
+    try {
+      return await new Promise<T[]>((resolve, reject) => {
+        fb.attach(fbOptions, (err, db) => {
+          if (err || !db) return reject(err)
+          db.query(sql, params, (qErr: any, rows: any[]) => {
+            try { db.detach(() => {}) } catch {}
+            if (qErr) return reject(qErr)
+            resolve(rows || [])
+          })
+        })
       })
-    })
-  })
+    } catch (err) {
+      attempt++
+      if (attempt > maxRetries) throw err
+
+      const delay = baseDelayMs * Math.pow(2, attempt - 1) + Math.random() * 100
+      console.warn(`[Firebird] Error en intento ${attempt}, reintentando en ${delay.toFixed(0)} ms...`)
+      await new Promise(r => setTimeout(r, delay))
+    }
+  }
 }
 
 // ====== Handler ======

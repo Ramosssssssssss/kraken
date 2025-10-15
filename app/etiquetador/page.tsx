@@ -212,7 +212,9 @@ const clampMm = (mm: number, max: number) =>
 
 // mm — presets típicos
 const SIZE_PRESETS = [
+  { id: "25x25", name: "25 × 25 mm (1\"×1\")", w: 25, h: 25, m: 2, barH: 16, fontPx: 14 },
   { id: "50x25", name: "50 × 25 mm (2\"×1\")", w: 50, h: 25, m: 2, barH: 16, fontPx: 12 },
+  { id: "70x25", name: "70 × 25 mm ", w: 70, h: 25, m: 2, barH: 16, fontPx: 12 },
   { id: "60x40", name: "60 × 40 mm", w: 60, h: 40, m: 2, barH: 20, fontPx: 14 },
   { id: "80x50", name: "80 × 50 mm", w: 80, h: 50, m: 3, barH: 22, fontPx: 16 },
   { id: "100x50", name: "100 × 50 mm (4\"×2\")", w: 100, h: 50, m: 3, barH: 24, fontPx: 18 },
@@ -457,12 +459,12 @@ function buildZplFromState(
 
   const labelW = toDots(wmm);
   const labelH = toDots(hmm);
-  const pad    = toDots(marginMm);
-  const barHd  = toDots(barHmm);
+  const pad = toDots(marginMm);
+  const barHd = toDots(barHmm);
 
   // Escalas aproximadas para fuente A0
   const textH = Math.max(10, Math.round(parseFloat(cfg.fontSize || "12") * 1.4));
-  const descH = Math.max(8,  Math.round(parseFloat(cfg.descFontSize || "12") * 1.3));
+  const descH = Math.max(8, Math.round(parseFloat(cfg.descFontSize || "12") * 1.3));
   const showDesc = !!cfg.showDesc;
 
   const usableW = Math.max(8, labelW - pad * 2);
@@ -498,15 +500,17 @@ function buildZplFromState(
       // y inicial centrado + offset firmado
       let y = pad + Math.max(0, Math.floor((usableH - blockH) / 2)) + topShiftDots;
 
-      let z = `^XA
+    let z = `^XA
 ^CI28
+^MUd
 ^MNY
 ^PR4
-^MD0
+^MD10
 ^PW${labelW}
 ^LL${labelH}
 ^LH0,0
 `;
+
 
       if (format === "QR") {
         const qrSide = Math.min(usableW, usableH);
@@ -517,13 +521,20 @@ function buildZplFromState(
       } else {
         // CODE128 / CODE128B centrado horizontal
         const totalModules = estimateCode128Modules(a.barcode);
-        const MAX_MODULE = dpi >= 600 ? 8 : dpi >= 300 ? 6 : 4;
-        const MIN_MODULE = 1;
+
+        // Límites por DPI: subir el mínimo para evitar barras ultra finas
+        const MIN_MODULE = dpi >= 600 ? 4 : dpi >= 300 ? 3 : 2;
+        const MAX_MODULE = dpi >= 600 ? 12 : dpi >= 300 ? 8 : 6;
+
+        // cálculo automático según ancho disponible
         let moduleDots = Math.floor(usableW / totalModules);
+        // clamp al rango por DPI
         moduleDots = Math.min(MAX_MODULE, Math.max(MIN_MODULE, moduleDots));
+
         const totalWidthDots = moduleDots * totalModules;
         const x = pad + Math.max(0, Math.floor((usableW - totalWidthDots) / 2));
 
+        // ^BY: x-dimension = moduleDots, relación = 2, alto = barHd
         z += `^BY${moduleDots},2,${barHd}\r\n`;
         z += `^FO${x},${y}^BCN,${barHd},N,N,N^FD${a.barcode}^FS\r\n`;
         y += barHd + gapDots;
@@ -791,58 +802,58 @@ export default function LabelGenerator() {
       }
     })();
   }, []);
-async function bpDetectPrinterDpi(): Promise<203|300|600> {
-  try {
-    const BP = await getBP();
-    const dev = await new Promise<any>((res) =>
-      BP.getDefaultDevice("printer", (d:any)=>res(d), ()=>res(null))
-    );
-    if (!dev) return 203;
+  async function bpDetectPrinterDpi(): Promise<203 | 300 | 600> {
+    try {
+      const BP = await getBP();
+      const dev = await new Promise<any>((res) =>
+        BP.getDefaultDevice("printer", (d: any) => res(d), () => res(null))
+      );
+      if (!dev) return 203;
 
-    const send = (cmd: string) => new Promise<string>((resolve) => {
-      // Algunos BrowserPrint tienen sendThenRead, otros solo send/read
-      const tryRead = () => {
+      const send = (cmd: string) => new Promise<string>((resolve) => {
+        // Algunos BrowserPrint tienen sendThenRead, otros solo send/read
+        const tryRead = () => {
+          try {
+            if (typeof dev.read === "function") {
+              dev.read((data: string) => resolve(String(data || "")), () => resolve(""));
+            } else {
+              resolve("");
+            }
+          } catch { resolve(""); }
+        };
         try {
-          if (typeof dev.read === "function") {
-            dev.read((data:string)=>resolve(String(data||"")), ()=>resolve(""));
+          if (typeof dev.sendThenRead === "function") {
+            dev.sendThenRead(cmd, (data: string) => resolve(String(data || "")), () => resolve(""));
+          } else if (typeof dev.send === "function") {
+            dev.send(cmd, tryRead, tryRead);
+          } else if (typeof dev.write === "function") {
+            dev.write(cmd, tryRead, tryRead);
           } else {
             resolve("");
           }
         } catch { resolve(""); }
-      };
-      try {
-        if (typeof dev.sendThenRead === "function") {
-          dev.sendThenRead(cmd, (data:string)=>resolve(String(data||"")), ()=>resolve(""));
-        } else if (typeof dev.send === "function") {
-          dev.send(cmd, tryRead, tryRead);
-        } else if (typeof dev.write === "function") {
-          dev.write(cmd, tryRead, tryRead);
-        } else {
-          resolve("");
-        }
-      } catch { resolve(""); }
-    });
+      });
 
-    // ^HH devuelve configuración donde suele salir la resolución del cabezal
-    const resp = await send("^XA^HH^XZ");
-    const txt = resp.toUpperCase();
+      // ^HH devuelve configuración donde suele salir la resolución del cabezal
+      const resp = await send("^XA^HH^XZ");
+      const txt = resp.toUpperCase();
 
-    // Intenta encontrar 203 / 300 / 600 en líneas típicas
-    if (/203\s*DPI|DPI[:=]\s*203|RESOLUTION.*203/i.test(resp)) return 203;
-    if (/300\s*DPI|DPI[:=]\s*300|RESOLUTION.*300/i.test(resp)) return 300;
-    if (/600\s*DPI|DPI[:=]\s*600|RESOLUTION.*600/i.test(resp)) return 600;
+      // Intenta encontrar 203 / 300 / 600 en líneas típicas
+      if (/203\s*DPI|DPI[:=]\s*203|RESOLUTION.*203/i.test(resp)) return 203;
+      if (/300\s*DPI|DPI[:=]\s*300|RESOLUTION.*300/i.test(resp)) return 300;
+      if (/600\s*DPI|DPI[:=]\s*600|RESOLUTION.*600/i.test(resp)) return 600;
 
-    // Algunas ZQ devuelven el modelo; inferimos por nombre si no hay DPI textual
-    const name = (dev?.name || "").toUpperCase();
-    if (/ZQ5/.test(name)) {
-      // ZQ511/521 suelen venir en 203 o 300; si no hubo match arriba, asumimos 203
+      // Algunas ZQ devuelven el modelo; inferimos por nombre si no hay DPI textual
+      const name = (dev?.name || "").toUpperCase();
+      if (/ZQ5/.test(name)) {
+        // ZQ511/521 suelen venir en 203 o 300; si no hubo match arriba, asumimos 203
+        return 203;
+      }
+      return 203;
+    } catch {
       return 203;
     }
-    return 203;
-  } catch {
-    return 203;
   }
-}
 
   // Config con límites
   const handleConfigChange = (key: string, value: string | boolean) => {
@@ -1100,22 +1111,22 @@ ${bodyHtml}
 
     if (okBP) {
       try {
-       const zpl = buildZplFromState(
-  articles.map(a => ({ barcode: a.barcode, text: a.text, quantity: a.quantity, desc: a.desc })),
-  {
-    width: labelConfig.width,
-    height: labelConfig.height,
-    margin: labelConfig.margin,
-    fontSize: labelConfig.fontSize,
-    barHeightMm: labelConfig.barHeightMm,
-    font: labelConfig.font,
-    showDesc: labelConfig.showDesc,
-    descFontSize: labelConfig.descFontSize,
-    topShiftMm: labelConfig.topShiftMm,   // ⬅️ usa el valor del estado
-  },
-  barcodeFormat,
-  printerDpi
-);
+        const zpl = buildZplFromState(
+          articles.map(a => ({ barcode: a.barcode, text: a.text, quantity: a.quantity, desc: a.desc })),
+          {
+            width: labelConfig.width,
+            height: labelConfig.height,
+            margin: labelConfig.margin,
+            fontSize: labelConfig.fontSize,
+            barHeightMm: labelConfig.barHeightMm,
+            font: labelConfig.font,
+            showDesc: labelConfig.showDesc,
+            descFontSize: labelConfig.descFontSize,
+            topShiftMm: labelConfig.topShiftMm,   // ⬅️ usa el valor del estado
+          },
+          barcodeFormat,
+          printerDpi
+        );
 
         await bpPrintZPL(zpl);
         new Noty({ type: "success", layout: "topRight", theme: "mint", text: `Enviado a Zebra (${printerDpi} DPI).`, timeout: 2000 }).show();
@@ -1138,23 +1149,48 @@ ${bodyHtml}
   useEffect(() => {
     const q = labelConfig.text.trim();
     setSearchError(null);
-    if (abortRef.current) { abortRef.current.abort(); abortRef.current = null; }
-    if (q.length < 2) {
-      setSearchResults([]); setIsSearching(false); return;
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
     }
+
+    if (q.length < 2) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
     const controller = new AbortController();
     abortRef.current = controller;
+
     const t = setTimeout(async () => {
       try {
         setIsSearching(true);
+
         const r = await fetch(`/api/articulos?q=${encodeURIComponent(q)}`, {
           method: "GET",
           signal: controller.signal,
           headers: { Accept: "application/json" },
         });
+
         const json = await r.json();
         if (!r.ok || !json?.ok) throw new Error(json?.error || "Error buscando artículos");
-        setSearchResults(Array.isArray(json.data) ? json.data : []);
+
+        const results = Array.isArray(json.data) ? json.data : [];
+        setSearchResults(results);
+
+        // 🟡 Si no se encontró nada, mostrar alerta
+        if (results.length === 0) {
+          const confirmAdd = window.confirm(
+            `No se encontró el código "${q}".\n¿Deseas agregarlo de todas formas a la lista?`
+          );
+          if (confirmAdd) {
+            // Aquí puedes llamar a tu función de agregar manualmente
+            // Ejemplo: addArticulo({ claveArticulo: q, nombre: q });
+            console.log("Agregar manualmente:", q);
+          }
+        }
+
       } catch (err: any) {
         if (err?.name !== "AbortError") {
           setSearchError(err?.message || "Error de red");
@@ -1164,8 +1200,13 @@ ${bodyHtml}
         setIsSearching(false);
       }
     }, 300);
-    return () => { clearTimeout(t); controller.abort(); };
+
+    return () => {
+      clearTimeout(t);
+      controller.abort();
+    };
   }, [labelConfig.text]);
+
 
   const onArticleKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
     if (e.key === "Enter") {
