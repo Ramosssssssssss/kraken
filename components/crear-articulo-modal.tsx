@@ -256,7 +256,7 @@ export function CrearArticuloModal({ open, onClose, onSuccess }: CrearArticuloMo
                       id="lineaArticulo"
                       value={formData.lineaArticuloId}
                       onChange={(e) => setFormData({ ...formData, lineaArticuloId: e.target.value })}
-                      className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-white focus:border-purple-500/50 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                      className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-gray-600 focus:border-purple-500/50 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
                     >
                       <option value="">Seleccionar...</option>
                       {lineasArticulos.map((linea) => (
@@ -289,7 +289,7 @@ export function CrearArticuloModal({ open, onClose, onSuccess }: CrearArticuloMo
                       required
                       value={formData.impuesto}
                       onChange={(e) => setFormData({ ...formData, impuesto: e.target.value })}
-                      className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-white focus:border-purple-500/50 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                      className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-gray-600 focus:border-purple-500/50 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
                     >
                       <option value="NO SUJETO DEL IMPUESTO">NO SUJETO DEL IMPUESTO</option>
                       <option value="IVA 16%">IVA 16%</option>
@@ -310,7 +310,7 @@ export function CrearArticuloModal({ open, onClose, onSuccess }: CrearArticuloMo
                         required
                         value={formData.unidadVenta}
                         onChange={(e) => setFormData({ ...formData, unidadVenta: e.target.value })}
-                        className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-white focus:border-purple-500/50 focus:outline-none"
+                        className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-gray-600 focus:border-purple-500/50 focus:outline-none"
                       >
                         <option value="PZA">PZA (Pieza)</option>
                         <option value="PAR">PAR (Par)</option>
@@ -322,7 +322,7 @@ export function CrearArticuloModal({ open, onClose, onSuccess }: CrearArticuloMo
                         required
                         value={formData.unidadCompra}
                         onChange={(e) => setFormData({ ...formData, unidadCompra: e.target.value })}
-                        className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-white focus:border-purple-500/50 focus:outline-none"
+                        className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-gray-600 focus:border-purple-500/50 focus:outline-none"
                       >
                         <option value="PZA">PZA (Pieza)</option>
                         <option value="PAR">PAR (Par)</option>
@@ -371,7 +371,7 @@ export function CrearArticuloModal({ open, onClose, onSuccess }: CrearArticuloMo
                     <select
                       value={formData.almacenId}
                       onChange={(e) => setFormData({ ...formData, almacenId: e.target.value })}
-                      className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-white focus:border-purple-500/50 focus:outline-none"
+                      className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-gray-600 focus:border-purple-500/50 focus:outline-none"
                     >
                       <option value="">Seleccionar...</option>
                       {almacenes.map((almacen) => (

@@ -173,7 +173,6 @@ const renderContent = useMemo(() => {
       return <EmbarquesSection />
           case "TABLEROS":
       return <TablesSection />
-
     case "CONFIGURACION":
       return <ConfigurationSection />
           case "ADMIN":

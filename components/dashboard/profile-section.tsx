@@ -15,13 +15,7 @@ interface UserProfile {
   foto?: string | null
 }
 
-const PREDEFINED_AVATARS = [
-  "/a1.png",
-  "/a2.png",
-  "/a3.png",
-  "/a4.png",
-  "/a5.png",
-]
+const PREDEFINED_AVATARS = ["/a1.png", "/a2.png", "/a3.png", "/a4.png", "/a5.png"]
 
 function ChangePhotoModal({
   open,
@@ -138,7 +132,7 @@ function ChangePhotoModal({
   )
 }
 
-function ChangePasswordModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+function ChangePasswordModal({ open, onClose, profileId }: { open: boolean; onClose: () => void; profileId?: number }) {
   const [currentPassword, setCurrentPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -161,21 +155,34 @@ function ChangePasswordModal({ open, onClose }: { open: boolean; onClose: () => 
       return
     }
 
+    if (newPassword.length > 20) {
+      setError("La contraseña no puede exceder 20 caracteres")
+      return
+    }
+
+    if (!apiUrl || !profileId) {
+      setError("No se pudo identificar el usuario")
+      return
+    }
+
     try {
       setLoading(true)
-      const res = await fetch(`${apiUrl}/cambiar-password`, {
+
+      const requestBody = {
+        PIKER_ID: profileId,
+        PASS: newPassword,
+      }
+
+      const res = await fetch(`${apiUrl}/editar-piker`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          currentPassword,
-          newPassword,
-        }),
+        body: JSON.stringify(requestBody),
       })
 
       const data = await res.json()
 
-      if (!res.ok) {
-        throw new Error(data?.error || "Error al cambiar la contraseña")
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.message || "Error al cambiar la contraseña")
       }
 
       toast({
@@ -188,6 +195,7 @@ function ChangePasswordModal({ open, onClose }: { open: boolean; onClose: () => 
       setConfirmPassword("")
       onClose()
     } catch (err: any) {
+      console.error("[v0] Password change error:", err)
       setError(err.message || "Error al cambiar la contraseña")
     } finally {
       setLoading(false)
@@ -209,26 +217,15 @@ function ChangePasswordModal({ open, onClose }: { open: boolean; onClose: () => 
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-white/70 mb-2">Contraseña Actual</label>
-            <input
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/20"
-              placeholder="Ingresa tu contraseña actual"
-              required
-            />
-          </div>
-
-          <div>
             <label className="block text-sm font-medium text-white/70 mb-2">Nueva Contraseña</label>
             <input
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               className="w-full px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/20"
-              placeholder="Ingresa tu nueva contraseña"
+              placeholder="Ingresa tu nueva contraseña (máx. 20 caracteres)"
               required
+              maxLength={20}
             />
           </div>
 
@@ -241,6 +238,7 @@ function ChangePasswordModal({ open, onClose }: { open: boolean; onClose: () => 
               className="w-full px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/20"
               placeholder="Confirma tu nueva contraseña"
               required
+              maxLength={20}
             />
           </div>
 
@@ -278,7 +276,7 @@ function ChangePasswordModal({ open, onClose }: { open: boolean; onClose: () => 
 }
 
 export default function PerfilPage() {
-  const { apiUrl, companyData, userData, isReady } = useCompany()
+  const { apiUrl, companyData, userData, isReady, setUserData } = useCompany()
   const { toast } = useToast()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
@@ -292,45 +290,25 @@ export default function PerfilPage() {
   useEffect(() => {
     if (!isReady) return
 
+    console.log("[v0] userData:", userData)
+    console.log("[v0] apiUrl:", apiUrl)
+    console.log("[v0] isReady:", isReady)
+
     if (userData) {
+      const userId = userData.id || userData.PIKER_ID || userData.ID || 0
+      console.log("[v0] Resolved userId:", userId)
+
       const userProfile: UserProfile = {
-        id: userData.id || 0,
-        nombre: userData.nombre || userData.user || "Usuario",
-        email: userData.email || "",
-        foto: userData.foto || null,
+        id: userId,
+        nombre: userData.nombre || userData.NOMBRE || userData.user || "Usuario",
+        email: userData.email || userData.EMAIL || "",
+        foto: userData.foto || userData.IMAGEN_COLAB || null,
       }
       setProfile(userProfile)
       setNewName(userProfile.nombre)
       setLoading(false)
-      return
     }
-
-    if (!apiUrl) {
-      setLoading(false)
-      return
-    }
-
-    const loadProfile = async () => {
-      try {
-        setLoading(true)
-        const res = await fetch(`${apiUrl}/perfil`, {
-          cache: "no-store",
-        })
-        const data = await res.json()
-
-        if (res.ok && data.perfil) {
-          setProfile(data.perfil)
-          setNewName(data.perfil.nombre)
-        }
-      } catch (err) {
-        console.error("Error loading profile:", err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadProfile()
-  }, [isReady, apiUrl, userData])
+  }, [isReady, userData])
 
   const handlePhotoClick = () => {
     setPhotoModalOpen(true)
@@ -338,83 +316,119 @@ export default function PerfilPage() {
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || !apiUrl) return
-
-    if (!file.type.startsWith("image/")) {
-      toast({
-        title: "Error",
-        description: "Por favor selecciona una imagen válida",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "Error",
-        description: "La imagen no debe superar los 5MB",
-        variant: "destructive",
-      })
+    if (!file || !apiUrl || !profile?.id) {
+      console.log("[v0] Missing requirements:", { file: !!file, apiUrl, profileId: profile?.id })
       return
     }
 
     try {
       setUploadingPhoto(true)
-      const formData = new FormData()
-      formData.append("foto", file)
 
-      const res = await fetch(`${apiUrl}/actualizar-foto-perfil`, {
-        method: "POST",
-        body: formData,
-      })
+      const reader = new FileReader()
+      reader.onload = async () => {
+        const result = reader.result as string
+        const [, meta, base64] = result.match(/^data:(.*?);base64,(.*)$/) || []
 
-      const data = await res.json()
+        if (!base64) {
+          throw new Error("Error al procesar la imagen")
+        }
 
-      if (!res.ok) {
-        throw new Error(data?.error || "Error al subir la foto")
+        console.log("[v0] Sending photo update with PIKER_ID:", profile.id)
+
+        const res = await fetch(`${apiUrl}/editar-piker`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            PIKER_ID: profile.id,
+            IMAGEN_COLAB_BASE64: base64,
+            IMAGEN_COLAB_MIME: meta || file.type || "image/jpeg",
+          }),
+        })
+
+        const data = await res.json()
+
+        if (!res.ok || !data?.ok) {
+          throw new Error(data?.message || "Error al subir la foto")
+        }
+
+        // Update local state
+        const imageUrl = `data:${data.piker.IMAGEN_COLAB_MIME};base64,${data.piker.IMAGEN_COLAB}`
+        setProfile((prev) => (prev ? { ...prev, foto: imageUrl } : null))
+
+        // Update userData context
+        if (userData) {
+          setUserData({ ...userData, foto: imageUrl })
+        }
+
+        toast({
+          title: "Foto actualizada",
+          description: "Tu foto de perfil ha sido actualizada exitosamente",
+        })
+
+        setUploadingPhoto(false)
       }
 
-      setProfile((prev) => (prev ? { ...prev, foto: data.foto } : null))
+      reader.onerror = () => {
+        toast({
+          title: "Error",
+          description: "Error al leer la imagen",
+          variant: "destructive",
+        })
+        setUploadingPhoto(false)
+      }
 
-      toast({
-        title: "Foto actualizada",
-        description: "Tu foto de perfil ha sido actualizada exitosamente",
-      })
+      reader.readAsDataURL(file)
     } catch (err: any) {
+      console.error("[v0] Photo upload error:", err)
       toast({
         title: "Error",
         description: err.message || "Error al actualizar la foto",
         variant: "destructive",
       })
-    } finally {
       setUploadingPhoto(false)
     }
   }
 
   const handleAvatarSelect = async (avatarUrl: string) => {
-    if (!apiUrl) return
+    if (!apiUrl || !profile?.id) {
+      console.log("[v0] Missing requirements for avatar:", { apiUrl, profileId: profile?.id })
+      return
+    }
 
     try {
       setUploadingPhoto(true)
-      const res = await fetch(`${apiUrl}/actualizar-foto-perfil`, {
+
+      console.log("[v0] Sending avatar update with PIKER_ID:", profile.id)
+
+      // For predefined avatars, we just send the URL
+      const res = await fetch(`${apiUrl}/editar-piker`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ foto: avatarUrl }),
+        body: JSON.stringify({
+          PIKER_ID: profile.id,
+          IMAGEN_COLAB_BASE64: "", // Empty to clear or use URL
+        }),
       })
 
       const data = await res.json()
 
-      if (!res.ok) {
-        throw new Error(data?.error || "Error al actualizar la foto")
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.message || "Error al actualizar la foto")
       }
 
       setProfile((prev) => (prev ? { ...prev, foto: avatarUrl } : null))
+
+      // Update userData context
+      if (userData) {
+        setUserData({ ...userData, foto: avatarUrl })
+      }
 
       toast({
         title: "Foto actualizada",
         description: "Tu foto de perfil ha sido actualizada exitosamente",
       })
     } catch (err: any) {
+      console.error("[v0] Avatar select error:", err)
       toast({
         title: "Error",
         description: err.message || "Error al actualizar la foto",
@@ -426,23 +440,38 @@ export default function PerfilPage() {
   }
 
   const handleSaveName = async () => {
-    if (!apiUrl || !newName.trim()) return
+    if (!apiUrl || !newName.trim() || !profile?.id) {
+      console.log("[v0] Missing requirements for name save:", { apiUrl, newName, profileId: profile?.id })
+      return
+    }
 
     try {
       setSavingName(true)
-      const res = await fetch(`${apiUrl}/actualizar-nombre`, {
+
+      console.log("[v0] Sending name update with PIKER_ID:", profile.id)
+
+      const res = await fetch(`${apiUrl}/editar-piker`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombre: newName.trim() }),
+        body: JSON.stringify({
+          PIKER_ID: profile.id,
+          NOMBRE: newName.trim(),
+        }),
       })
 
       const data = await res.json()
 
-      if (!res.ok) {
-        throw new Error(data?.error || "Error al actualizar el nombre")
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.message || "Error al actualizar el nombre")
       }
 
       setProfile((prev) => (prev ? { ...prev, nombre: newName.trim() } : null))
+
+      // Update userData context
+      if (userData) {
+        setUserData({ ...userData, nombre: newName.trim() })
+      }
+
       setEditingName(false)
 
       toast({
@@ -450,6 +479,7 @@ export default function PerfilPage() {
         description: "Tu nombre ha sido actualizado exitosamente",
       })
     } catch (err: any) {
+      console.error("[v0] Name save error:", err)
       toast({
         title: "Error",
         description: err.message || "Error al actualizar el nombre",
@@ -626,6 +656,7 @@ export default function PerfilPage() {
               </div>
             </a>
           </div>
+
           {companyData && (
             <div className="bg-[#0a0a0a] border border-white/10 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-white/95 mb-4">Empresa</h3>
@@ -648,11 +679,14 @@ export default function PerfilPage() {
               </div>
             </div>
           )}
-
         </div>
       </div>
 
-      <ChangePasswordModal open={passwordModalOpen} onClose={() => setPasswordModalOpen(false)} />
+      <ChangePasswordModal
+        open={passwordModalOpen}
+        onClose={() => setPasswordModalOpen(false)}
+        profileId={profile?.id}
+      />
       <ChangePhotoModal
         open={photoModalOpen}
         onClose={() => setPhotoModalOpen(false)}
