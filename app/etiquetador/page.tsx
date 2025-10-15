@@ -426,7 +426,7 @@ function NumberField({
 }
 
 // ==== ZPL builder (203 dpi) ====
-// mm -> dots
+// mm -> dots con DPI ya lo tienes arriba
 function toDotsWithDpi(mm: number, dpi: number) {
   return Math.max(1, Math.round(mm * (dpi / 25.4)));
 }
@@ -435,12 +435,12 @@ type ZplCfg = {
   width: string;        // mm
   height: string;       // mm
   margin: string;       // mm
-  fontSize: string;     // px
-  barHeightMm: string;  // mm
+  fontSize: string;     // px (texto principal)
+  barHeightMm: string;  // mm (alto deseado de barras)
   font: string;
   showDesc?: boolean;
   descFontSize?: string; // px
-  topShiftMm?: string;   // mm (puede ser negativo para subir)
+  topShiftMm?: string;   // mm (offset vertical +/-, puede ser negativo)
 };
 
 function buildZplFromState(
@@ -451,33 +451,35 @@ function buildZplFromState(
 ) {
   const toDots = (mm: number) => toDotsWithDpi(mm, dpi);
 
+  // --- Config base ---
   const wmm = parseFloat(cfg.width || "50");
   const hmm = parseFloat(cfg.height || "25");
   const marginMm = Math.max(0, parseFloat(cfg.margin || "0"));
   const barHmm = Math.max(4, parseFloat(cfg.barHeightMm || "20"));
-  const topShiftDots = toDots(parseFloat(cfg.topShiftMm ?? "0") || 0); // ⬅️ firmado
+  const topShiftDots = toDots(parseFloat(cfg.topShiftMm ?? "0") || 0);
 
   const labelW = toDots(wmm);
   const labelH = toDots(hmm);
-  const pad = toDots(marginMm);
-  const barHd = toDots(barHmm);
+  const pad    = toDots(marginMm);
+  const barHd  = toDots(barHmm);
 
-  // Escalas aproximadas para fuente A0
+  // Alturas de fuente a partir de px (A0)
   const textH = Math.max(10, Math.round(parseFloat(cfg.fontSize || "12") * 1.4));
-  const descH = Math.max(8, Math.round(parseFloat(cfg.descFontSize || "12") * 1.3));
+  const descH = Math.max(8,  Math.round(parseFloat(cfg.descFontSize || "12") * 1.3));
   const showDesc = !!cfg.showDesc;
 
   const usableW = Math.max(8, labelW - pad * 2);
   const usableH = Math.max(8, labelH - pad * 2);
 
-  const gapDots = toDots(0.6); // gap pequeño
+  const gapDots = toDots(0.6); // separación entre filas
+  const quiet   = toDots(2);   // “quiet zone” para símbolo (≈2 mm)
 
-  // Estimación módulos Code128 con margen silencioso
+  // Estimación de módulos (Code128) con quiet zone incorporado
   const estimateCode128Modules = (data: string) => {
     const len = Math.max(1, data.length);
-    const base = 11 * (len + 2) + 13; // barras + start/cksum + stop
-    const quiet = 24;                 // “quiet zone” a cada lado
-    return base + quiet;
+    const base = 11 * (len + 2) + 13; // barras + start+chk + stop
+    const quietModules = 24;           // margen lateral recomendado
+    return base + quietModules;
   };
 
   const out: string[] = [];
@@ -485,25 +487,10 @@ function buildZplFromState(
   for (const a of articles) {
     const copies = Math.max(1, Math.floor(a.quantity || 1));
     for (let i = 0; i < copies; i++) {
-      // Altura total del bloque para centrar verticalmente
-      let blockH = 0;
-      if (format === "QR") {
-        const qrSide = Math.min(usableW, usableH);
-        blockH += qrSide;
-      } else {
-        blockH += barHd;
-      }
-      blockH += gapDots;          // separación bajo símbolo
-      blockH += textH;            // línea principal
-      if (showDesc && a.desc) blockH += gapDots + descH;
-
-      // y inicial centrado + offset firmado
-      let y = pad + Math.max(0, Math.floor((usableH - blockH) / 2)) + topShiftDots;
-
+      // Header ZPL
       let z = `^XA
 ^CI28
 ^MUd
-^MNY
 ^PR4
 ^MD10
 ^PW${labelW}
@@ -511,56 +498,64 @@ function buildZplFromState(
 ^LH0,0
 `;
 
+      // --- “grid” 1×3: símbolo / clave / descripción ---
+      const hasDesc = !!(showDesc && a.desc);
 
+      // Reparto de alturas (porcentaje del área útil)
+      const r1 = Math.round(usableH * (hasDesc ? 0.55 : 0.70)); // fila símbolo
+      const r2 = Math.round(usableH * (hasDesc ? 0.25 : 0.30)); // fila clave
+      const r3 = Math.max(0, usableH - r1 - r2);                // fila descripción (0 si no hay)
+
+      // Coordenadas Y de cada fila
+      let y1 = pad + topShiftDots;                 // inicio fila 1 (símbolo)
+      let y2 = y1 + r1 + gapDots;                  // inicio fila 2 (clave)
+      let y3 = y2 + r2 + (hasDesc ? gapDots : 0);  // inicio fila 3 (desc si aplica)
+
+      // ----- Fila 1: símbolo (QR o CODE128) -----
       if (format === "QR") {
-        // calcula el tamaño del QR en dots
-        const qrSide = Math.min(usableW, usableH);
-
-        // tamaño del módulo (bloques del QR)
+        // Lado del QR: se ajusta a la menor dimensión de la fila 1 dejando quiet zone
+        const qrSide = Math.max(8, Math.min(usableW - 2 * quiet, r1 - 2 * quiet));
+        // Módulo (1..12) – ajuste empírico
         const module = Math.max(2, Math.min(12, Math.floor(qrSide / 40)));
 
-        // margen interno (quiet zone) – ajustable
-        const quietZoneDots = toDots(2); // ← 2 mm de margen blanco a cada lado
+        // Centrado dentro de la fila
+        const x = pad + Math.floor((usableW - qrSide) / 2) + quiet;
+        const y = y1 + Math.floor((r1 - qrSide) / 2) + quiet;
 
-        // centra el código dentro del área útil con margen incluido
-        const x = pad + Math.max(0, Math.floor((usableW - qrSide) / 2)) + quietZoneDots;
-        const yAdjusted = y + quietZoneDots;
-
-        z += `^FO${x},${yAdjusted}^BQN,2,${module}^FDLA,${a.barcode}^FS\r\n`;
-        y += qrSide + gapDots;
-      }
-      else {
-        // CODE128 / CODE128B centrado horizontal
+        z += `^FO${x},${y}^BQN,2,${module}^FDLA,${a.barcode}^FS\r\n`;
+      } else {
+        // CODE128 / CODE128B
         const totalModules = estimateCode128Modules(a.barcode);
 
-        // Límites por DPI: subir el mínimo para evitar barras ultra finas
+        // Subimos mínimos por DPI para que no salga “delgadito”
         const MIN_MODULE = dpi >= 600 ? 4 : dpi >= 300 ? 3 : 2;
         const MAX_MODULE = dpi >= 600 ? 12 : dpi >= 300 ? 8 : 6;
 
-        // cálculo automático según ancho disponible
-        let moduleDots = Math.floor(usableW / totalModules);
-        // clamp al rango por DPI
+        // Alto efectivo de barras para que quepa en la fila 1
+        const barHRow = Math.max(8, Math.min(r1 - 2 * quiet, barHd));
+
+        // módulo por ancho útil (restando quiet zone a ambos lados)
+        let moduleDots = Math.floor((usableW - 2 * quiet) / totalModules);
         moduleDots = Math.min(MAX_MODULE, Math.max(MIN_MODULE, moduleDots));
 
         const totalWidthDots = moduleDots * totalModules;
-        const x = pad + Math.max(0, Math.floor((usableW - totalWidthDots) / 2));
+        const x = pad + quiet + Math.max(0, Math.floor((usableW - 2 * quiet - totalWidthDots) / 2));
+        const y = y1 + quiet + Math.max(0, Math.floor((r1 - 2 * quiet - barHRow) / 2));
 
-        // ^BY: x-dimension = moduleDots, relación = 2, alto = barHd
-        z += `^BY${moduleDots},2,${barHd}\r\n`;
-        z += `^FO${x},${y}^BCN,${barHd},N,N,N^FD${a.barcode}^FS\r\n`;
-        y += barHd + gapDots;
+        z += `^BY${moduleDots},2,${barHRow}\r\n`;
+        z += `^FO${x},${y}^BCN,${barHRow},N,N,N^FD${a.barcode}^FS\r\n`;
       }
 
-      // Texto principal centrado
-      z += `^FO${pad},${y}^FB${usableW},1,0,C,0^A0N,${textH},${textH}^FD${a.text}^FS\r\n`;
-      y += textH;
+      // ----- Fila 2: clave (centrada) -----
+      z += `^FO${pad},${y2}^FB${usableW},1,0,C,0^A0N,${textH},${textH}^FD${a.text}^FS\r\n`;
 
-      // Descripción opcional centrada
-      if (showDesc && a.desc) {
-        y += gapDots;
-        z += `^FO${pad},${y}^FB${usableW},1,0,C,0^A0N,${descH},${descH}^FD${a.desc}^FS\r\n`;
+      // ----- Fila 3: descripción (opcional, centrada) -----
+      if (hasDesc && r3 > 0) {
+        const yDesc = y3 + Math.max(0, Math.floor((r3 - descH) / 2));
+        z += `^FO${pad},${yDesc}^FB${usableW},1,0,C,0^A0N,${descH},${descH}^FD${a.desc}^FS\r\n`;
       }
 
+      // Cierre
       z += "^XZ\r\n";
       out.push(z);
     }
@@ -568,8 +563,6 @@ function buildZplFromState(
 
   return out.join("");
 }
-
-
 
 /*******************************************************/
 
