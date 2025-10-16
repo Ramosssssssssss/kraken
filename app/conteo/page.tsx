@@ -359,7 +359,7 @@ export default function InventarioFisicoPage() {
 
     if (!code) return
 
-    console.log(`[v0] Scanned code: "${raw}" -> Sanitized: "${code}"`)
+    console.log(`Scanned code: "${raw}" -> Sanitized: "${code}"`)
 
     const idx = detalles.findIndex((d) => d.CLAVE.toUpperCase() === code)
 
@@ -403,7 +403,7 @@ export default function InventarioFisicoPage() {
       setTimeout(() => scrollToItem(idx), 150)
       showToast(`Escaneado: ${code}`, "success")
     } else {
-      console.log(`[v0] Code not found in detalles, searching in database: ${code}`)
+      console.log(`Code not found in detalles, searching in database: ${code}`)
       searchAndAddArticle(code)
     }
   }

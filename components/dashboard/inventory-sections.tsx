@@ -64,7 +64,7 @@ export default function InventorySection() {
   }
 
   const handlePickingClick = () => {
-    router.push("/picking")
+    router.push("/aplicar-inv")
   }
 
   const handlePackingClick = () => {
@@ -104,7 +104,7 @@ export default function InventorySection() {
                 onClick={handleArticulosClick}
               />
               <ModuleCard
-                title="Lotes"
+                title="Aplicar Inventario"
                 description="Prepara los productos solicitados tomando la mercancía de su ubicación en almacén."
                 icon={ScanBarcode}
                 version="v2.1.0"
