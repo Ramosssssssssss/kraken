@@ -138,7 +138,7 @@ export default function InventorySection() {
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-white/10">
               <div>
-                <h3 className="text-lg font-semibold text-white">Artículos</h3>
+                <h3 className="text-lg font-semibold text-white">Movimientos</h3>
                 <p className="text-sm text-white/40 mt-1">Selecciona una opción</p>
               </div>
               <button
@@ -164,11 +164,10 @@ export default function InventorySection() {
                   </div>
                   <div className="flex-1 text-left">
                     <h4 className="text-sm font-medium text-white/90 group-hover:text-white transition-colors">
-                      Ver Artículos
+                      Entradas
                     </h4>
                     <p className="text-xs text-white/40 group-hover:text-white/60 transition-colors mt-0.5">
-                      Lista de todos los artículos
-                    </p>
+Entradas de Material                    </p>
                   </div>
                   <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-white/70 group-hover:translate-x-1 transition-all" />
                 </div>
@@ -187,11 +186,27 @@ export default function InventorySection() {
                   </div>
                   <div className="flex-1 text-left">
                     <h4 className="text-sm font-medium text-white/90 group-hover:text-white transition-colors">
-                      Crear Artículo
-                    </h4>
-                    <p className="text-xs text-white/40 group-hover:text-white/60 transition-colors mt-0.5">
-                      Agregar un nuevo artículo
-                    </p>
+Salidas                    </h4>
+                    <p className="text-xs text-white/40 group-hover:text-white/60 transition-colors mt-0.5">Salidas de Material                    </p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-white/70 group-hover:translate-x-1 transition-all" />
+                </div>
+              </button>
+                  <button
+                onClick={() => {
+                  setShowArticulosModal(false)
+                  router.push("/articulos/crear")
+                }}
+                className="w-full group bg-white/[0.02] hover:bg-white/5 border border-white/5 rounded-lg p-4 transition-all duration-200"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-white/5 group-hover:bg-white/10 rounded-lg flex items-center justify-center transition-all">
+                    <Plus className="w-5 h-5 text-white/60 group-hover:text-white/90 transition-colors" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <h4 className="text-sm font-medium text-white/90 group-hover:text-white transition-colors">
+Traspaso                    </h4>
+                    <p className="text-xs text-white/40 group-hover:text-white/60 transition-colors mt-0.5">Traspaso de Material                    </p>
                   </div>
                   <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-white/70 group-hover:translate-x-1 transition-all" />
                 </div>

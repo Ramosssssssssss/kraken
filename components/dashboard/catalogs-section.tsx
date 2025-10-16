@@ -66,15 +66,15 @@ export default function CatalogsSection() {
    router.push("/articulos/ver")
 }
   const handlePickingClick = () => {
-    router.push("/picking")
+    router.push("/almacen")
   }
 
   const handlePackingClick = () => {
     router.push("/ordenes-packing")
   }
 
-  const handlesnMicroClick = () => {
-    router.push("/snMicro")
+  const handleProveedoresClick = () => {
+    router.push("/proveedores")
   }
 
   return (
@@ -97,6 +97,13 @@ export default function CatalogsSection() {
                 icon={Inbox}
                 version="v2.1.0"
                 onClick={handleAlmacenesClick}
+              />
+                 <ModuleCard
+                title="AlmacenesOficial"
+                description="Registra la entrada de mercancía, valida contra órdenes de compra y asegura cantidades correctas."
+                icon={Inbox}
+                version="v2.1.0"
+                onClick={handlePickingClick}
               />
               <ModuleCard
                 title="Artículos"
@@ -138,7 +145,7 @@ export default function CatalogsSection() {
                 description="Empaca y consolida los productos seleccionados para el envío o entrega."
                 icon={Box}
                 version="v2.1.0"
-                onClick={handlePackingClick}
+                onClick={handleProveedoresClick}
               />
             </div>
           </div>

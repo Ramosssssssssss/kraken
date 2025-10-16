@@ -64,7 +64,7 @@ export default function PersonalizePage() {
         </div>
 
         {/* Options Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 focus-within:gap-8">
           {/* Branding Card */}
           <button
             onClick={() => setActiveSection("branding")}
@@ -101,22 +101,22 @@ export default function PersonalizePage() {
           </button>
 
           {/* Avatares Card */}
-          <button
+          {/* <button
             onClick={() => setActiveSection("avatares")}
             className="group relative overflow-hidden bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-white/10 rounded-3xl p-8 text-left transition-all hover:scale-[1.02] hover:border-white/20 hover:shadow-2xl hover:shadow-purple-500/20"
           >
             {/* Animated Background */}
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/0 to-pink-500/0 group-hover:from-purple-500/5 group-hover:to-pink-500/5 transition-all duration-500" />
+            {/* <div className="absolute inset-0 bg-gradient-to-br from-purple-500/0 to-pink-500/0 group-hover:from-purple-500/5 group-hover:to-pink-500/5 transition-all duration-500" /> */}
 
             {/* Content */}
-            <div className="relative z-10 space-y-6">
+            {/* <div className="relative z-10 space-y-6">
               <div className="flex items-start justify-between">
                 <div className="p-4 bg-purple-500/10 border border-purple-500/20 rounded-2xl group-hover:bg-purple-500/20 transition-colors">
                   <Users className="w-8 h-8 text-purple-400" />
                 </div>
                 <ArrowRight className="w-6 h-6 text-white/40 group-hover:text-white group-hover:translate-x-1 transition-all" />
-              </div>
-
+              </div> */}
+{/* 
               <div className="space-y-3">
                 <h2 className="text-2xl font-bold text-white">Avatares</h2>
                 <p className="text-white/60 leading-relaxed">
@@ -131,9 +131,9 @@ export default function PersonalizePage() {
             </div>
 
             {/* Decorative Elements */}
-            <div className="absolute -top-12 -right-12 w-32 h-32 bg-purple-500/20 rounded-full blur-3xl group-hover:bg-purple-500/30 transition-all" />
+            {/* <div className="absolute -top-12 -right-12 w-32 h-32 bg-purple-500/20 rounded-full blur-3xl group-hover:bg-purple-500/30 transition-all" />
             <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-pink-500/20 rounded-full blur-3xl group-hover:bg-pink-500/30 transition-all" />
-          </button>
+          </button>  */}
         </div>
 
         {/* Footer Info */}

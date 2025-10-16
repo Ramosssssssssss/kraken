@@ -211,8 +211,6 @@ const renderContent = useMemo(() => {
         activeSection={activeSection}
         onSectionChange={handleSectionChange}
         onLogout={handleLogout}
-        sidebarOpen={sidebarOpen}
-        onToggleSidebar={onToggleSidebar}
       />
 
       <div className="flex-1 flex min-h-0 flex-col">
