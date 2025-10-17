@@ -212,7 +212,8 @@ export default function InventarioFisicoPage() {
     return acc + val
   }, 0)
   const progreso = totalRequeridas > 0 ? Math.min(1, totalHechas / totalRequeridas) : 0
-  const listo = totalLineas > 0 && lineasCompletas === totalLineas && totalHechas === totalRequeridas
+  // Modificación: El botón siempre estará activo, independientemente de si el inventario está completo
+  const listo = true
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600)
@@ -288,8 +289,9 @@ const searchAndAddArticle = async (clave: string) => {
     }
 
     const cantidad = Number(newCantidad)
-    if (cantidad <= 0) {
-      showToast("La cantidad debe ser mayor a 0")
+    // Modificación: Permitir cantidad 0
+    if (cantidad < 0) {
+      showToast("La cantidad no puede ser negativa")
       return
     }
 
@@ -305,8 +307,9 @@ const searchAndAddArticle = async (clave: string) => {
       UMED: null,
       CANTIDAD: cantidad,
       _key: `inv-${Date.now()}`,
-      packed: 0,
-      scanned: 0,
+      // Modificación: Si la cantidad es 0, packed y scanned también deben ser 0
+      packed: cantidad > 0 ? 0 : 0,
+      scanned: cantidad > 0 ? 0 : 0,
     }
 
     setDetalles((prev) => {
@@ -429,29 +432,37 @@ const searchAndAddArticle = async (clave: string) => {
   const aplicarInventario = useCallback(async () => {
     if (isSubmitting) return
 
-    if (!listo) {
-      showToast(
-        requireScan
-          ? "Debes escanear todas las piezas requeridas para aplicar el inventario."
-          : "Aún no completas todas las líneas.",
-      )
-      focusScanner()
-      return
-    }
+    // Modificación: Eliminar la validación que comprueba si el inventario está completo
+    // if (!listo) {
+    //   showToast(
+    //     requireScan
+    //       ? "Debes escanear todas las piezas requeridas para aplicar el inventario."
+    //       : "Aún no completas todas las líneas.",
+    //   )
+    //   focusScanner()
+    //   return
+    // }
 
     if (!baseURL) {
       showToast("No se encontró la URL de tu empresa")
       return
     }
 
+    if (detalles.length === 0) {
+      showToast("No hay productos en el inventario")
+      return
+    }
+
     setIsSubmitting(true)
     try {
+      // Modificación: Incluir productos con cantidad 0
       const detallesComp = detalles
         .map((d) => ({
           CLAVE: d.CLAVE,
           CANTIDAD: requireScan ? d.scanned : d.packed,
         }))
-        .filter((x) => Number(x.CANTIDAD) > 0)
+        // Eliminar el filtro que excluye productos con cantidad <= 0
+        // .filter((x) => Number(x.CANTIDAD) > 0)
 
       const payload = {
         P_SUCURSAL_ID: 9606947,
@@ -794,10 +805,11 @@ const searchAndAddArticle = async (clave: string) => {
                   ref={cantidadInputRef}
                   value={newCantidad}
                   onChange={(e) => setNewCantidad(e.target.value)}
-                  placeholder="Cantidad"
+                  placeholder="Cantidad (puede ser 0)"
                   type="number"
                   className="text-black"
                 />
+                <p className="text-xs text-slate-500 mt-1">Puedes agregar productos con cantidad 0</p>
               </div>
             </div>
 
@@ -846,7 +858,8 @@ const searchAndAddArticle = async (clave: string) => {
                   const req = item.CANTIDAD
                   const pk = item.packed
                   const sc = item.scanned
-                  const okLinea = requireScan ? sc >= req : pk >= req
+                  // Modificación: Considerar completas las líneas con cantidad 0
+                  const okLinea = req === 0 || (requireScan ? sc >= req : pk >= req)
                   const isFlash = flashIndex === index
 
                   return (
@@ -868,7 +881,7 @@ const searchAndAddArticle = async (clave: string) => {
                             {okLinea && (
                               <div className="flex items-center gap-1 bg-green-500 text-white text-xs px-2 py-1 rounded-md">
                                 <CheckCircle className="w-3 h-3" />
-                                Completo
+                                {req === 0 ? "Cantidad 0" : "Completo"}
                               </div>
                             )}
                           </div>
@@ -901,16 +914,16 @@ const searchAndAddArticle = async (clave: string) => {
                           <div className="flex items-center gap-2">
                             <button
                               className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${
-                                requireScan
+                                requireScan || req === 0
                                   ? "bg-slate-200 text-slate-400 cursor-not-allowed"
                                   : "bg-purple-700 text-white hover:bg-purple-600 shadow-sm"
                               }`}
                               onClick={() => {
-                                if (!requireScan) {
+                                if (!requireScan && req > 0) {
                                   dec(index)
                                 }
                               }}
-                              disabled={requireScan}
+                              disabled={requireScan || req === 0}
                             >
                               <Minus className="w-4 h-4" />
                             </button>
@@ -919,17 +932,17 @@ const searchAndAddArticle = async (clave: string) => {
 
                             <button
                               className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${
-                                requireScan
+                                requireScan || req === 0
                                   ? "bg-slate-200 text-slate-400 cursor-not-allowed"
                                   : "bg-purple-700 text-white hover:bg-purple-600 shadow-sm"
                               }`}
                               onClick={() => {
-                                if (!requireScan) {
+                                if (!requireScan && req > 0) {
                                   inc(index)
                                 }
                               }}
                               onMouseDown={(e) => {
-                                if (!requireScan) {
+                                if (!requireScan && req > 0) {
                                   const timer = setTimeout(() => fillToRequired(index), 250)
                                   const handleMouseUp = () => {
                                     clearTimeout(timer)
@@ -938,7 +951,7 @@ const searchAndAddArticle = async (clave: string) => {
                                   document.addEventListener("mouseup", handleMouseUp)
                                 }
                               }}
-                              disabled={requireScan}
+                              disabled={requireScan || req === 0}
                             >
                               <Plus className="w-4 h-4" />
                             </button>
@@ -946,10 +959,10 @@ const searchAndAddArticle = async (clave: string) => {
 
                           <p
                             className={`text-xs text-center leading-tight ${
-                              requireScan ? "text-slate-400" : "text-slate-600"
+                              requireScan || req === 0 ? "text-slate-400" : "text-slate-600"
                             }`}
                           >
-                            {requireScan ? "Escanea para avanzar" : "Mantén + para llenar"}
+                            {requireScan || req === 0 ? req === 0 ? "Cantidad 0" : "Escanea para avanzar" : "Mantén + para llenar"}
                           </p>
                         </div>
                       </div>
@@ -969,14 +982,14 @@ const searchAndAddArticle = async (clave: string) => {
               <div className="fixed bottom-0 left-0 right-1/4 bg-gradient-to-t from-white via-white to-transparent pt-4 pb-0 px-6">
                 <button
                   className={`w-full flex items-center justify-center gap-3 py-4 rounded-xl font-semibold text-white transition-all duration-200 shadow-lg hover:shadow-xl ${
-                    listo && !isSubmitting
+                    !isSubmitting
                       ? "bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
                       : "bg-gradient-to-r from-slate-400 to-slate-500 cursor-not-allowed"
                   }`}
                   onClick={() => {
-                    if (listo && !isSubmitting) aplicarInventario()
+                    if (!isSubmitting) aplicarInventario()
                   }}
-                  disabled={!listo || isSubmitting}
+                  disabled={isSubmitting}
                 >
                   {isSubmitting ? (
                     <>
@@ -1057,10 +1070,13 @@ const searchAndAddArticle = async (clave: string) => {
                     <div className="flex justify-between items-center mb-1">
                       <span className="text-xs font-medium text-purple-700">Completado</span>
                       <span className="text-sm font-bold text-purple-900">
-                        {Math.round(
-                          ((lastScannedProduct.product.scanned || 0) / (lastScannedProduct.product.CANTIDAD || 1)) *
-                            100,
-                        )}
+                        {lastScannedProduct.product.CANTIDAD === 0 
+                          ? "100%" 
+                          : Math.round(
+                              ((lastScannedProduct.product.scanned || 0) / (lastScannedProduct.product.CANTIDAD || 1)) *
+                                100,
+                            )
+                        }
                         %
                       </span>
                     </div>
@@ -1068,7 +1084,10 @@ const searchAndAddArticle = async (clave: string) => {
                       <div
                         className="h-full bg-gradient-to-r from-purple-500 to-purple-600 rounded-full transition-all duration-500"
                         style={{
-                          width: `${Math.min(100, ((lastScannedProduct.product.scanned || 0) / (lastScannedProduct.product.CANTIDAD || 1)) * 100)}%`,
+                          width: `${lastScannedProduct.product.CANTIDAD === 0 
+                            ? 100 
+                            : Math.min(100, ((lastScannedProduct.product.scanned || 0) / (lastScannedProduct.product.CANTIDAD || 1)) * 100)
+                          }%`,
                         }}
                       />
                     </div>
