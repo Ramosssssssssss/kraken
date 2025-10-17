@@ -172,7 +172,7 @@ export default function LoginPage() {
               <div className="text-center space-y-4">
                 <div className="flex justify-center">
                   <img
-                    src={customLogo || "/testbs.png"}
+                    src={customLogo || "/1D1.png"}
                     alt={customLogo ? "Company Logo" : "Kraken Logo"}
                     className="w-[200px] h-[200px] object-contain"
                   />

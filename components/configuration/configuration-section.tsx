@@ -2,13 +2,13 @@
 
 import { useState } from "react"
 import { Search } from "lucide-react"
-import type { MainSectionId, SubSectionId } from "../configuration/types"
-import { UsersContent } from "../configuration/users-content"
-import { AdminsContent } from "../configuration/admins-content"
-import { GeneralContent } from "../configuration/general-content"
-import { PermissionsContent } from "../configuration/permissions-content"
-import { ModulesContent } from "../configuration/modules-content"
-import { MAIN_SECTIONS, SUB_SECTIONS } from "../configuration/constants"
+import { MAIN_SECTIONS, SUB_SECTIONS } from "./constants"
+import type { MainSectionId, SubSectionId } from "./types"
+import { UsersContent } from "./users-content"
+import { AdminsContent } from "./admins-content"
+import { GeneralContent } from "./general-content"
+import { PermissionsContent } from "./permissions-content"
+import { ModulesContent } from "./modules-content"
 
 export default function ConfigurationSection() {
   const [activeMainSection, setActiveMainSection] = useState<MainSectionId>("usuarios")

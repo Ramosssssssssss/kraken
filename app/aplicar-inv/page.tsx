@@ -98,7 +98,6 @@ export default function AplicarInvPage() {
       const data = await response.json()
 
       if (data.ok) {
-        // Actualizar el estado local para cambiar APLICADO a "S"
         setDoctos((prev) => 
           prev.map((doc) => 
             doc.FOLIO === folio ? { ...doc, APLICADO: "S" } : doc
