@@ -151,7 +151,15 @@ export default function AplicarInvPage() {
     }
     return doctos
   }, [doctos, filter])
-
+function extractUsuarioFromDescripcion(desc?: string | null) {
+  if (!desc) return "—"
+  // Busca "por:" (insensible a may/min) y captura hasta "Fecha" o fin
+  const m = desc.match(/por:\s*([\s\S]*?)(?:\bFecha\b|$)/i)
+  if (!m) return "—"
+  // Limpia bordes y corta por salto de línea si existiera
+  const usuario = m[1].split("\n")[0].trim()
+  return usuario || "—"
+}
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0a0a0f] via-[#0a0a0f] to-[#151021]">
       {/* Header */}
@@ -331,75 +339,95 @@ export default function AplicarInvPage() {
                           </div>
                         </th>
                         <th className="px-6 py-4 text-left">
-                          <div className="font-light text-sm tracking-wide text-white/70">Acciones</div>
+                          <div className="font-light text-sm tracking-wide text-white/70">ACCIONES</div>
                         </th>
+                        <th className="px-6 py-4 text-left">
+                          <div className="font-light text-sm tracking-wide text-white/70">USUARIO</div>
+                        </th>
+                       
                       </tr>
                     </thead>
-                    <tbody>
-                      {filteredDoctos.map((docto, index) => {
-                        const isApplied = docto.APLICADO === "S"
+                 <tbody>
+  {filteredDoctos.map((docto, index) => {
+    const isApplied = docto.APLICADO === "S"
+    const usuarioDescripcion = extractUsuarioFromDescripcion(docto.DESCRIPCION)
 
-                        return (
-                          <tr
-                            key={`${docto.FOLIO}-${index}`}
-                            className="group border-b border-white/5 transition-all hover:bg-white/[0.02]"
-                          >
-                            <td className="px-6 py-4">
-                              <span className="font-light text-sm tracking-wide text-white/80">
-                                {formatDate(docto.FECHA)}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4">
-                              <span className="inline-flex items-center gap-2 rounded-lg border border-purple-500/20 bg-purple-500/10 px-3 py-1.5 font-mono text-sm text-purple-400">
-                                {docto.FOLIO}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4">
-                              <span className="font-light text-sm tracking-wide text-white/70">
-                                {docto.DESCRIPCION || "—"}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4">
-                              {isApplied ? (
-                                <span className="inline-flex items-center gap-2 rounded-lg border border-green-500/20 bg-green-500/10 px-3 py-1.5 font-light text-xs tracking-wide text-green-400">
-                                  <CheckCircle2 className="h-3.5 w-3.5" />
-                                  Sí
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-2 rounded-lg border border-orange-500/20 bg-orange-500/10 px-3 py-1.5 font-light text-xs tracking-wide text-orange-400">
-                                  <Clock className="h-3.5 w-3.5" />
-                                  No
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-6 py-4">
-                              {isApplied ? (
-                                <span className="font-light text-xs tracking-wide text-green-400/70">✓ Ya aplicado</span>
-                              ) : (
-                                <Button
-                                  onClick={() => handleAplicarInventario(docto.FOLIO)}
-                                  disabled={applyingFolio === docto.FOLIO}
-                                  size="sm"
-                                  className="rounded-lg border border-purple-500/20 bg-purple-500/10 font-light text-xs tracking-wide text-purple-400 transition-all hover:bg-purple-500/20 hover:shadow-[0_0_15px_rgba(168,85,247,0.3)] disabled:opacity-50"
-                                >
-                                  {applyingFolio === docto.FOLIO ? (
-                                    <>
-                                      <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                                      Aplicando...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <PlayCircle className="mr-2 h-3.5 w-3.5" />
-                                      Aplicar
-                                    </>
-                                  )}
-                                </Button>
-                              )}
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
+    return (
+      <tr
+        key={`${docto.FOLIO}-${index}`}
+        className="group border-b border-white/5 transition-all hover:bg-white/[0.02]"
+      >
+        <td className="px-6 py-4">
+          <span className="font-light text-sm tracking-wide text-white/80">
+            {formatDate(docto.FECHA)}
+          </span>
+        </td>
+
+        <td className="px-6 py-4">
+          <span className="inline-flex items-center gap-2 rounded-lg border border-purple-500/20 bg-purple-500/10 px-3 py-1.5 font-mono text-sm text-purple-400">
+            {docto.FOLIO}
+          </span>
+        </td>
+
+        <td className="px-6 py-4">
+          <span
+            className="font-light text-sm tracking-wide text-white/70"
+            style={{ whiteSpace: "pre-line" }}
+          >
+            {docto.DESCRIPCION || "—"}
+          </span>
+        </td>
+
+        <td className="px-6 py-4">
+          {isApplied ? (
+            <span className="inline-flex items-center gap-2 rounded-lg border border-green-500/20 bg-green-500/10 px-3 py-1.5 font-light text-xs tracking-wide text-green-400">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Sí
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-2 rounded-lg border border-orange-500/20 bg-orange-500/10 px-3 py-1.5 font-light text-xs tracking-wide text-orange-400">
+              <Clock className="h-3.5 w-3.5" />
+              No
+            </span>
+          )}
+        </td>
+
+        <td className="px-6 py-4">
+          {isApplied ? (
+            <span className="font-light text-xs tracking-wide text-green-400/70">✓ Ya aplicado</span>
+          ) : (
+            <Button
+              onClick={() => handleAplicarInventario(docto.FOLIO)}
+              disabled={applyingFolio === docto.FOLIO}
+              size="sm"
+              className="rounded-lg border border-purple-500/20 bg-purple-500/10 font-light text-xs tracking-wide text-purple-400 transition-all hover:bg-purple-500/20 hover:shadow-[0_0_15px_rgba(168,85,247,0.3)] disabled:opacity-50"
+            >
+              {applyingFolio === docto.FOLIO ? (
+                <>
+                  <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                  Aplicando...
+                </>
+              ) : (
+                <>
+                  <PlayCircle className="mr-2 h-3.5 w-3.5" />
+                  Aplicar
+                </>
+              )}
+            </Button>
+          )}
+        </td>
+
+        {/* 🆕 USUARIO (extraído de DESCRIPCION) */}
+        <td className="px-6 py-4">
+          <span className="font-light text-sm tracking-wide text-white/70">
+            {usuarioDescripcion}
+          </span>
+        </td>
+      </tr>
+    )
+  })}
+</tbody>
+
                   </table>
                 </div>
 

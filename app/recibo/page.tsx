@@ -47,7 +47,7 @@ interface Detalle {
   R_CODIGO_BARRAS?: string
   R_CLAVE_ARTICULO?: string
   R_ARTICULO_ID?: number
-   imagenBase64?: string | null
+  imagenBase64?: string | null
   imagenMime?: string | null
 }
 
@@ -750,7 +750,7 @@ export default function ReciboScreenPremium() {
       const returnIncidents = incidents.filter((inc) => inc.type === "return")
 
       if (returnIncidents.length > 0) {
-        console.log("[v0] Processing return incidents:", returnIncidents)
+        console.log("[v0] Preparing return incidents in temp table:", returnIncidents)
 
         for (const incident of returnIncidents) {
           try {
@@ -807,15 +807,16 @@ export default function ReciboScreenPremium() {
 
       while (intentos < MAX_RETRIES) {
         try {
+          console.log("[v0] Executing reception for all products...")
           const url = `${baseURL}/recibo/recepcion?doctoId=${caratula.DOCTO_CM_ID}`
           const response = await fetch(url)
           const data = await response.json()
 
           if (data.ok) {
-            console.log("[v0] Reception completed successfully")
+            console.log("[v0] Reception completed successfully - all products should be inserted")
 
             if (returnIncidents.length > 0) {
-              console.log("[v0] Executing automatic return...")
+              console.log("[v0] Executing automatic return for products with return incidents...")
 
               try {
                 const devolucionUrl = `${baseURL}/recibo/devolucion?doctoCmId=${caratula.DOCTO_CM_ID}`
@@ -1003,10 +1004,10 @@ export default function ReciboScreenPremium() {
               <button
                 className="w-10 h-10 rounded-xl bg-white/80 backdrop-blur-sm border border-white/20 flex items-center justify-center shadow-sm hover:bg-white/90 transition-all duration-200"
                 onClick={() => {
-    // dile al dashboard que abra PROCESOS (o la que toque)
-    router.replace(`/dashboard?section=PROCESOS`) // <-- ajusta el nombre exacto de tu sección
-    setTimeout(focusScanner, 100)
-  }}
+                  // dile al dashboard que abra PROCESOS (o la que toque)
+                  router.replace(`/dashboard?section=PROCESOS`) // <-- ajusta el nombre exacto de tu sección
+                  setTimeout(focusScanner, 100)
+                }}
               >
                 <ArrowLeft className="w-5 h-5 text-slate-700" />
               </button>
@@ -1388,24 +1389,30 @@ export default function ReciboScreenPremium() {
 
                   {/* IMAGEN DINAMICA*/}
                   <div className="relative mb-4">
-                  {lastScannedProduct.product.imagenBase64 && lastScannedProduct.product.imagenMime ? (
-  <img
-    src={`data:${lastScannedProduct.product.imagenMime};base64,${lastScannedProduct.product.imagenBase64}`}
-    alt={lastScannedProduct.product.CLAVE_ARTICULO || "Artículo"}
-    className="w-12 h-12 rounded-lg object-cover border border-white/10"
-    loading="lazy"
-    draggable={false}
-  />
-) : (
-  <svg className="w-12 h-12 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-    />
-  </svg>
-)}
+                    {lastScannedProduct.product.imagenBase64 && lastScannedProduct.product.imagenMime ? (
+                      <img
+                        src={`data:${lastScannedProduct.product.imagenMime};base64,${lastScannedProduct.product.imagenBase64}`}
+                        alt={lastScannedProduct.product.CLAVE_ARTICULO || "Artículo"}
+                        className="w-12 h-12 rounded-lg object-cover border border-white/10"
+                        loading="lazy"
+                        draggable={false}
+                      />
+                    ) : (
+                      <svg
+                        className="w-12 h-12 text-emerald-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                    )}
                     <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-md font-bold">
                       ✓ ESCANEADO
                     </div>

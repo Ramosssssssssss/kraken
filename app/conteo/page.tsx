@@ -72,7 +72,15 @@ export default function InventarioFisicoPage() {
     timestamp: Date
   } | null>(null)
 
-  const { apiUrl } = useCompany()
+  const { apiUrl, userData } = useCompany()
+    const usuario = userData?.nombre ?? userData?.user ?? "desconocido"
+ 
+  // Formato de fecha DD/MM/YYYY (zona horaria de México)
+  const fechaActual = new Date().toLocaleDateString("es-MX", {
+    timeZone: "America/Mexico_City",
+  })
+    const descripcion = `CICLÍCO\nEnviado por: ${usuario}\nFecha: ${fechaActual}`
+
   const baseURL = useMemo(() => (apiUrl || "").trim().replace(/\/+$/, ""), [apiUrl])
 
   const focusScanner = useCallback(() => {
@@ -448,7 +456,7 @@ const searchAndAddArticle = async (clave: string) => {
       const payload = {
         P_SUCURSAL_ID: 9606947,
         P_ALMACEN_ID: 188104,
-        P_DESCRIPCION: "Inventario Fisico",
+    P_DESCRIPCION: descripcion,
         detalles: detallesComp,
       }
 
