@@ -16,7 +16,6 @@ import {
   Loader2,
   Clock,
   CheckCircle2,
-  Zap, 
 } from "lucide-react"
 
 type InventarioDetalle = {
@@ -35,14 +34,6 @@ interface Toast {
   message: string
   autoClose?: boolean
 }
-interface CompletionModal {
-  show: boolean
-  title: string
-  message: string
-  icon: any
-  color: string
-}
-
 
 export default function InventarioFisicoPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -76,15 +67,6 @@ export default function InventarioFisicoPage() {
   const [timerStarted, setTimerStarted] = useState(false)
   const [startTime, setStartTime] = useState<number | null>(null)
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
-
-  //modal completo
-    const [completionModal, setCompletionModal] = useState<CompletionModal>({
-      show: false,
-      title: "",
-      message: "",
-      icon: CheckCircle,
-      color: "",
-    })
   const [lastScannedProduct, setLastScannedProduct] = useState<{
     product: InventarioDetalle
     timestamp: Date
@@ -235,45 +217,61 @@ export default function InventarioFisicoPage() {
     return `${minutes}:${secs.toString().padStart(2, "0")}`
   }
 
-  const searchAndAddArticle = async (clave: string) => {
-    setSearchingArticle(true)
-    try {
-      const response = await fetch(`${baseURL}/buscar-articulo-recibo?clave=${encodeURIComponent(clave)}`)
-      const data = await response.json()
+const searchAndAddArticle = async (clave: string) => {
+  setSearchingArticle(true)
+  try {
+    const response = await fetch(`${baseURL}/buscar-articulo-recibo?clave=${encodeURIComponent(clave)}`)
+    const data = await response.json()
 
-      if (data.ok && data.articulo) {
-        const newItem: InventarioDetalle = {
-          CLAVE: clave.toUpperCase(),
-          DESCRIPCION: data.articulo.NOMBRE,
-          UMED: data.articulo.UMED || null,
-          CANTIDAD: 1,
-          _key: `inv-${Date.now()}`,
-          packed: 1,
-          scanned: 1,
-        }
+    if (data.ok && data.articulo) {
+      const normalizedClave = String(data.articulo.CLAVE_ARTICULO).trim().toUpperCase()
 
-        setDetalles((prev) => {
+      const newItem: InventarioDetalle = {
+        CLAVE: normalizedClave,
+        DESCRIPCION: data.articulo.NOMBRE,
+        UMED: data.articulo.UMED || null,
+        CANTIDAD: 1,
+        _key: `inv-${Date.now()}`,
+        packed: 1,
+        scanned: 1,
+      }
+
+      setDetalles(prev => {
+        const idx = prev.findIndex(d => String(d.CLAVE).toUpperCase() === normalizedClave)
+        if (idx !== -1) {
+          const updated = [...prev]
+          const cur = updated[idx]
+          updated[idx] = {
+            ...cur,
+            CANTIDAD: (cur.CANTIDAD ?? 0) + 1,
+            packed: (cur.packed ?? 0) + 1,
+            scanned: (cur.scanned ?? 0) + 1,
+          }
+          setTimeout(() => scrollToItem(idx), 100)
+          return updated
+        } else {
           const updated = [...prev, newItem]
           setTimeout(() => scrollToItem(updated.length - 1), 100)
           return updated
-        })
-
-        showToast(`Artículo agregado: ${data.articulo.NOMBRE}`, "success")
-      } else {
-        const shouldAdd = confirm(`El código "${clave}" no existe en la base de datos. ¿Deseas agregarlo manualmente?`)
-        if (shouldAdd) {
-          setNewClave(clave)
-          setNewDescripcion("")
-          setNewCantidad("1")
-          setShowAddForm(true)
         }
+      })
+
+      showToast(`Artículo agregado: ${data.articulo.NOMBRE}`, "success")
+    } else {
+      const shouldAdd = confirm(`El código "${clave}" no existe en la base de datos. ¿Deseas agregarlo manualmente?`)
+      if (shouldAdd) {
+        setNewClave(clave)
+        setNewDescripcion("")
+        setNewCantidad("1")
+        setShowAddForm(true)
       }
-    } catch (error) {
-      showToast("Error al buscar el artículo en la base de datos")
-    } finally {
-      setSearchingArticle(false)
     }
+  } catch {
+    showToast("Error al buscar el artículo en la base de datos")
+  } finally {
+    setSearchingArticle(false)
   }
+}
 
   const addManualItem = () => {
     if (!newClave.trim() || !newDescripcion.trim() || !newCantidad.trim()) {
@@ -299,8 +297,8 @@ export default function InventarioFisicoPage() {
       UMED: null,
       CANTIDAD: cantidad,
       _key: `inv-${Date.now()}`,
-      packed: 1,
-      scanned: 1,
+      packed: 0,
+      scanned: 0,
     }
 
     setDetalles((prev) => {
@@ -349,7 +347,6 @@ export default function InventarioFisicoPage() {
       next[idx] = { ...d, packed: req, scanned: requireScan ? d.scanned : req }
       return next
     })
-    
     setTimeout(focusScanner, 50)
   }
 
@@ -359,7 +356,7 @@ export default function InventarioFisicoPage() {
 
     if (!code) return
 
-    console.log(`Scanned code: "${raw}" -> Sanitized: "${code}"`)
+    console.log(`[v0] Scanned code: "${raw}" -> Sanitized: "${code}"`)
 
     const idx = detalles.findIndex((d) => d.CLAVE.toUpperCase() === code)
 
@@ -403,7 +400,7 @@ export default function InventarioFisicoPage() {
       setTimeout(() => scrollToItem(idx), 150)
       showToast(`Escaneado: ${code}`, "success")
     } else {
-      console.log(`Code not found in detalles, searching in database: ${code}`)
+      console.log(`[v0] Code not found in detalles, searching in database: ${code}`)
       searchAndAddArticle(code)
     }
   }
@@ -421,40 +418,6 @@ export default function InventarioFisicoPage() {
     focusScanner()
   }, [focusScanner])
 
-  const getPerformanceMessage = (seconds: number, itemCount: number) => {
-    const secondsPerItem = itemCount > 0 ? seconds / itemCount : Number.POSITIVE_INFINITY
-
-    if (secondsPerItem < 3) {
-      return {
-        title: "¡Velocidad Increíble!",
-        message: `Completaste ${itemCount} productos en ${formatTime(seconds)}. ¡Eres un profesional!`,
-        icon: Zap,
-        color: "from-yellow-500 to-orange-500",
-      }
-    } else if (secondsPerItem < 6) {
-      return {
-        title: "¡Excelente Trabajo!",
-        message: `Tiempo total: ${formatTime(seconds)} para ${itemCount} productos. ¡Muy eficiente!`,
-        icon: Zap
-        ,
-        color: "from-green-500 to-emerald-500",
-      }
-    } else if (secondsPerItem < 10) {
-      return {
-        title: "¡Buen Ritmo!",
-        message: `Completaste la recepción en ${formatTime(seconds)}. ¡Sigue así!`,
-        icon: CheckCircle2,
-        color: "from-blue-500 to-indigo-500",
-      }
-    } else {
-      return {
-        title: "¡Recepción Completada!",
-        message: `Tiempo total: ${formatTime(seconds)}. La precisión es más importante que la velocidad.`,
-        icon: CheckCircle,
-        color: "from-slate-500 to-slate-600",
-      }
-    }
-  }
   const aplicarInventario = useCallback(async () => {
     if (isSubmitting) return
 
@@ -504,17 +467,12 @@ export default function InventarioFisicoPage() {
 
       setFolioGenerado(data.folio)
       setDoctoInvfisId(data.doctoInvfisId)
-  const performance = getPerformanceMessage(elapsedSeconds, totalLineas)
 
-            let modalMessage = performance.message
-     
-       setCompletionModal({
-              show: true,
-              title: data.folio,
-              message: modalMessage,
-              icon: performance.icon,
-              color: performance.color,
-            })
+      showToast(
+        `✅ Inventario Físico Completado\nFolio: ${data.folio || "N/A"}\nDOCTO_INVFIS_ID: ${data.doctoInvfisId}\nLíneas insertadas: ${data.inserted}`,
+        "success",
+        false,
+      )
 
       resetInventario()
     } catch (error) {
@@ -534,6 +492,7 @@ export default function InventarioFisicoPage() {
       const data = await response.json()
 
       if (data.ok && data.articulo) {
+        setNewClave(data.articulo.CLAVE_ARTICULO)
         setNewDescripcion(data.articulo.NOMBRE)
         showToast(`Artículo encontrado: ${data.articulo.NOMBRE}`, "success")
       }
@@ -879,8 +838,6 @@ export default function InventarioFisicoPage() {
                   const req = item.CANTIDAD
                   const pk = item.packed
                   const sc = item.scanned
-                                    const am = item.scanned
-
                   const okLinea = requireScan ? sc >= req : pk >= req
                   const isFlash = flashIndex === index
 
@@ -919,11 +876,14 @@ export default function InventarioFisicoPage() {
                               <span className="text-slate-500">Requerido:</span>
                               <span className="font-bold text-slate-900 ml-1">{req}</span>
                             </div>
-                      
+                            <div>
+                              <span className="text-slate-500">Empacado:</span>
+                              <span className="font-bold text-slate-900 ml-1">{pk}</span>
+                            </div>
                             <div>
                               <span className="text-slate-500">Escaneado:</span>
                               <span className={`font-bold ml-1 ${okLinea ? "text-green-700" : "text-slate-900"}`}>
-                                {sc} 
+                                {sc}
                               </span>
                             </div>
                           </div>
@@ -955,7 +915,6 @@ export default function InventarioFisicoPage() {
                                   ? "bg-slate-200 text-slate-400 cursor-not-allowed"
                                   : "bg-purple-700 text-white hover:bg-purple-600 shadow-sm"
                               }`}
-                              
                               onClick={() => {
                                 if (!requireScan) {
                                   inc(index)
@@ -964,8 +923,7 @@ export default function InventarioFisicoPage() {
                               onMouseDown={(e) => {
                                 if (!requireScan) {
                                   const timer = setTimeout(() => fillToRequired(index), 250)
-                                  const handleMouseUp = ( ) => {
-
+                                  const handleMouseUp = () => {
                                     clearTimeout(timer)
                                     document.removeEventListener("mouseup", handleMouseUp)
                                   }
@@ -974,7 +932,6 @@ export default function InventarioFisicoPage() {
                               }}
                               disabled={requireScan}
                             >
-                              {/* funcion añadir manualmente*/}
                               <Plus className="w-4 h-4" />
                             </button>
                           </div>
@@ -1001,7 +958,7 @@ export default function InventarioFisicoPage() {
             )}
 
             {detalles.length > 0 && (
-              <div className="flex 0010-010051 22 left-0 right-1/4 bg-gradient-to-t from-white via-white to-transparent pt-4 pb-0 px-6">
+              <div className="fixed bottom-0 left-0 right-1/4 bg-gradient-to-t from-white via-white to-transparent pt-4 pb-0 px-6">
                 <button
                   className={`w-full flex items-center justify-center gap-3 py-4 rounded-xl font-semibold text-white transition-all duration-200 shadow-lg hover:shadow-xl ${
                     listo && !isSubmitting
@@ -1021,42 +978,12 @@ export default function InventarioFisicoPage() {
                   ) : (
                     <>
                       <CheckCircle className="w-5 h-5" />
-                      Aplicar Inventario Físico
+                      Completar Inventario Físico
                     </>
                   )}
                 </button>
               </div>
             )}
-                  {completionModal.show && (
-        <div className="fixed  inset-0 bg-black/60 backdrop-blur-md z-[90] flex items-center justify-center p-4 animate-fade-in">
-          <div className="glass rounded-3xl bg-white/80 p-8 max-w-lg w-full border border-white/20 shadow-2xl animate-scale-in">
-            <div className="text-center">
-              <div
-                className={`w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br ${completionModal.color} flex items-center justify-center shadow-lg`}
-              >
-                <completionModal.icon className="w-10 h-10 text-white" />
-              </div>
-
-              <h2 className="text-3xl font-bold text-slate-900 mb-4">{completionModal.title}</h2>
-
-              <p className="text-slate-700 text-lg leading-relaxed mb-8 whitespace-pre-line">
-                {completionModal.message}
-              </p>
-
-              <button
-                onClick={() => {
-                  setCompletionModal({ ...completionModal, show: false })
-                  setTimeout(focusScanner, 100)
-                }}
-                className={`w-full py-4 rounded-xl font-bold text-white text-lg bg-gradient-to-r ${completionModal.color} hover:shadow-xl transition-all duration-200 shadow-lg`}
-              >
-                Aceptar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
           </div>
         </div>
 

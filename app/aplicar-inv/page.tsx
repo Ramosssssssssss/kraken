@@ -286,6 +286,7 @@ export default function AplicarInvPage() {
                 >
                   No Aplicados ({stats.noAplicados})
                 </Button>
+                
               </div>
             </div>
 
