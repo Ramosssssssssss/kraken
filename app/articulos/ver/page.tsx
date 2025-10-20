@@ -135,6 +135,10 @@ export default function ArticulosPage() {
   const [lineasArticulos, setLineasArticulos] = useState<Array<{ LINEA_ARTICULO_ID: number; NOMBRE: string }>>([])
   const [almacenes, setAlmacenes] = useState<Array<{ ALMACEN_ID: number; NOMBRE: string }>>([])
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  // Group modal state
+  const [groupModalOpen, setGroupModalOpen] = useState(false)
+  const [groupModalBase, setGroupModalBase] = useState<string | null>(null)
+  const [groupModalItems, setGroupModalItems] = useState<Articulo[]>([])
 
   const fetchArticulos = async () => {
     if (!apiUrl) return
@@ -268,6 +272,59 @@ export default function ArticulosPage() {
     return result
   }, [items, columnFilters, sortColumn, sortDirection])
 
+  // Helper to escape regex
+  const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+
+  // Group items that end with a space + number (e.g. "ZUECOS CHEF NEGRO 29").
+  // We detect the base either from CLAVE_ARTICULO or from NOMBRE so searches by name
+  // (p. ej. "zuecos") will also return grouped results.
+  const groupedFiltered = useMemo(() => {
+    const seen = new Set<string>()
+    const res: Array<Articulo & { GROUP_COUNT?: number }> = []
+
+    for (const it of filtered) {
+      const clave = (it.CLAVE_ARTICULO || "").trim()
+      const nombre = (it.NOMBRE || "").trim()
+
+      // Try clave first, then nombre
+      let m = clave.match(/^(.*\S)\s+(\d+)$/)
+      if (!m) m = nombre.match(/^(.*\S)\s+(\d+)$/)
+
+      if (!m) {
+        // not matching pattern, include as-is
+        res.push(it)
+        continue
+      }
+
+      const base = m[1]
+      if (seen.has(base)) continue
+      seen.add(base)
+
+      // find all items in filtered that match base + space + digits in either clave or nombre
+      const group = filtered.filter((x) => {
+        const k = (x.CLAVE_ARTICULO || "").trim()
+        const n = (x.NOMBRE || "").trim()
+        const rx = new RegExp(`^${escapeRegExp(base)}\\s+\\d+$`, "i")
+        return rx.test(k) || rx.test(n)
+      })
+
+      if (group.length <= 1) {
+        res.push(it)
+      } else {
+        const rep = { ...(group[0] as any) } as Articulo & { GROUP_COUNT?: number }
+        // normalize displayed clave/nombre to the base so UI shows the grouped label
+        rep.CLAVE_ARTICULO = base
+        rep.NOMBRE = base
+        rep.GROUP_COUNT = group.length - 1
+        res.push(rep)
+      }
+    }
+
+    return res
+  }, [filtered])
+
+  
+
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return []
     const query = searchQuery.toLowerCase()
@@ -279,11 +336,46 @@ export default function ArticulosPage() {
     )
   }, [items, searchQuery])
 
-  const pageCount = Math.max(1, Math.ceil(filtered.length / perPage))
+  // Apply similar grouping for search results shown in the search panel
+  const groupedSearchResults = useMemo(() => {
+    const seen = new Set<string>()
+    const res: Array<Articulo & { GROUP_COUNT?: number }> = []
+    for (const it of searchResults) {
+      const clave = (it.CLAVE_ARTICULO || "").trim()
+      const nombre = (it.NOMBRE || "").trim()
+      // Try clave first, then nombre
+      let m = clave.match(/^(.*\S)\s+(\d+)$/)
+      if (!m) m = nombre.match(/^(.*\S)\s+(\d+)$/)
+      if (!m) {
+        res.push(it)
+        continue
+      }
+      const base = m[1]
+      if (seen.has(base)) continue
+      seen.add(base)
+  const rx = new RegExp(`^${escapeRegExp(base)}\\s+\\d+$`, "i")
+      const group = searchResults.filter((x) => {
+        const k = (x.CLAVE_ARTICULO || "").trim()
+        const n = (x.NOMBRE || "").trim()
+        return rx.test(k) || rx.test(n)
+      })
+      if (group.length <= 1) res.push(it)
+      else {
+        const rep = { ...(group[0] as any) } as Articulo & { GROUP_COUNT?: number }
+        rep.CLAVE_ARTICULO = base
+        rep.NOMBRE = base
+        rep.GROUP_COUNT = group.length - 1
+        res.push(rep)
+      }
+    }
+    return res
+  }, [searchResults])
+
+  const pageCount = Math.max(1, Math.ceil(groupedFiltered.length / perPage))
   const currentPage = Math.min(page, pageCount)
   const paged = useMemo(() => {
     const start = (currentPage - 1) * perPage
-    return filtered.slice(start, start + perPage)
+    return groupedFiltered.slice(start, start + perPage)
   }, [filtered, currentPage, perPage])
 
   useEffect(() => {
@@ -543,14 +635,57 @@ export default function ArticulosPage() {
 
   const getColumnConfig = (key: ColumnKey) => DEFAULT_COLUMNS.find((c) => c.key === key)!
 
+  // Group modal helpers
+  const openGroupModal = (base: string) => {
+    if (!base) return
+    const members = items.filter((x) => {
+      const k = (x.CLAVE_ARTICULO || "").trim()
+      const n = (x.NOMBRE || "").trim()
+      const rx = new RegExp(`^${escapeRegExp(base)}\\s+\\d+$`, "i")
+      return rx.test(k) || rx.test(n)
+    })
+    setGroupModalBase(base)
+    setGroupModalItems(members)
+    setGroupModalOpen(true)
+  }
+
+  const closeGroupModal = () => {
+    setGroupModalOpen(false)
+    setGroupModalBase(null)
+    setGroupModalItems([])
+  }
+
   const renderCell = (item: Articulo, columnKey: ColumnKey) => {
     switch (columnKey) {
       case "id":
         return <span className="text-white/60 text-sm">#{item.ARTICULO_ID}</span>
       case "nombre":
         return <span className="text-white text-sm">{item.NOMBRE}</span>
-      case "clave":
-        return <span className="text-white/70 text-sm">{item.CLAVE_ARTICULO || "—"}</span>
+        case "clave": {
+          // If the item is a grouped representative, show the base clave and a small "y N más" line
+          const groupCount = (item as any).GROUP_COUNT ?? 0
+          return (
+            <div className="flex flex-col">
+              <div className="font-mono text-sm">{item.CLAVE_ARTICULO || "—"}</div>
+              {groupCount > 0 && (
+                <div className="flex items-center gap-2">
+                  <div className="text-xs text-slate-400">{`y ${groupCount} más`}</div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      const base = item.CLAVE_ARTICULO || item.NOMBRE || ""
+                      openGroupModal(base)
+                    }}
+                    className="text-xs text-cyan-300 hover:text-cyan-400"
+                    aria-label={`Ver variantes de ${item.CLAVE_ARTICULO}`}
+                  >
+                    Ver
+                  </button>
+                </div>
+              )}
+            </div>
+          )
+        }
       case "unidad":
         return (
           <span className="text-white/70 text-sm">
@@ -595,6 +730,8 @@ export default function ArticulosPage() {
     }
     setSelectedArticulos(newSelected)
   }
+
+  
 
   const isAllSelected = paged.length > 0 && paged.every((item) => selectedArticulos.has(item.ARTICULO_ID))
   const isSomeSelected = paged.some((item) => selectedArticulos.has(item.ARTICULO_ID)) && !isAllSelected
@@ -730,10 +867,10 @@ export default function ArticulosPage() {
           </Card>
         )}
 
-        {showSearchResults && searchResults.length > 0 && (
+  {showSearchResults && groupedSearchResults.length > 0 && (
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg text-white/80 font-light">Resultados de búsqueda ({searchResults.length})</h2>
+              <h2 className="text-lg text-white/80 font-light">Resultados de búsqueda ({groupedSearchResults.length})</h2>
               <Button
                 variant="ghost"
                 size="sm"
@@ -747,8 +884,14 @@ export default function ArticulosPage() {
               </Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {searchResults.slice(0, 12).map((item) => (
-                <ArticuloCard key={item.ARTICULO_ID} articulo={item} onView={verArticulo} apiUrl={apiUrl} />
+              {groupedSearchResults.slice(0, 12).map((item) => (
+                <ArticuloCard
+                  key={item.ARTICULO_ID}
+                  articulo={item}
+                  onView={verArticulo}
+                  apiUrl={apiUrl}
+                  onOpenGroup={(base: string) => openGroupModal(base)}
+                />
               ))}
             </div>
           </div>
@@ -1196,6 +1339,42 @@ export default function ArticulosPage() {
           </div>
         </div>
       )}
+      {/* Group Modal: show SKUs that belong to the same base */}
+      {groupModalOpen && (
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/60" onClick={closeGroupModal} />
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+            <div className="w-full max-w-2xl rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-950 to-black shadow-2xl overflow-hidden">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/5">
+                <div className="text-white/80">Variantes: {groupModalBase}</div>
+                <Button variant="ghost" size="icon" onClick={closeGroupModal} className="text-white/70">
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+
+              <div className="p-4 space-y-3">
+                {groupModalItems.length === 0 ? (
+                  <div className="text-white/50">No se encontraron variantes</div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {groupModalItems.map((it) => (
+                      <div key={it.ARTICULO_ID} className="flex items-center justify-between gap-4 p-3 rounded-md bg-white/3 border border-white/5">
+                        <div className="text-sm text-white">{it.CLAVE_ARTICULO || it.NOMBRE}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-sm text-white/60">{fmtMoney(it.PRECIO_LISTA)}</div>
+                          <Button size="sm" onClick={() => { closeGroupModal(); verArticulo(it.ARTICULO_ID) }}>
+                            Ver
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -1237,10 +1416,12 @@ function ArticuloCard({
   articulo,
   onView,
   apiUrl,
+  onOpenGroup,
 }: {
   articulo: Articulo
   onView: (id: number) => void
   apiUrl: string | null
+  onOpenGroup?: (base: string) => void
 }) {
   const fmtMoney = (n: number) =>
     new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 2 }).format(n || 0)
@@ -1278,6 +1459,22 @@ function ArticuloCard({
         <h3 className="text-white font-medium text-sm line-clamp-2 group-hover:text-purple-400 transition">
           {articulo.NOMBRE}
         </h3>
+        {(articulo as any).GROUP_COUNT > 0 && (
+          <div className="flex items-center gap-2">
+            <div className="text-xs text-slate-400">{`y ${(articulo as any).GROUP_COUNT} más`}</div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                const base = articulo.CLAVE_ARTICULO || articulo.NOMBRE || ""
+                onOpenGroup?.(base)
+              }}
+              className="text-xs text-cyan-300 hover:text-cyan-400"
+              aria-label={`Ver variantes de ${articulo.CLAVE_ARTICULO || articulo.NOMBRE}`}
+            >
+              Ver
+            </button>
+          </div>
+        )}
         <div className="flex items-center justify-between text-xs text-white/50">
           <span>SKU: {articulo.CLAVE_ARTICULO || "—"}</span>
           <span>

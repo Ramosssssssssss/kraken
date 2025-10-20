@@ -286,29 +286,81 @@ export default function PerfilPage() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
   const [photoModalOpen, setPhotoModalOpen] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0) // Nuevo estado para forzar la actualización
 
-  useEffect(() => {
-    if (!isReady) return
+  // Función para obtener los datos del usuario desde /pikers
+  const fetchUserData = async () => {
+    if (!apiUrl || !userData) return
 
-    console.log("[v0] userData:", userData)
-    console.log("[v0] apiUrl:", apiUrl)
-    console.log("[v0] isReady:", isReady)
-
-    if (userData) {
+    try {
       const userId = userData.id || userData.PIKER_ID || userData.ID || 0
-      console.log("[v0] Resolved userId:", userId)
+      if (!userId) return
 
-      const userProfile: UserProfile = {
-        id: userId,
-        nombre: userData.nombre || userData.NOMBRE || userData.user || "Usuario",
-        email: userData.email || userData.EMAIL || "",
-        foto: userData.foto || userData.IMAGEN_COLAB || null,
+      console.log("[v0] Fetching user data from /pikers for userId:", userId)
+
+      const res = await fetch(`${apiUrl}/pikers`)
+      const data = await res.json()
+
+      if (!res.ok || !data?.pikers) {
+        throw new Error("Error al obtener los datos del usuario")
       }
-      setProfile(userProfile)
-      setNewName(userProfile.nombre)
+
+      // Buscar el usuario actual en la lista
+      const currentUser = data.pikers.find((p: any) => p.PIKER_ID === userId)
+      
+      if (currentUser) {
+        console.log("[v0] Found user data:", currentUser)
+        
+        // Construir la URL de la imagen si existe
+        let imageUrl = null
+        if (currentUser.IMAGEN_COLAB) {
+          imageUrl = `data:${currentUser.IMAGEN_COLAB_MIME || "image/jpeg"};base64,${currentUser.IMAGEN_COLAB}`
+        }
+
+        const userProfile: UserProfile = {
+          id: currentUser.PIKER_ID,
+          nombre: currentUser.NOMBRE || userData.nombre || userData.NOMBRE || userData.user || "Usuario",
+          email: userData.email || userData.EMAIL || "",
+          foto: imageUrl,
+        }
+
+        setProfile(userProfile)
+        setNewName(userProfile.nombre)
+
+        // CORRECCIÓN: Actualizar el contexto con la imagen del servidor sin usar función de actualización
+        if (userData) {
+          setUserData({
+            ...userData,
+            foto: imageUrl,
+            nombre: userProfile.nombre,
+          })
+        }
+      }
+    } catch (error) {
+      console.error("[v0] Error fetching user data:", error)
+      // Si hay error, usar los datos del contexto
+      if (userData) {
+        const userId = userData.id || userData.PIKER_ID || userData.ID || 0
+        const userProfile: UserProfile = {
+          id: userId,
+          nombre: userData.nombre || userData.NOMBRE || userData.user || "Usuario",
+          email: userData.email || userData.EMAIL || "",
+          foto: userData.foto || userData.IMAGEN_COLAB || null,
+        }
+        setProfile(userProfile)
+        setNewName(userProfile.nombre)
+      }
+    } finally {
       setLoading(false)
     }
-  }, [isReady, userData])
+  }
+
+  useEffect(() => {
+    if (!isReady || !userData) return
+
+    console.log("[v0] Component mounted, fetching user data...")
+    fetchUserData()
+  }, [isReady, userData, refreshKey]) // Agregamos refreshKey para recargar cuando cambie
 
   const handlePhotoClick = () => {
     setPhotoModalOpen(true)
@@ -320,7 +372,16 @@ export default function PerfilPage() {
       console.log("[v0] Missing requirements:", { file: !!file, apiUrl, profileId: profile?.id })
       return
     }
-
+  // >>> INICIO DE LA VALIDACIÓN <<<
+  const MAX_FILE_SIZE =  10 * 1024 * 1024; // 5MB
+  if (file.size > MAX_FILE_SIZE) {
+    toast({
+      title: "Archivo demasiado grande",
+      description: "Por favor, selecciona una imagen menor a 5MB.",
+      variant: "destructive",
+    })
+    return; // Detiene la función aquí
+  }
     try {
       setUploadingPhoto(true)
 
@@ -335,6 +396,21 @@ export default function PerfilPage() {
 
         console.log("[v0] Sending photo update with PIKER_ID:", profile.id)
 
+        // Creamos la URL de la imagen inmediatamente para mostrarla
+        const imageUrl = `data:${meta || file.type || "image/jpeg"};base64,${base64}`
+        
+        // Actualizamos el estado local con la nueva imagen
+        setProfile((prev) => (prev ? { ...prev, foto: imageUrl } : null))
+        
+        // Actualizamos el contexto de usuario
+        if (userData) {
+          setUserData({ ...userData, foto: imageUrl })
+        }
+
+        // Forzamos una actualización del componente
+        setRefreshKey(prev => prev + 1)
+
+        // Enviamos la imagen al servidor
         const res = await fetch(`${apiUrl}/editar-piker`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -351,14 +427,11 @@ export default function PerfilPage() {
           throw new Error(data?.message || "Error al subir la foto")
         }
 
-        // Update local state
-        const imageUrl = `data:${data.piker.IMAGEN_COLAB_MIME};base64,${data.piker.IMAGEN_COLAB}`
-        setProfile((prev) => (prev ? { ...prev, foto: imageUrl } : null))
-
-        // Update userData context
-        if (userData) {
-          setUserData({ ...userData, foto: imageUrl })
-        }
+        // Después de subir exitosamente, volvemos a obtener los datos del servidor
+        // para asegurar que tenemos la versión más reciente
+        setTimeout(() => {
+          fetchUserData()
+        }, 500)
 
         toast({
           title: "Foto actualizada",
@@ -400,13 +473,24 @@ export default function PerfilPage() {
 
       console.log("[v0] Sending avatar update with PIKER_ID:", profile.id)
 
-      // For predefined avatars, we just send the URL
+      // Actualizamos con el avatar predefinido inmediatamente
+      setProfile((prev) => (prev ? { ...prev, foto: avatarUrl } : null))
+
+      // Update userData context
+      if (userData) {
+        setUserData({ ...userData, foto: avatarUrl })
+      }
+
+      // Forzamos una actualización del componente
+      setRefreshKey(prev => prev + 1)
+
+      // Para avatares predefinidos, enviamos una cadena vacía para limpiar la imagen actual
       const res = await fetch(`${apiUrl}/editar-piker`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           PIKER_ID: profile.id,
-          IMAGEN_COLAB_BASE64: "", // Empty to clear or use URL
+          IMAGEN_COLAB_BASE64: "", // Vacío para limpiar la imagen actual
         }),
       })
 
@@ -416,12 +500,10 @@ export default function PerfilPage() {
         throw new Error(data?.message || "Error al actualizar la foto")
       }
 
-      setProfile((prev) => (prev ? { ...prev, foto: avatarUrl } : null))
-
-      // Update userData context
-      if (userData) {
-        setUserData({ ...userData, foto: avatarUrl })
-      }
+      // Después de actualizar, volvemos a obtener los datos del servidor
+      setTimeout(() => {
+        fetchUserData()
+      }, 500)
 
       toast({
         title: "Foto actualizada",
@@ -465,12 +547,10 @@ export default function PerfilPage() {
         throw new Error(data?.message || "Error al actualizar el nombre")
       }
 
-      setProfile((prev) => (prev ? { ...prev, nombre: newName.trim() } : null))
-
-      // Update userData context
-      if (userData) {
-        setUserData({ ...userData, nombre: newName.trim() })
-      }
+      // Después de actualizar, volvemos a obtener los datos del servidor
+      setTimeout(() => {
+        fetchUserData()
+      }, 500)
 
       setEditingName(false)
 
@@ -505,7 +585,6 @@ export default function PerfilPage() {
       </div>
     )
   }
-
   return (
     <div className="h-screen bg-black overflow-hidden flex items-center justify-center p-2">
       <div className="w-full max-w-4xl h-full max-h-[900px] flex flex-col">
@@ -523,6 +602,7 @@ export default function PerfilPage() {
                 <div className="w-20 h-20 rounded-full border-2 border-white/10 overflow-hidden bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
                   {profile?.foto ? (
                     <img
+                      key={refreshKey} // Agregamos key para forzar la recarga de la imagen
                       src={profile.foto || "/placeholder.svg"}
                       alt="Foto de perfil"
                       className="w-full h-full object-cover"
@@ -657,28 +737,7 @@ export default function PerfilPage() {
             </a>
           </div>
 
-          {companyData && (
-            <div className="bg-[#0a0a0a] border border-white/10 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-white/95 mb-4">Empresa</h3>
-              <div className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-lg">
-                {companyData.branding?.logo ? (
-                  <img
-                    src={companyData.branding.logo || "/placeholder.svg"}
-                    alt="Logo"
-                    className="w-15 h-15 rounded-lg object-contain flex-shrink-0"
-                  />
-                ) : (
-                  <div className="w-12 h-12 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center flex-shrink-0">
-                    <User className="w-6 h-6 text-white/70" />
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm text-white/90 font-medium mb-0.5 truncate">{companyData.nombre}</div>
-                  <div className="text-xs text-white/50">Código: {companyData.codigo}</div>
-                </div>
-              </div>
-            </div>
-          )}
+      
         </div>
       </div>
 

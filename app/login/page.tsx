@@ -125,8 +125,8 @@ export default function LoginPage() {
     )
   }
 
-  const customLogo = companyData?.branding?.logo
-  const customBackground = companyData?.branding?.background
+  // const customLogo = companyData?.branding?.logo
+  // const customBackground = companyData?.branding?.background
 
   return (
     <>
@@ -151,8 +151,10 @@ export default function LoginPage() {
 
           <div className="absolute inset-0 flex items-center justify-center">
             <img
-              src={customBackground || "/test.jpg"}
-              alt={customBackground ? "Custom Background" : "3D Octopus"}
+              src={ "/test.jpg"}
+              alt={  "3D Octopus"}
+              //     src={customBackground || "/test.jpg"}
+              // alt={customBackground ? "Custom Background" : "3D Octopus"}
               className="w-full h-full object-cover"
               style={{ filter: "drop-shadow(0 0 30px rgba(43, 21, 85, 0.74))" }}
             />
@@ -172,10 +174,15 @@ export default function LoginPage() {
               <div className="text-center space-y-4">
                 <div className="flex justify-center">
                   <img
+                    src={"/1D1.png"}
+                    alt={ "Kraken Logo"}
+                    className="w-[200px] h-[200px] object-contain"
+                  />
+                    {/* <img
                     src={customLogo || "/1D1.png"}
                     alt={customLogo ? "Company Logo" : "Kraken Logo"}
                     className="w-[200px] h-[200px] object-contain"
-                  />
+                  /> */}
                 </div>
                 <p className="text-gray-500 text-3xl mt-2 font-bold">Inicia Sesión</p>
               </div>

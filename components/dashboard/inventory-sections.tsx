@@ -110,7 +110,7 @@ export default function InventorySection() {
                 version="v2.1.0"
                 onClick={handlePickingClick}
               />
-              <ModuleCard
+              {/* <ModuleCard
                 title="C & A"
                 description="Empaca y consolida los productos seleccionados para el envío o entrega."
                 icon={Box}
@@ -123,7 +123,7 @@ export default function InventorySection() {
                 icon={Box}
                 version="v2.1.0"
                 onClick={handlePackingClick}
-              />
+              /> */}
              
             </div>
           </div>

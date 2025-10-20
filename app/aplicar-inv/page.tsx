@@ -37,17 +37,39 @@ export default function AplicarInvPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [applyingFolio, setApplyingFolio] = useState<string | null>(null)
+  const [successModal, setSuccessModal] = useState<{
+    open: boolean
+    folio?: string | null
+    doctoId?: string | number | null
+    inserted?: number
+  }>({ open: false, folio: null, doctoId: null, inserted: 0 })
   const [filter, setFilter] = useState<"todos" | "aplicados" | "no-aplicados">("todos") // Nuevo estado para el filtro
+  const [startDate, setStartDate] = useState<string>(() => {
+    const d = new Date()
+    return d.toISOString().slice(0, 10)
+  })
+  const [endDate, setEndDate] = useState<string>(() => {
+    const d = new Date()
+    return d.toISOString().slice(0, 10)
+  })
 
+  // Fetch documents optionally by start/end date. On mount fetch today's documents.
   useEffect(() => {
     if (!apiUrl) return
 
-    const fetchDoctos = async () => {
+    const fetchDoctos = async (s?: string, e?: string) => {
       setLoading(true)
       setError(null)
 
       try {
-        const response = await fetch(`${apiUrl}/doctos-invfis-semana`)
+        const base = `${apiUrl}/doctos-invfis-semana`
+        const params = new URLSearchParams()
+        if (s) params.append("start", s)
+        if (e) params.append("end", e)
+
+        const url = params.toString() ? `${base}?${params.toString()}` : base
+
+        const response = await fetch(url)
         const data = await response.json()
 
         if (data.ok && data.data) {
@@ -63,7 +85,11 @@ export default function AplicarInvPage() {
       }
     }
 
-    fetchDoctos()
+    // On mount, fetch today's documents
+    const today = new Date().toISOString().slice(0, 10)
+    setStartDate(today)
+    setEndDate(today)
+    fetchDoctos(today, today)
   }, [apiUrl])
 
   const stats = useMemo(() => {
@@ -104,10 +130,14 @@ export default function AplicarInvPage() {
           )
         )
 
-        toast({
-          title: "Éxito",
-          description: `Inventario aplicado correctamente para el folio ${folio}`,
+        // Mostrar modal de éxito usando campos devueltos por el API si existen
+        setSuccessModal({
+          open: true,
+          folio: data.folio || folio,
+          doctoId: data.doctoInvfisId ?? null,
+          inserted: typeof data.inserted === 'number' ? data.inserted : 0,
         })
+
       } else {
         toast({
           title: "Error",
@@ -175,8 +205,8 @@ function extractUsuarioFromDescripcion(desc?: string | null) {
               </button>
 
               <div className="flex items-center gap-3">
-                <div className="rounded-xl border border-purple-500/20 bg-purple-500/10 p-3">
-                  <Package className="h-6 w-6 text-purple-400" />
+                <div className="rounded-xl border border-teal-400/20 bg-teal-400/8 p-3">
+                  <Package className="h-6 w-6 text-teal-300" />
                 </div>
                 <div>
                   <h1 className="font-light text-3xl tracking-wide text-white/90">Aplicar Inventario Físico</h1>
@@ -195,7 +225,7 @@ function extractUsuarioFromDescripcion(desc?: string | null) {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24">
             <div className="rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl">
-              <Loader2 className="mx-auto h-12 w-12 animate-spin text-purple-400" />
+              <Loader2 className="mx-auto h-12 w-12 animate-spin text-teal-300" />
               <p className="mt-4 font-light text-sm tracking-wide text-white/70">Cargando documentos...</p>
             </div>
           </div>
@@ -256,14 +286,89 @@ function extractUsuarioFromDescripcion(desc?: string | null) {
                 <Filter className="h-4 w-4 text-white/60" />
                 <span className="font-light text-sm tracking-wide text-white/60">Filtros</span>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-2">
+                  <label className="font-light text-xs text-white/60">Desde</label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="rounded-md border border-white/10 bg-white/3 px-3 py-1 text-sm text-white/80"
+                  />
+
+                  <label className="font-light text-xs text-white/60 ml-3">Hasta</label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="rounded-md border border-white/10 bg-white/3 px-3 py-1 text-sm text-white/80"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      // fetch by range
+                      const base = `${apiUrl}/doctos-invfis-semana`
+                      const params = new URLSearchParams()
+                      if (startDate) params.append("start", startDate)
+                      if (endDate) params.append("end", endDate)
+                      const url = params.toString() ? `${base}?${params.toString()}` : base
+                      setLoading(true)
+                      fetch(url)
+                        .then((r) => r.json())
+                        .then((data) => {
+                          if (data.ok && data.data) setDoctos(data.data)
+                          else setError(data.message || "Error al cargar los documentos")
+                        })
+                        .catch((err) => {
+                          console.error(err)
+                          setError("Error de conexión al servidor")
+                        })
+                        .finally(() => setLoading(false))
+                    }}
+                    className="ml-3 rounded-lg bg-teal-400/10 border border-teal-300/20 text-teal-300 text-xs"
+                  >
+                    Buscar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const today = new Date().toISOString().slice(0, 10)
+                      setStartDate(today)
+                      setEndDate(today)
+                      // refetch today's
+                      const base = `${apiUrl}/doctos-invfis-semana`
+                      const params = new URLSearchParams()
+                      params.append("start", today)
+                      params.append("end", today)
+                      const url = `${base}?${params.toString()}`
+                      setLoading(true)
+                      fetch(url)
+                        .then((r) => r.json())
+                        .then((data) => {
+                          if (data.ok && data.data) setDoctos(data.data)
+                          else setError(data.message || "Error al cargar los documentos")
+                        })
+                        .catch((err) => {
+                          console.error(err)
+                          setError("Error de conexión al servidor")
+                        })
+                        .finally(() => setLoading(false))
+                    }}
+                    className="ml-2 text-xs"
+                  >
+                    Limpiar
+                  </Button>
+                </div>
+
+                <div className="flex gap-2">
                 <Button
                   variant={filter === "todos" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setFilter("todos")}
                   className={`font-light text-xs tracking-wide ${
                     filter === "todos"
-                      ? "bg-purple-500/20 border-purple-500/40 text-purple-400"
+                      ? "bg-teal-400/12 border-teal-300/30 text-teal-300"
                       : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white/90"
                   }`}
                 >
@@ -293,7 +398,7 @@ function extractUsuarioFromDescripcion(desc?: string | null) {
                 >
                   No Aplicados ({stats.noAplicados})
                 </Button>
-                
+                </div>
               </div>
             </div>
 
@@ -450,6 +555,82 @@ function extractUsuarioFromDescripcion(desc?: string | null) {
           </div>
         )}
       </div>
+
+      {/* Success modal */}
+      <SuccessModalInline
+        open={successModal.open}
+        folio={successModal.folio ?? null}
+        doctoId={successModal.doctoId ?? null}
+        inserted={successModal.inserted ?? 0}
+        onClose={() => setSuccessModal({ open: false, folio: null, doctoId: null, inserted: 0 })}
+        onCopy={(text: string) => copyToClipboard(text, toast)}
+      />
     </div>
   )
+}
+
+// --- Helper modal component and clipboard helper (inline to keep file simple) ---
+function SuccessModalInline(props: {
+  open: boolean
+  folio?: string | null
+  doctoId?: string | number | null
+  inserted?: number
+  onClose: () => void
+  onCopy?: (text: string) => void
+}) {
+  const { open, folio, doctoId, inserted = 0, onClose, onCopy } = props
+  if (!open) return null
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-lg rounded-2xl bg-gradient-to-br from-teal-800/95 to-cyan-900/95 p-6 text-white shadow-xl">
+        <div className="flex items-start gap-4">
+          <div className="rounded-full bg-white/6 p-3">
+            <svg className="h-8 w-8 text-emerald-300" viewBox="0 0 24 24" fill="none">
+              <path d="M5 13l4 4L20 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <div className="flex-1">
+            <h3 className="text-xl font-semibold">Inventario aplicado</h3>
+            <p className="mt-1 text-sm text-white/80">Todo listo. Se aplicó el conteo correctamente.</p>
+
+            <div className="mt-4 grid grid-cols-1 gap-2">
+              <div className="flex items-center justify-between rounded-md bg-white/6 px-3 py-2">
+                <div className="text-xs text-white/80">Folio</div>
+                <div className="font-mono text-sm text-white/95">{folio ?? "—"}</div>
+              </div>
+
+            </div>
+
+            <div className="mt-5 flex gap-3">
+              <button
+                onClick={() => { if (folio && onCopy) onCopy(folio) }}
+                className="rounded-md bg-white/8 px-4 py-2 text-sm text-white/90 hover:bg-white/12"
+              >
+                Copiar folio
+              </button>
+              <button
+                onClick={onClose}
+                className="rounded-md bg-white/10 px-4 py-2 text-sm text-white/100 font-semibold hover:bg-white/14"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// clipboard helper used by modal
+async function copyToClipboard(text: string, toast: (opts: any) => void) {
+  try {
+    await navigator.clipboard.writeText(text)
+    toast({ title: "Copiado", description: "Folio copiado al portapapeles" })
+  } catch (err) {
+    console.error("Clipboard error:", err)
+    toast({ title: "Error", description: "No se pudo copiar el folio", variant: "destructive" })
+  }
 }

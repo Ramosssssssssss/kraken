@@ -79,7 +79,7 @@ export default function Sidebar({
     { name: "INVENTARIO", icon: Box },
     { name: "KPI's", icon: LineChart },
     { name: "LAYOUT", icon: Package },
-    { name: "PLANEACIÓN", icon: CalendarClock },
+    // { name: "PLANEACIÓN", icon: CalendarClock },
     { name: "PROCESOS", icon: ClipboardList },
     { name: "TABLEROS", icon: BarChart3 },
   ]

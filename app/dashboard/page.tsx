@@ -70,6 +70,7 @@ const PLACEHOLDER_SECTIONS = new Set([
   "AUDITORÍA",
   "INTEGRACIONES",
   "KPI'S",
+  "PLANEACION",
   "LAYOUT",
 ])
 /* ---------- Wrapper con Suspense ---------- */
@@ -101,12 +102,23 @@ function DashboardPageInner() {
   const onToggleSidebar = () => setSidebarOpen((s) => !s)
 
   useEffect(() => {
-    const storedUserData = localStorage.getItem("userData")
-    const storedCompanyData = localStorage.getItem("companyData")
+    // Función segura para obtener y parsear datos de localStorage
+    const safeGetAndParse = (key: string) => {
+      try {
+        const item = localStorage.getItem(key)
+        return item ? JSON.parse(item) : null
+      } catch (error) {
+        console.error(`Error parsing ${key} from localStorage:`, error)
+        return null
+      }
+    }
+
+    const storedUserData = safeGetAndParse("userData")
+    const storedCompanyData = safeGetAndParse("companyData")
 
     if (storedUserData && storedCompanyData) {
-      setUserData(JSON.parse(storedUserData))
-      setCompanyData(JSON.parse(storedCompanyData))
+      setUserData(storedUserData)
+      setCompanyData(storedCompanyData)
       setIsLoading(false)
     } else {
       router.replace("/")

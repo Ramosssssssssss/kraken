@@ -344,6 +344,8 @@ export function CrearArticuloModal({ open, onClose, onSuccess }: CrearArticuloMo
                         onChange={(e) => setFormData({ ...formData, claveArticulo: e.target.value })}
                         className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-purple-500/50"
                         placeholder="ART-001"
+                          maxLength={20}
+
                       />
                     </div>
                     <div className="space-y-2">

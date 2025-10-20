@@ -71,9 +71,19 @@ export default function InventarioFisicoPage() {
     product: InventarioDetalle
     timestamp: Date
   } | null>(null)
+  const [successModal, setSuccessModal] = useState<null | { folio?: string; doctoInvfisId?: number | null; inserted?: number }>(null)
 
   const { apiUrl, userData } = useCompany()
     const usuario = userData?.nombre ?? userData?.user ?? "desconocido"
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      showToast("Folio copiado al portapapeles", "success")
+    } catch (e) {
+      showToast("No se pudo copiar el folio", "error")
+    }
+  }
  
   // Formato de fecha DD/MM/YYYY (zona horaria de México)
   const fechaActual = new Date().toLocaleDateString("es-MX", {
@@ -307,9 +317,9 @@ const searchAndAddArticle = async (clave: string) => {
       UMED: null,
       CANTIDAD: cantidad,
       _key: `inv-${Date.now()}`,
-      // Modificación: Si la cantidad es 0, packed y scanned también deben ser 0
-      packed: cantidad > 0 ? 0 : 0,
-      scanned: cantidad > 0 ? 0 : 0,
+      // Nuevo comportamiento: al agregar manualmente, marcamos packed y scanned igual a la cantidad
+      packed: cantidad,
+      scanned: cantidad,
     }
 
     setDetalles((prev) => {
@@ -323,6 +333,26 @@ const searchAndAddArticle = async (clave: string) => {
     setShowAddForm(false)
 
     showToast("Artículo agregado correctamente", "success")
+    focusScanner()
+  }
+
+  const removeItem = (idx: number) => {
+    const item = detalles[idx]
+    const confirmDelete = confirm(
+      `¿Eliminar artículo ${item?.CLAVE ?? ""} - ${item?.DESCRIPCION ?? ""}? Esta acción no se puede deshacer.`,
+    )
+    if (!confirmDelete) {
+      focusScanner()
+      return
+    }
+
+    setDetalles((prev) => {
+      const next = [...prev]
+      next.splice(idx, 1)
+      return next
+    })
+
+    showToast("Artículo eliminado", "success")
     focusScanner()
   }
 
@@ -417,14 +447,9 @@ const searchAndAddArticle = async (clave: string) => {
   }
 
   const resetInventario = useCallback(() => {
-    setDetalles((prev) =>
-      prev.map((d) => ({
-        ...d,
-        packed: 0,
-        scanned: 0,
-      })),
-    )
-    setFolioGenerado(null)
+    // Al resetear después de aplicar, borramos completamente las líneas
+    setDetalles([])
+    // conservamos folioGenerado temporalmente para mostrar en la alerta; el caller puede limpiarlo si desea
     setDoctoInvfisId(null)
     focusScanner()
   }, [focusScanner])
@@ -487,13 +512,11 @@ const searchAndAddArticle = async (clave: string) => {
       setFolioGenerado(data.folio)
       setDoctoInvfisId(data.doctoInvfisId)
 
-      showToast(
-        `✅ Inventario Físico Completado\nFolio: ${data.folio || "N/A"}\nDOCTO_INVFIS_ID: ${data.doctoInvfisId}\nLíneas insertadas: ${data.inserted}`,
-        "success",
-        false,
-      )
+      // Mostrar modal bonito y formateado con la info del folio
+      setSuccessModal({ folio: data.folio, doctoInvfisId: data.doctoInvfisId, inserted: data.inserted })
 
-      resetInventario()
+      // Borrar todas las líneas para comenzar limpio
+      setDetalles([])
     } catch (error) {
       console.error("❌ Error en aplicarInventario:", error)
       showToast("Error de conexión: No se pudo conectar al servidor")
@@ -676,7 +699,7 @@ const searchAndAddArticle = async (clave: string) => {
               </button>
 
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-800 to-purple-600 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-teal-700 to-cyan-500 flex items-center justify-center">
                   <Package className="w-8 h-8 text-white" />
                 </div>
                 <div>
@@ -702,7 +725,7 @@ const searchAndAddArticle = async (clave: string) => {
               <button
                 className={`w-10 h-10 rounded-xl border transition-all duration-200 flex items-center justify-center ${
                   requireScan
-                    ? "bg-purple-900 border-purple-800 text-white shadow-lg"
+                    ? "bg-teal-700 border-teal-700 text-white shadow-lg"
                     : "bg-white/80 border-white/20 text-slate-600 hover:bg-white/90"
                 }`}
                 onClick={() => {
@@ -712,9 +735,9 @@ const searchAndAddArticle = async (clave: string) => {
               >
                 <Scan className="w-4 h-4" />
               </button>
-
+            
               <button
-                className="w-10 h-10 rounded-xl bg-purple-900 border-purple-800 text-white shadow-lg hover:bg-purple-800 transition-all duration-200 flex items-center justify-center"
+                className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-600 to-cyan-500 text-white shadow-lg hover:from-teal-700 transition-all duration-200 flex items-center justify-center"
                 onClick={() => setShowAddForm(true)}
               >
                 <Plus className="w-4 h-4" />
@@ -745,7 +768,13 @@ const searchAndAddArticle = async (clave: string) => {
               </button>
             </div>
 
-            <div className="space-y-4">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                addManualItem()
+              }}
+              className="space-y-4"
+            >
               <div className="relative">
                 <label className="block text-sm font-medium text-slate-700 mb-2">Clave del artículo</label>
                 <Input
@@ -753,12 +782,12 @@ const searchAndAddArticle = async (clave: string) => {
                   value={newClave}
                   onChange={(e) => handleClaveChange(e.target.value)}
                   placeholder="Escribe la clave..."
-                  className={`text-black ${searchingArticle ? "border-purple-600 bg-purple-50 " : ""}`}
+                  className={`text-black ${searchingArticle ? "border-teal-400 bg-teal-50 " : ""}`}
                 />
                 {searchingArticle && (
                   <div className="absolute right-3 top-9 flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-purple-600" />
-                    <span className="text-xs text-purple-600">Buscando...</span>
+                    <Loader2 className="w-4 h-4 animate-spin text-teal-600" />
+                    <span className="text-xs text-teal-600">Buscando...</span>
                   </div>
                 )}
               </div>
@@ -771,12 +800,12 @@ const searchAndAddArticle = async (clave: string) => {
                   onChange={(e) => handleDescripcionChange(e.target.value)}
                   placeholder="Escribe para buscar..."
                   disabled={searchingArticle}
-                  className={`text-black  ${searchingDescription ? "border-purple-600 bg-purple-50" : ""}`}
+                  className={`text-black  ${searchingDescription ? "border-teal-400 bg-teal-50" : ""}`}
                 />
                 {searchingDescription && (
                   <div className="absolute right-3 top-9 flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-purple-600" />
-                    <span className="text-xs text-purple-600">Buscando...</span>
+                    <Loader2 className="w-4 h-4 animate-spin text-teal-600" />
+                    <span className="text-xs text-teal-600">Buscando...</span>
                   </div>
                 )}
               </div>
@@ -811,30 +840,30 @@ const searchAndAddArticle = async (clave: string) => {
                 />
                 <p className="text-xs text-slate-500 mt-1">Puedes agregar productos con cantidad 0</p>
               </div>
-            </div>
-
-            <div className="flex gap-3 mt-6">
-              <button
-                className="flex-1 py-3 rounded-xl font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors"
-                onClick={() => {
-                  setShowAddForm(false)
-                  setNewClave("")
-                  setNewDescripcion("")
-                  setNewCantidad("")
-                  setSearchResults([])
-                  setShowSearchResults(false)
-                  setTimeout(focusScanner, 100)
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                className="flex-1 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-purple-800 to-purple-700 hover:from-purple-700 hover:to-purple-600 transition-all shadow-lg"
-                onClick={addManualItem}
-              >
-                Agregar
-              </button>
-            </div>
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  className="flex-1 py-3 rounded-xl font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors"
+                  onClick={() => {
+                    setShowAddForm(false)
+                    setNewClave("")
+                    setNewDescripcion("")
+                    setNewCantidad("")
+                    setSearchResults([])
+                    setShowSearchResults(false)
+                    setTimeout(focusScanner, 100)
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 transition-all shadow-lg"
+                >
+                  Agregar
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -870,7 +899,7 @@ const searchAndAddArticle = async (clave: string) => {
                         okLinea
                           ? "border-green-200/50 bg-gradient-to-r from-green-50/80 to-emerald-50/80"
                           : "border-white/20 bg-white/40"
-                      } ${isFlash ? "ring-2 ring-purple-400 bg-purple-50/80" : ""}`}
+                      } ${isFlash ? "ring-2 ring-teal-300 bg-teal-50/80" : ""}`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
@@ -892,78 +921,28 @@ const searchAndAddArticle = async (clave: string) => {
                             <span>UM: {item.UMED || "N/A"}</span>
                           </div>
 
-                          <div className="grid grid-cols-3 gap-3 text-sm">
-                            <div>
-                              <span className="text-slate-500">Requerido:</span>
-                              <span className="font-bold text-slate-900 ml-1">{req}</span>
-                            </div>
-                            <div>
-                              <span className="text-slate-500">Empacado:</span>
-                              <span className="font-bold text-slate-900 ml-1">{pk}</span>
-                            </div>
-                            <div>
-                              <span className="text-slate-500">Escaneado:</span>
-                              <span className={`font-bold ml-1 ${okLinea ? "text-green-700" : "text-slate-900"}`}>
-                                {sc}
-                              </span>
-                            </div>
-                          </div>
+                                      <div className="grid grid-cols-1 gap-3 text-sm">
+                                        <div>
+                                          <span className="text-slate-500">Escaneado:</span>
+                                          <span className={`font-bold ml-1 ${okLinea ? "text-green-700" : "text-slate-900"}`}>
+                                            {sc}
+                                          </span>
+                                        </div>
+                                      </div>
                         </div>
 
                         <div className="flex flex-col items-center gap-3 ml-6">
-                          <div className="flex items-center gap-2">
-                            <button
-                              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${
-                                requireScan || req === 0
-                                  ? "bg-slate-200 text-slate-400 cursor-not-allowed"
-                                  : "bg-purple-700 text-white hover:bg-purple-600 shadow-sm"
-                              }`}
-                              onClick={() => {
-                                if (!requireScan && req > 0) {
-                                  dec(index)
-                                }
-                              }}
-                              disabled={requireScan || req === 0}
-                            >
-                              <Minus className="w-4 h-4" />
-                            </button>
-
-                            <span className="font-bold text-lg text-slate-900 min-w-8 text-center">{pk}</span>
-
-                            <button
-                              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${
-                                requireScan || req === 0
-                                  ? "bg-slate-200 text-slate-400 cursor-not-allowed"
-                                  : "bg-purple-700 text-white hover:bg-purple-600 shadow-sm"
-                              }`}
-                              onClick={() => {
-                                if (!requireScan && req > 0) {
-                                  inc(index)
-                                }
-                              }}
-                              onMouseDown={(e) => {
-                                if (!requireScan && req > 0) {
-                                  const timer = setTimeout(() => fillToRequired(index), 250)
-                                  const handleMouseUp = () => {
-                                    clearTimeout(timer)
-                                    document.removeEventListener("mouseup", handleMouseUp)
-                                  }
-                                  document.addEventListener("mouseup", handleMouseUp)
-                                }
-                              }}
-                              disabled={requireScan || req === 0}
-                            >
-                              <Plus className="w-4 h-4" />
-                            </button>
+                          <div className="text-center">
+                            <div className="text-xl font-bold text-slate-900">{sc}</div>
+                            <div className="text-xs text-slate-500">Escaneado</div>
                           </div>
 
-                          <p
-                            className={`text-xs text-center leading-tight ${
-                              requireScan || req === 0 ? "text-slate-400" : "text-slate-600"
-                            }`}
+                          <button
+                            className="mt-2 text-xs text-red-600 hover:underline"
+                            onClick={() => removeItem(index)}
                           >
-                            {requireScan || req === 0 ? req === 0 ? "Cantidad 0" : "Escanea para avanzar" : "Mantén + para llenar"}
-                          </p>
+                            Eliminar artículo
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -979,131 +958,152 @@ const searchAndAddArticle = async (clave: string) => {
             )}
 
             {detalles.length > 0 && (
-              <div className="fixed bottom-0 left-0 right-1/4 bg-gradient-to-t from-white via-white to-transparent pt-4 pb-0 px-6">
-                <button
-                  className={`w-full flex items-center justify-center gap-3 py-4 rounded-xl font-semibold text-white transition-all duration-200 shadow-lg hover:shadow-xl ${
-                    !isSubmitting
-                      ? "bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
-                      : "bg-gradient-to-r from-slate-400 to-slate-500 cursor-not-allowed"
-                  }`}
-                  onClick={() => {
-                    if (!isSubmitting) aplicarInventario()
-                  }}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Aplicando Inventario...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="w-5 h-5" />
-                      Completar Inventario Físico
-                    </>
-                  )}
-                </button>
+              <div className="fixed bottom-6 left-0 right-80 bg-gradient-to-t from-white via-white to-transparent pt-4 pb-6 px-6">
+                <div className="flex justify-center">
+                  <button
+                    className={`max-w-[420px] w-full sm:w-auto flex items-center gap-3 px-6 py-3 rounded-2xl font-semibold text-white transition-all duration-200 shadow-lg hover:shadow-xl ${
+                      !isSubmitting
+                        ? "bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600"
+                        : "bg-gradient-to-r from-slate-400 to-slate-500 cursor-not-allowed"
+                    }`}
+                    onClick={() => {
+                      if (!isSubmitting) aplicarInventario()
+                    }}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Aplicando Inventario...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-5 h-5" />
+                        Completar Inventario
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             )}
           </div>
         </div>
 
-        <div className="w-1/4 border-l border-white/20 bg-gradient-to-b from-slate-50/80 to-white/80 backdrop-blur-sm">
-          <div className="p-6 h-full flex flex-col">
-            {detalles.length > 0 && (
-              <div className="glass rounded-xl p-4 mb-6 border border-white/20">
-                <div className="text-center mb-4">
-                  <div className="text-6xl font-bold text-slate-900 mb-2">{Math.round(progreso * 100)}%</div>
-                  <p className="text-sm font-medium text-slate-600">Progreso Total</p>
-                </div>
+        <aside className="w-80 border-l border-white/10 bg-gradient-to-b from-slate-50/90 to-white/90 backdrop-blur-sm shadow-inner">
+          <div className="p-5 h-full flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-slate-500">Usuario</p>
+                <p className="font-semibold text-slate-900">{usuario}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-slate-500">Tiempo</p>
+                <p className="font-semibold text-slate-900">{formatTime(elapsedSeconds)}</p>
+              </div>
+            </div>
 
-                <div className="relative h-3 bg-slate-100 rounded-full overflow-hidden mb-3">
-                  <div
-                    className={`absolute top-0 left-0 h-full rounded-full transition-all duration-500 ${
-                      listo
-                        ? "bg-gradient-to-r from-purple-500 to-purple-600"
-                        : "bg-gradient-to-r from-blue-500 to-indigo-600"
-                    }`}
-                    style={{ width: `${progreso * 100}%` }}
-                  />
+            <div className="bg-white/60 rounded-xl p-4 border border-white/20 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-teal-600 to-cyan-500 flex items-center justify-center text-white font-bold">
+                  {Math.round(progreso * 100)}%
                 </div>
-
-                <div className="flex justify-between text-xs text-slate-500">
-                  <span>{totalHechas} completadas</span>
-                  <span>{totalRequeridas} total</span>
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">Progreso Total</p>
+                  <p className="text-xs text-slate-500">{totalHechas} de {totalRequeridas}</p>
                 </div>
               </div>
-            )}
+
+                <div className="mt-3 h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full transition-all duration-500" style={{ width: `${progreso * 100}%` }} />
+              </div>
+            </div>
 
             {lastScannedProduct && (
-              <div className="glass rounded-xl p-4 mb-6 border border-purple-200/50 bg-gradient-to-br from-purple-50/80 to-purple-100/80 animate-fade-in-up">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-6 h-6 bg-purple-500 rounded-lg flex items-center justify-center">
-                    <CheckCircle2 className="w-3 h-3 text-white" />
+              <div className="bg-white/60 rounded-xl p-3 border border-teal-200/30">
+                <h5 className="text-xs text-teal-700 font-semibold mb-2">Último escaneado</h5>
+                <p className="font-bold text-slate-900 text-sm">{lastScannedProduct.product.CLAVE}</p>
+                <p className="text-xs text-slate-600 mb-2 truncate">{lastScannedProduct.product.DESCRIPCION}</p>
+                <div className="flex items-center gap-3">
+                  <div className="text-center">
+                    <p className="text-xs text-teal-600">Escaneado</p>
+                    <p className="font-bold text-teal-900">{lastScannedProduct.product.scanned}</p>
                   </div>
-                  <h4 className="font-semibold text-purple-900 text-sm">Último Escaneado</h4>
-                </div>
-
-                <div className="space-y-2">
-                  <div>
-                    <p className="text-xs font-medium text-purple-700 uppercase tracking-wide">Clave</p>
-                    <p className="font-bold text-purple-900 text-sm">{lastScannedProduct.product.CLAVE}</p>
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-medium text-purple-700 uppercase tracking-wide">Producto</p>
-                    <p className="text-purple-800 text-xs leading-tight">{lastScannedProduct.product.DESCRIPCION}</p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 pt-2">
-                    <div className="bg-white/60 rounded-lg p-2 border border-purple-200/50">
-                      <p className="text-xs font-medium text-purple-700">Escaneado</p>
-                      <p className="text-lg font-bold text-purple-900">{lastScannedProduct.product.scanned}</p>
+                  <div className="flex-1">
+                    <p className="text-xs text-teal-600">Completado</p>
+                    <div className="h-2 bg-teal-50 rounded-full overflow-hidden mt-1">
+                      <div className="h-full bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full" style={{ width: `${lastScannedProduct.product.CANTIDAD === 0 ? 100 : Math.min(100, ((lastScannedProduct.product.scanned || 0) / (lastScannedProduct.product.CANTIDAD || 1)) * 100)}%` }} />
                     </div>
-                    <div className="bg-white/60 rounded-lg p-2 border border-purple-200/50">
-                      <p className="text-xs font-medium text-purple-700">Requerido</p>
-                      <p className="text-lg font-bold text-purple-900">{lastScannedProduct.product.CANTIDAD}</p>
-                    </div>
-                  </div>
-
-                  <div className="pt-2">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs font-medium text-purple-700">Completado</span>
-                      <span className="text-sm font-bold text-purple-900">
-                        {lastScannedProduct.product.CANTIDAD === 0 
-                          ? "100%" 
-                          : Math.round(
-                              ((lastScannedProduct.product.scanned || 0) / (lastScannedProduct.product.CANTIDAD || 1)) *
-                                100,
-                            )
-                        }
-                        %
-                      </span>
-                    </div>
-                    <div className="h-2 bg-purple-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-purple-500 to-purple-600 rounded-full transition-all duration-500"
-                        style={{
-                          width: `${lastScannedProduct.product.CANTIDAD === 0 
-                            ? 100 
-                            : Math.min(100, ((lastScannedProduct.product.scanned || 0) / (lastScannedProduct.product.CANTIDAD || 1)) * 100)
-                          }%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t border-purple-200/50">
-                    <p className="text-xs text-purple-600">
-                      Escaneado hace {Math.floor((Date.now() - lastScannedProduct.timestamp.getTime()) / 1000)}s
-                    </p>
                   </div>
                 </div>
               </div>
             )}
+
+            <div className="mt-auto text-xs text-slate-500">
+              <p>Consejo: Usa el scanner o el botón + para agregar artículos.</p>
+            </div>
+          </div>
+        </aside>
+      </div>
+      {successModal && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/40">
+          <div className="glass max-w-md w-full p-6 rounded-2xl bg-white/95 border border-white/20 shadow-2xl">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Inventario aplicado</h3>
+                <p className="text-sm text-slate-600 mt-1">Se registró correctamente en el sistema.</p>
+              </div>
+              <button className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center" onClick={() => setSuccessModal(null)}>
+                <X className="w-4 h-4 text-slate-600" />
+              </button>
+            </div>
+
+            <div className="mt-4 bg-slate-50 rounded-lg p-4 border border-slate-100">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs text-slate-500">Folio</p>
+                  <p className="font-mono font-semibold text-slate-900">{successModal.folio ?? "N/A"}</p>
+                </div>
+                <div>
+                  <button
+                    onClick={() => copyToClipboard(String(successModal.folio ?? ""))}
+                    className="px-3 py-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700"
+                  >
+                    Copiar
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-3">
+          
+                <div>
+                  <p className="text-xs text-slate-500">Líneas insertadas</p>
+                  <p className="font-semibold text-slate-900">{successModal.inserted ?? 0}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setSuccessModal(null)
+                }}
+                className="px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+              >
+                Cerrar
+              </button>
+              <button
+                onClick={() => {
+                  setSuccessModal(null)
+                  setTimeout(() => focusScanner(), 50)
+                }}
+                className="px-4 py-2 rounded-lg bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow-md hover:from-teal-600 hover:to-cyan-600"
+              >
+                Nuevo conteo
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
