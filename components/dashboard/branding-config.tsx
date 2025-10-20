@@ -32,34 +32,34 @@ export default function BrandingConfig() {
       return
     }
 
-    const fetchBranding = async () => {
-      try {
-        const response = await fetch(`${apiUrl}/get-branding/${companyData.codigo}`)
+    // const fetchBranding = async () => {
+    //   try {
+    //     const response = await fetch(`${apiUrl}/get-branding/${companyData.codigo}`)
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
+    //     if (!response.ok) {
+    //       throw new Error(`HTTP error! status: ${response.status}`)
+    //     }
 
-        const data = await response.json()
+    //     const data = await response.json()
 
-        if (data.ok && data.branding) {
-          if (data.branding.logo) {
-            setLogoPreview(data.branding.logo)
-          }
-          if (data.branding.background) {
-            setBackgroundPreview(data.branding.background)
-          }
-        }
-        setConnectionError(false)
-      } catch (error) {
-        console.error("Error fetching branding:", error)
-        setConnectionError(true)
-      } finally {
-        setIsFetching(false)
-      }
-    }
+    //     if (data.ok && data.branding) {
+    //       if (data.branding.logo) {
+    //         setLogoPreview(data.branding.logo)
+    //       }
+    //       if (data.branding.background) {
+    //         setBackgroundPreview(data.branding.background)
+    //       }
+    //     }
+    //     setConnectionError(false)
+    //   } catch (error) {
+    //     console.error("Error fetching branding:", error)
+    //     setConnectionError(true)
+    //   } finally {
+    //     setIsFetching(false)
+    //   }
+    // }
 
-    fetchBranding()
+    // fetchBranding()
   }, [apiUrl, companyData])
 
   const showToast = (type: "success" | "error", message: string) => {

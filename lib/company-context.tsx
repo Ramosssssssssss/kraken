@@ -1,19 +1,12 @@
 "use client"
 
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react"
-
-interface Branding {
-  logo: string | null
-  background: string | null
-  fechaModificacion?: string
-}
+import { createContext, useContext, useEffect, useState, useRef, type ReactNode } from "react"
 
 interface CompanyData {
   id: number
   codigo: string
   nombre: string
   apiUrl: string
-  branding?: Branding | null
 }
 
 interface UserData {
@@ -80,8 +73,6 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
   const [userData, setUserDataState] = useState<UserData | null>(null)
   const [isReady, setIsReady] = useState(false)
 
-  const brandingInFlight = useRef<boolean>(false)
-
   const setCompanyData = (d: CompanyData | null) => {
     setCompanyDataState(d)
     safeSetLS("companyData", d ? JSON.stringify(d) : null)
@@ -131,7 +122,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
             })
             const data = await res.json()
             if (data?.ok && data?.cliente) {
-              const c: CompanyData = { ...data.cliente, branding: null }
+              const c: CompanyData = { ...data.cliente }
               setCompanyDataState(c)
               safeSetLS("companyData", JSON.stringify(c))
               done = true
@@ -144,7 +135,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         const codigo = readCookie("tenant")
         const apiUrl = readCookie("apiUrl")
         if (codigo && apiUrl) {
-          const fallback: CompanyData = { id: 0, codigo, nombre: codigo, apiUrl, branding: null }
+          const fallback: CompanyData = { id: 0, codigo, nombre: codigo, apiUrl }
           setCompanyDataState(fallback)
           safeSetLS("companyData", JSON.stringify(fallback))
         }
@@ -153,53 +144,6 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
       setIsReady(true)
     })()
   }, [])
-
-  useEffect(() => {
-    if (!isReady) return
-    if (!companyData?.apiUrl || !companyData?.codigo) return
-    if (
-      companyData.branding &&
-      (companyData.branding.logo !== undefined || companyData.branding.background !== undefined)
-    ) {
-      return
-    }
-    if (brandingInFlight.current) return
-
-    const controller = new AbortController()
-    const loadBranding = async () => {
-      try {
-        brandingInFlight.current = true
-        const url = `${companyData.apiUrl}/get-branding/${companyData.codigo}?_=${Date.now()}`
-        const res = await fetch(url, { cache: "no-store", signal: controller.signal })
-        const json = await res.json().catch(() => ({}) as any)
-
-        if (json.ok && json.branding) {
-          const updated: CompanyData = {
-            ...companyData,
-            branding: {
-              logo: json.branding.logo || null,
-              background: json.branding.background || null,
-              fechaModificacion: json.branding.fechaModificacion,
-            },
-          }
-          setCompanyData(updated)
-        } else {
-          const updated: CompanyData = { ...companyData, branding: null }
-          setCompanyData(updated)
-        }
-      } catch (e) {
-        if (!controller.signal.aborted) {
-          const updated: CompanyData = { ...companyData, branding: null }
-          setCompanyData(updated)
-        }
-      } finally {
-        brandingInFlight.current = false
-      }
-    }
-
-    loadBranding()
-    return () => controller.abort()
-  }, [isReady, companyData])
 
   return (
     <CompanyContext.Provider

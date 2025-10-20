@@ -47,7 +47,7 @@ interface Detalle {
   R_CODIGO_BARRAS?: string
   R_CLAVE_ARTICULO?: string
   R_ARTICULO_ID?: number
-  imagenBase64?: string | null
+   imagenBase64?: string | null
   imagenMime?: string | null
 }
 
@@ -732,168 +732,163 @@ export default function ReciboScreenPremium() {
       }
     }
   }
-
-  const handleRecepcionar = async () => {
-    if (!caratula?.DOCTO_CM_ID) {
-      showToast("No hay documento para recepcionar")
-      return
-    }
-
-    const MAX_RETRIES = 3
-    let intentos = 0
-
-    try {
-      setLoading(true)
-
-      await updateQuantitiesForIncidents()
-
-      const returnIncidents = incidents.filter((inc) => inc.type === "return")
-
-      if (returnIncidents.length > 0) {
-        console.log("[v0] Preparing return incidents in temp table:", returnIncidents)
-
-        for (const incident of returnIncidents) {
-          try {
-            // Get ARTICULO_ID for the product
-            const articuloResponse = await fetch(`${baseURL}/recibo/obtener-articulo-id`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ claveArticulo: incident.productKey }),
-            })
-
-            const articuloData = await articuloResponse.json()
-
-            if (!articuloData.ok || !articuloData.articuloId) {
-              throw new Error(`No se pudo obtener ARTICULO_ID para ${incident.productKey}`)
-            }
-
-            console.log("[v0] Got ARTICULO_ID:", articuloData.articuloId, "for", incident.productKey)
-
-            // Insert into ART_ADEV_TEMP
-            const insertResponse = await fetch(`${baseURL}/recibo/dev/add-temp`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                doctoCmId: caratula.DOCTO_CM_ID,
-                articuloId: articuloData.articuloId,
-                claveArticulo: incident.productKey,
-                unidadesDev: incident.quantity,
-              }),
-            })
-
-            const insertData = await insertResponse.json()
-
-            if (!insertData.ok) {
-              throw new Error(`Error al insertar artículo a devolver: ${incident.productKey}`)
-            }
-
-            console.log("[v0] Inserted return item into temp table:", incident.productKey, incident.quantity)
-          } catch (error) {
-            console.error("[v0] Error processing return incident:", error)
-            // Rollback temp table on error
-            await fetch(`${baseURL}/recibo/dev/rollback?doctoCmId=${caratula.DOCTO_CM_ID}`, {
-              method: "DELETE",
-            })
-            throw error
-          }
-        }
-
-        showToast(`Preparando devolución de ${returnIncidents.length} artículo(s)...`, "success", false)
-      }
-
-      while (intentos < MAX_RETRIES) {
-        try {
-          console.log("[v0] Executing reception for all products...")
-          const url = `${baseURL}/recibo/recepcion?doctoId=${caratula.DOCTO_CM_ID}`
-          const response = await fetch(url)
-          const data = await response.json()
-
-          if (data.ok) {
-            console.log("[v0] Reception completed successfully - all products should be inserted")
-
-            if (returnIncidents.length > 0) {
-              console.log("[v0] Executing automatic return for products with return incidents...")
-
-              try {
-                const devolucionUrl = `${baseURL}/recibo/devolucion?doctoCmId=${caratula.DOCTO_CM_ID}`
-                const devolucionResponse = await fetch(devolucionUrl)
-                const devolucionData = await devolucionResponse.json()
-
-                if (!devolucionData.ok) {
-                  throw new Error(devolucionData.error || "Error en la devolución automática")
-                }
-
-                console.log("[v0] Automatic return completed:", devolucionData.respuesta)
-                showToast(`Devolución completada: ${returnIncidents.length} artículo(s) devuelto(s)`, "success", false)
-              } catch (devError) {
-                console.error("[v0] Error in automatic return:", devError)
-                showToast("La recepción se completó pero hubo un error en la devolución automática", "error", false)
-              }
-            }
-
-            setTimerStarted(false)
-            setFinalTime(elapsedSeconds)
-
-            setReceptionComplete(true)
-            playSound("success")
-
-            const performance = getPerformanceMessage(elapsedSeconds, totalLineas)
-
-            let modalMessage = performance.message
-            if (incidents.length > 0) {
-              const incidentSummary = incidents
-                .map(
-                  (inc) =>
-                    `${
-                      inc.type === "missing"
-                        ? "De menos"
-                        : inc.type === "extra"
-                          ? "De más"
-                          : inc.type === "return"
-                            ? "Devolución"
-                            : "Cambiado"
-                    }: ${inc.notes || inc.productName}${inc.quantity ? ` (${inc.quantity})` : ""}`,
-                )
-                .join("\n")
-              modalMessage += `\n\nIncidencias:\n${incidentSummary}`
-            }
-
-            setCompletionModal({
-              show: true,
-              title: performance.title,
-              message: modalMessage,
-              icon: performance.icon,
-              color: performance.color,
-            })
-            return
-          } else {
-            throw new Error(data.error || "Error en la recepción")
-          }
-        } catch (err) {
-          intentos++
-          if (intentos >= MAX_RETRIES) {
-            if (returnIncidents.length > 0) {
-              await fetch(`${baseURL}/recibo/dev/rollback?doctoCmId=${caratula.DOCTO_CM_ID}`, {
-                method: "DELETE",
-              })
-            }
-            showToast("No se pudo completar la recepción después de varios intentos.")
-            return
-          }
-          await new Promise((res) => setTimeout(res, 1000 * intentos))
-        }
-      }
-    } catch (error) {
-      console.error("[v0] Error in handleRecepcionar:", error)
-      showToast("Error al procesar la recepción: " + String(error))
-    } finally {
-      setLoading(false)
-    }
+const handleRecepcionar = async () => {
+  if (!caratula?.DOCTO_CM_ID) {
+    showToast("No hay documento para recepcionar")
+    return
   }
+
+  const MAX_RETRIES = 3
+  let intentos = 0
+
+  try {
+    setLoading(true)
+
+    // PASO 0: Actualizar cantidades para incidencias de "faltantes" (si las hay).
+    // Esto modifica el origen de datos para la recepción principal.
+    await updateQuantitiesForIncidents()
+
+    // --- INICIO DEL FLUJO CORREGIDO ---
+
+    // PASO 1: EJECUTAR LA RECEPCIÓN PRINCIPAL PARA TODOS LOS PRODUCTOS PRIMERO.
+    // Esto es CRÍTICO. La tabla de devoluciones debe estar vacía en este punto
+    // para asegurar que el backend procese CADA LÍNEA del documento.
+    console.log("[FIX] Ejecutando recepción principal para TODOS los productos...")
+    while (intentos < MAX_RETRIES) {
+      try {
+        const url = `${baseURL}/recibo/recepcion?doctoId=${caratula.DOCTO_CM_ID}`
+        const response = await fetch(url)
+        const data = await response.json()
+
+        if (!data.ok) throw new Error(data.error || "Error en la recepción principal")
+        console.log("[FIX] Recepción principal completada. Se procesaron todos los productos.")
+        break // Salimos del bucle si fue exitoso
+      } catch (err) {
+        intentos++
+        if (intentos >= MAX_RETRIES) {
+          showToast("No se pudo completar la recepción principal después de varios intentos.")
+          return
+        }
+        await new Promise((res) => setTimeout(res, 1000 * intentos))
+      }
+    }
+
+    // PASO 2: AHORA SÍ, MANEJAR LAS DEVOLUCIONES POR SEPARADO.
+    const returnIncidents = incidents.filter((inc) => inc.type === "return")
+
+    if (returnIncidents.length > 0) {
+      let preparedCount = 0
+      const failedIncidents: Array<{ key: string; reason: string }> = []
+
+      console.log("[FIX] Preparando devoluciones DESPUÉS de la recepción principal...")
+
+      // 2a) Limpiar la tabla temporal por si acaso.
+      await fetch(`${baseURL}/recibo/dev/rollback?doctoCmId=${caratula.DOCTO_CM_ID}`, {
+        method: "DELETE",
+      })
+
+      // 2b) Llenar la tabla temporal solo con los artículos a devolver.
+      for (const incident of returnIncidents) {
+        try {
+          const articuloResponse = await fetch(`${baseURL}/recibo/obtener-articulo-id`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ claveArticulo: incident.productKey }),
+          })
+          const articuloData = await articuloResponse.json()
+          if (!articuloData.ok || !articuloData.articuloId) {
+            throw new Error(`No se pudo obtener ARTICULO_ID para ${incident.productKey}`)
+          }
+
+          const insertResponse = await fetch(`${baseURL}/recibo/dev/add-temp`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              doctoCmId: caratula.DOCTO_CM_ID,
+              articuloId: articuloData.articuloId,
+              claveArticulo: incident.productKey,
+              unidadesDev: incident.quantity,
+            }),
+          })
+          const insertData = await insertResponse.json()
+          if (!insertData.ok) {
+            throw new Error(insertData.error || `Error al insertar devolución: ${incident.productKey}`)
+          }
+          preparedCount++
+        } catch (e: any) {
+          console.error("[FIX] Error preparando devolución:", e)
+          failedIncidents.push({ key: incident.productKey, reason: String(e?.message || e) })
+        }
+      }
+
+      // 2c) Ejecutar el procedimiento de devolución automática.
+      if (preparedCount > 0) {
+        try {
+          console.log("[FIX] Ejecutando devolución automática...")
+          const devolucionUrl = `${baseURL}/recibo/devolucion?doctoCmId=${caratula.DOCTO_CM_ID}`
+          const devolucionResponse = await fetch(devolucionUrl)
+          const devolucionData = await devolucionResponse.json()
+          if (!devolucionData.ok) throw new Error(devolucionData.error || "Error en la devolución automática")
+
+          showToast(`Devolución completada: ${preparedCount} artículo(s)`, "success", false)
+        } catch (devError: any) {
+          console.error("[FIX] Error en devolución automática:", devError)
+          showToast("Recepción OK, pero falló la devolución automática: " + devError.message, "error", false)
+        } finally {
+          // 2d) Siempre limpiar la tabla temporal al final.
+          await fetch(`${baseURL}/recibo/dev/rollback?doctoCmId=${caratula.DOCTO_CM_ID}`, {
+            method: "DELETE",
+          })
+        }
+      }
+
+      if (failedIncidents.length) {
+        showToast(`Algunas devoluciones no se pudieron preparar: ${failedIncidents.map(f => f.key).join(", ")}`, "error")
+      }
+    }
+
+    // --- FIN DEL FLUJO CORREGIDO ---
+
+    // PASO 3: Actualizar la UI de éxito
+    setTimerStarted(false)
+    setFinalTime(elapsedSeconds)
+    setReceptionComplete(true)
+    playSound("success")
+
+    const performance = getPerformanceMessage(elapsedSeconds, totalLineas)
+    let modalMessage = performance.message
+    if (incidents.length > 0) {
+      const incidentSummary = incidents
+        .map(
+          (inc) =>
+            `${
+              inc.type === "missing"
+                ? "De menos"
+                : inc.type === "extra"
+                ? "De más"
+                : inc.type === "return"
+                ? "Devolución"
+                : "Cambiado"
+            }: ${inc.notes || inc.productName}${inc.quantity ? ` (${inc.quantity})` : ""}`
+        )
+        .join("\n")
+      modalMessage += `\n\nIncidencias:\n${incidentSummary}`
+    }
+
+    setCompletionModal({
+      show: true,
+      title: performance.title,
+      message: modalMessage,
+      icon: performance.icon,
+      color: performance.color,
+    })
+  } catch (error) {
+    console.error("Error en handleRecepcionar:", error)
+    showToast("Error al procesar la recepción: " + String(error))
+  } finally {
+    setLoading(false)
+  }
+}
 
   const handleFolioFocus = () => {
     // Folio input is focused, scanner focus will be managed by global handlers
@@ -1004,10 +999,10 @@ export default function ReciboScreenPremium() {
               <button
                 className="w-10 h-10 rounded-xl bg-white/80 backdrop-blur-sm border border-white/20 flex items-center justify-center shadow-sm hover:bg-white/90 transition-all duration-200"
                 onClick={() => {
-                  // dile al dashboard que abra PROCESOS (o la que toque)
-                  router.replace(`/dashboard?section=PROCESOS`) // <-- ajusta el nombre exacto de tu sección
-                  setTimeout(focusScanner, 100)
-                }}
+    // dile al dashboard que abra PROCESOS (o la que toque)
+    router.replace(`/dashboard?section=PROCESOS`) // <-- ajusta el nombre exacto de tu sección
+    setTimeout(focusScanner, 100)
+  }}
               >
                 <ArrowLeft className="w-5 h-5 text-slate-700" />
               </button>
@@ -1389,30 +1384,24 @@ export default function ReciboScreenPremium() {
 
                   {/* IMAGEN DINAMICA*/}
                   <div className="relative mb-4">
-                    {lastScannedProduct.product.imagenBase64 && lastScannedProduct.product.imagenMime ? (
-                      <img
-                        src={`data:${lastScannedProduct.product.imagenMime};base64,${lastScannedProduct.product.imagenBase64}`}
-                        alt={lastScannedProduct.product.CLAVE_ARTICULO || "Artículo"}
-                        className="w-12 h-12 rounded-lg object-cover border border-white/10"
-                        loading="lazy"
-                        draggable={false}
-                      />
-                    ) : (
-                      <svg
-                        className="w-12 h-12 text-emerald-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                        />
-                      </svg>
-                    )}
+                  {lastScannedProduct.product.imagenBase64 && lastScannedProduct.product.imagenMime ? (
+  <img
+    src={`data:${lastScannedProduct.product.imagenMime};base64,${lastScannedProduct.product.imagenBase64}`}
+    alt={lastScannedProduct.product.CLAVE_ARTICULO || "Artículo"}
+    className="w-12 h-12 rounded-lg object-cover border border-white/10"
+    loading="lazy"
+    draggable={false}
+  />
+) : (
+  <svg className="w-12 h-12 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+    />
+  </svg>
+)}
                     <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-md font-bold">
                       ✓ ESCANEADO
                     </div>
