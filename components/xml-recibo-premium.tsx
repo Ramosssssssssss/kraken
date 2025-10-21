@@ -36,9 +36,10 @@ type XmlDetalle = {
 interface XmlReciboProps {
   xmlData: any[]
   folio: string
+  meta?: { serie?: string; folio?: string; emisor?: string; receptor?: string; total?: number; provider?: string }
 }
 
-export default function XmlReciboPremium({ xmlData, folio }: XmlReciboProps) {
+export default function XmlReciboPremium({ xmlData, folio, meta }: XmlReciboProps) {
   const router = useRouter()
   const { apiUrl } = useCompany()
 
@@ -48,8 +49,8 @@ export default function XmlReciboPremium({ xmlData, folio }: XmlReciboProps) {
       DESCRIPCION: item.DESCRIPCION || "",
       UMED: item.UMED || null,
       CANTIDAD: Number(item.CANTIDAD) || 0,
-      VALOR_UNITARIO: item.VALOR_UNITARIO,
-      IMPORTE: item.IMPORTE,
+      VALOR_UNITARIO: item.VALOR_UNITARIO !== undefined ? Number(item.VALOR_UNITARIO) || 0 : undefined,
+      IMPORTE: item.IMPORTE !== undefined ? Number(item.IMPORTE) || 0 : undefined,
       NO_IDENTIFICACION: item.NO_IDENTIFICACION,
       _key: `xml-${idx}`,
       packed: 0,
@@ -82,6 +83,17 @@ export default function XmlReciboPremium({ xmlData, folio }: XmlReciboProps) {
 
   const baseURL = useMemo(() => (apiUrl || "").trim().replace(/\/+$/, ""), [apiUrl])
 
+  const [uuid, setUuid] = useState<string | null>(null)
+
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem("xml_recibo_timbre_uuid")
+      if (stored) setUuid(stored)
+    } catch (e) {
+      // ignore
+    }
+  }, [])
+
   const focusScanner = useCallback(() => {
     if (scannerActive) {
       requestAnimationFrame(() => scannerRef.current?.focus())
@@ -104,6 +116,13 @@ export default function XmlReciboPremium({ xmlData, folio }: XmlReciboProps) {
     const val = requireScan ? d.scanned : d.packed
     return acc + val
   }, 0)
+  // monetary totals
+  const subtotalAmount = detalles.reduce((acc, d) => {
+    const lineTotal = d.IMPORTE !== undefined && d.IMPORTE !== null ? Number(d.IMPORTE) : (d.VALOR_UNITARIO ? d.VALOR_UNITARIO * d.CANTIDAD : 0)
+    return acc + (Number(lineTotal) || 0)
+  }, 0)
+
+  const currency = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" })
   const progreso = totalRequeridas > 0 ? Math.min(1, totalHechas / totalRequeridas) : 0
   const listo = totalLineas > 0 && lineasCompletas === totalLineas && totalHechas === totalRequeridas
 
@@ -375,9 +394,40 @@ export default function XmlReciboPremium({ xmlData, folio }: XmlReciboProps) {
                 <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-slate-800 to-slate-600 flex items-center justify-center">
                   <Package className="w-8 h-8 text-white" />
                 </div>
-                <div>
+                <div className="flex-1">
                   <h1 className="text-2xl font-semibold text-slate-900">Recepción XML</h1>
                   <p className="text-md text-slate-500">Gestión de Entradas desde XML</p>
+
+                  <div className="mt-2 flex flex-wrap gap-3 text-sm text-slate-600">
+                    {meta?.serie && (
+                      <div className="px-2 py-1 bg-white/50 rounded-md border border-white/10">
+                        <span className="font-medium">Serie:</span> <span className="ml-1">{meta.serie}</span>
+                      </div>
+                    )}
+                    <div className="px-2 py-1 bg-white/50 rounded-md border border-white/10">
+                      <span className="font-medium">Folio:</span> <span className="ml-1">{meta?.folio ?? folio}</span>
+                    </div>
+                    {meta?.emisor && (
+                      <div className="px-2 py-1 bg-white/50 rounded-md border border-white/10">
+                        <span className="font-medium">Emisor:</span> <span className="ml-1">{meta.emisor}</span>
+                      </div>
+                    )}
+                    {meta?.receptor && (
+                      <div className="px-2 py-1 bg-white/50 rounded-md border border-white/10">
+                        <span className="font-medium">Receptor:</span> <span className="ml-1">{meta.receptor}</span>
+                      </div>
+                    )}
+                    {meta?.total !== undefined && (
+                      <div className="px-2 py-1 bg-white/50 rounded-md border border-white/10">
+                        <span className="font-medium">Total:</span> <span className="ml-1">{currency.format(meta.total)}</span>
+                      </div>
+                    )}
+                    {uuid && (
+                      <div className="px-2 py-1 bg-white/50 rounded-md border border-white/10">
+                        <span className="font-medium">UUID:</span> <span className="ml-1">{uuid}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -437,16 +487,28 @@ export default function XmlReciboPremium({ xmlData, folio }: XmlReciboProps) {
         autoComplete="off"
         tabIndex={-1}
       />
-{/* diseño a todos los recibos */}
+
+      {/* Layout principal con más espacio para las líneas */}
       <div className="flex h-[calc(90vh-80px)]">
-        {/* Main Content - 75% */}
-        {/* mejor diseño scroll */}
-        <div className="flex-1 w-3/4 overflow-y-auto">
-          <div className="max-w-5xl mx-auto px-6 pt-8 pb-0">
+        {/* Main Content - 85% (aumentado de 75%) */}
+        <div className="flex-1 w-4/5 overflow-y-auto">
+          <div className="max-w-full mx-auto px-6 pt-8 pb-0">
             {/* Products List */}
             {detalles.length > 0 && !receptionComplete && (
-              <div className="space-y-3 pb-24">
-                <h3 className="text-lg font-semibold text-slate-900 mb-4">Productos</h3>
+              <div className="space-y-4 pb-24">
+                <h3 className="text-xl font-semibold text-slate-900 mb-4">Productos</h3>
+                
+                {/* Cabecera de la tabla más grande */}
+                <div className="hidden md:flex items-center gap-4 px-4 py-3 text-base text-slate-600 font-medium bg-white/50 rounded-lg border border-white/20">
+                  <div className="w-32">Clave</div>
+                  <div className="flex-1">Descripción</div>
+                  <div className="w-24 text-right">Cantidad</div>
+                  <div className="w-32 text-right">Precio Unitario</div>
+                  <div className="w-32 text-right">Importe</div>
+                  <div className="w-40 text-right">Estado</div>
+                </div>
+
+                {/* Filas de productos más grandes y con más espaciado */}
                 {detalles.map((item, index) => {
                   const req = item.CANTIDAD
                   const pk = item.packed
@@ -454,58 +516,65 @@ export default function XmlReciboPremium({ xmlData, folio }: XmlReciboProps) {
                   const okLinea = requireScan ? sc >= req : pk >= req
                   const isFlash = flashIndex === index
 
+                  const unitPrice = item.VALOR_UNITARIO ?? 0
+                  const lineTotal = item.IMPORTE !== undefined && item.IMPORTE !== null ? Number(item.IMPORTE) : unitPrice * item.CANTIDAD
+
                   return (
                     <div
                       key={item._key}
                       id={`product-${index}`}
-                      className={`glass rounded-xl p-4 border transition-all duration-300 ${
+                      className={`glass rounded-xl p-6 border transition-all duration-300 ${
                         okLinea
                           ? "border-green-200/50 bg-gradient-to-r from-green-50/80 to-emerald-50/80"
                           : "border-white/20 bg-white/40"
                       } ${isFlash ? "ring-2 ring-blue-400 bg-blue-50/80" : ""}`}
                     >
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
-                            <h4 className={`font-bold text-sm ${okLinea ? "text-green-900" : "text-slate-900"}`}>
-                              {item.CLAVE}
-                            </h4>
+                            <h4 className={`font-bold text-lg ${okLinea ? "text-green-900" : "text-slate-900"}`}>{item.CLAVE}</h4>
                             {okLinea && (
-                              <div className="flex items-center gap-1 bg-green-500 text-white text-xs px-2 py-1 rounded-md">
-                                <CheckCircle className="w-3 h-3" />
+                              <div className="flex items-center gap-1 bg-green-500 text-white text-sm px-3 py-1 rounded-md">
+                                <CheckCircle className="w-4 h-4" />
                                 Completo
                               </div>
                             )}
                           </div>
 
-                          <p className="text-slate-700 text-sm mb-2 leading-relaxed">{item.DESCRIPCION}</p>
+                          <div className="flex items-center justify-between">
+                            <div className="pr-4">
+                              <p className="text-slate-700 text-base mb-3 leading-relaxed">{item.DESCRIPCION}</p>
+                              <div className="flex flex-wrap gap-4 text-sm text-slate-500">
+                                <span>UM: {item.UMED || "N/A"}</span>
+                                <span>No.Id: {item.NO_IDENTIFICACION || "-"}</span>
+                              </div>
+                            </div>
 
-                          <div className="flex flex-wrap gap-4 text-xs text-slate-500 mb-3">
-                            <span>UM: {item.UMED || "N/A"}</span>
+                            <div className="text-right ml-4">
+                              <div className="text-base text-slate-500 mb-1">Precio u.</div>
+                              <div className="font-semibold text-lg text-slate-900">{currency.format(unitPrice)}</div>
+                              <div className="text-base text-slate-500 mt-3 mb-1">Importe</div>
+                              <div className="font-semibold text-lg text-slate-900">{currency.format(lineTotal)}</div>
+                            </div>
                           </div>
 
-                          <div className="grid grid-cols-3 gap-3 text-sm">
+                          <div className="mt-4 grid grid-cols-3 gap-4 text-base">
                             <div>
                               <span className="text-slate-500">Requerido:</span>
-                              <span className="font-bold text-slate-900 ml-1">{req}</span>
+                              <span className="font-bold text-lg text-slate-900 ml-1">{req}</span>
                             </div>
-                            <div>
-                              <span className="text-slate-500">Empacado:</span>
-                              <span className="font-bold text-slate-900 ml-1">{pk}</span>
-                            </div>
+                     
                             <div>
                               <span className="text-slate-500">Escaneado:</span>
-                              <span className={`font-bold ml-1 ${okLinea ? "text-green-700" : "text-slate-900"}`}>
-                                {sc}
-                              </span>
+                              <span className={`font-bold text-lg ml-1 ${okLinea ? "text-green-700" : "text-slate-900"}`}>{sc}</span>
                             </div>
                           </div>
                         </div>
 
-                        <div className="flex flex-col items-center gap-3 ml-6">
-                          <div className="flex items-center gap-2">
+                        <div className="flex flex-col items-center gap-4 ml-8">
+                          <div className="flex items-center gap-3">
                             <button
-                              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${
+                              className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200 ${
                                 requireScan
                                   ? "bg-slate-200 text-slate-400 cursor-not-allowed"
                                   : "bg-slate-700 text-white hover:bg-slate-600 shadow-sm"
@@ -515,13 +584,13 @@ export default function XmlReciboPremium({ xmlData, folio }: XmlReciboProps) {
                               }}
                               disabled={requireScan}
                             >
-                              <Minus className="w-4 h-4" />
+                              <Minus className="w-5 h-5" />
                             </button>
 
-                            <span className="font-bold text-lg text-slate-900 min-w-8 text-center">{pk}</span>
+                            <span className="font-bold text-xl text-slate-900 min-w-10 text-center">{pk}</span>
 
                             <button
-                              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${
+                              className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200 ${
                                 requireScan
                                   ? "bg-slate-200 text-slate-400 cursor-not-allowed"
                                   : "bg-slate-700 text-white hover:bg-slate-600 shadow-sm"
@@ -541,15 +610,11 @@ export default function XmlReciboPremium({ xmlData, folio }: XmlReciboProps) {
                               }}
                               disabled={requireScan}
                             >
-                              <Plus className="w-4 h-4" />
+                              <Plus className="w-5 h-5" />
                             </button>
                           </div>
 
-                          <p
-                            className={`text-xs text-center leading-tight ${
-                              requireScan ? "text-slate-400" : "text-slate-600"
-                            }`}
-                          >
+                          <p className={`text-sm text-center leading-tight ${requireScan ? "text-slate-400" : "text-slate-600"}`}>
                             {requireScan ? "Escanea para avanzar" : "Mantén + para llenar"}
                           </p>
                         </div>
@@ -562,15 +627,15 @@ export default function XmlReciboPremium({ xmlData, folio }: XmlReciboProps) {
           </div>
         </div>
 
-        {/* Sidebar - 25% */}
+        {/* Sidebar - 15% (reducido de 25%) */}
         {!receptionComplete && (
-          <div className="w-1/4 border-l border-white/20 bg-gradient-to-b from-slate-50/80 to-white/80 backdrop-blur-sm">
+          <div className="w-1/5 border-l border-white/20 bg-gradient-to-b from-slate-50/80 to-white/80 backdrop-blur-sm">
             <div className="p-6 h-full flex flex-col">
               {/* Overall Progress */}
               {detalles.length > 0 && (
                 <div className="glass rounded-xl p-4 mb-6 border border-white/20">
                   <div className="text-center mb-4">
-                    <div className="text-6xl font-bold text-slate-900 mb-2">{Math.round(progreso * 100)}%</div>
+                    <div className="text-5xl font-bold text-slate-900 mb-2">{Math.round(progreso * 100)}%</div>
                     <p className="text-sm font-medium text-slate-600">Progreso Total</p>
                   </div>
 
@@ -652,6 +717,21 @@ export default function XmlReciboPremium({ xmlData, folio }: XmlReciboProps) {
               <div className="glass rounded-2xl p-6 mb-6 border border-white/20">
                 <h2 className="text-xl font-bold text-slate-900 mb-1">Orden: {folio}</h2>
                 <p className="text-slate-600">Recepción desde archivo XML</p>
+
+                <div className="mt-4 pt-4 border-t border-white/10">
+                  <div className="flex justify-between text-sm text-slate-600 mb-2">
+                    <span>Subtotal</span>
+                    <span className="font-semibold text-slate-900">{currency.format(subtotalAmount)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-slate-600 mb-2">
+                    <span>Impuestos</span>
+                    <span className="font-semibold text-slate-900">{currency.format(Math.max(0, subtotalAmount * 0.16))}</span>
+                  </div>
+                  <div className="flex justify-between text-base font-bold text-slate-900">
+                    <span>Total</span>
+                    <span>{currency.format(subtotalAmount + Math.max(0, subtotalAmount * 0.16))}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -752,8 +832,8 @@ export default function XmlReciboPremium({ xmlData, folio }: XmlReciboProps) {
 
       {/* Action Button */}
       {!receptionComplete && (
-        <div className="fixed bottom-6 left-0 right-1/4 bg-gradient-to-t from-white via-white to-transparent pt-4 pb-0 px-6 ">
-          <div className="max-w-5xl mx-auto">
+        <div className="fixed bottom-6 left-0 right-1/5 bg-gradient-to-t from-white via-white to-transparent pt-4 pb-0 px-6">
+          <div className="max-w-full mx-auto">
             <button
               className={`w-full flex items-center justify-center gap-3 py-4 rounded-xl font-semibold text-white transition-all duration-200 shadow-lg hover:shadow-xl ${
                 listo

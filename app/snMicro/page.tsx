@@ -32,6 +32,8 @@ export default function SeleccionTipoPremium() {
   const { companyData, apiUrl } = useCompany()
   const [selectedType, setSelectedType] = useState<"MANUAL" | "XML" | "EXCEL" | null>(null)
   const [folio, setFolio] = useState("")
+  const [providerModalOpen, setProviderModalOpen] = useState(false)
+  const [selectedProvider, setSelectedProvider] = useState<"Grupo Panam Mexico" | "KRKN" | null>(null)
   const [scannerActive, setScannerActive] = useState(false)
   const [scannedData, setScannedData] = useState("")
   const [excelProducts, setExcelProducts] = useState<ExcelProduct[]>([])
@@ -40,6 +42,13 @@ export default function SeleccionTipoPremium() {
   const [isProcessingXml, setIsProcessingXml] = useState(false)
   const [excelFileName, setExcelFileName] = useState("")
   const [xmlFileName, setXmlFileName] = useState("")
+  const [xmlMeta, setXmlMeta] = useState<{
+    serie?: string
+    folio?: string
+    receptor?: string
+    emisor?: string
+    total?: number
+  } | null>(null)
 
   const scannerInputRef = useRef<HTMLInputElement>(null)
   const excelInputRef = useRef<HTMLInputElement>(null)
@@ -144,23 +153,43 @@ export default function SeleccionTipoPremium() {
     try {
       const xmlText = await file.text()
 
-      // Extract folio
+      // Extract comprobante metadata: serie, folio, total, emisor and receptor
       const comprobanteMatch = xmlText.match(/<cfdi:Comprobante[^>]*>/i)
       let extractedFolio = ""
+      let extractedSerie = ""
+      let extractedTotal: number | undefined = undefined
+      let extractedEmisor = ""
+      let extractedReceptor = ""
 
       if (comprobanteMatch) {
-        const serieMatch = comprobanteMatch[0].match(/Serie="([^"]*)"/i)
-        const folioMatch = comprobanteMatch[0].match(/Folio="([^"]*)"/i)
+        const cmp = comprobanteMatch[0]
+        const serieMatch = cmp.match(/Serie="([^"]*)"/i)
+        const folioMatch = cmp.match(/Folio="([^"]*)"/i)
+        const totalMatch = cmp.match(/Total="([^"]*)"/i)
 
-        if (serieMatch && folioMatch) {
-          extractedFolio = `${serieMatch[1]}-${folioMatch[1]}`
-        } else if (folioMatch) {
-          extractedFolio = folioMatch[1]
-        }
+        if (serieMatch) extractedSerie = serieMatch[1]
+        if (folioMatch) extractedFolio = folioMatch[1]
+        if (totalMatch) extractedTotal = Number(totalMatch[1]) || undefined
 
+        // Combine serie and folio into a single display folio (e.g. PROD-400)
         if (extractedFolio) {
-          setFolio(extractedFolio)
+          const combined = extractedSerie ? `${extractedSerie}-${extractedFolio}` : extractedFolio
+          setFolio(combined)
+          // use combined as the stored folio value
+          extractedFolio = combined
         }
+      }
+
+      // Emisor / Receptor
+      const emisorMatch = xmlText.match(/<cfdi:Emisor[^>]*>/i)
+      const receptorMatch = xmlText.match(/<cfdi:Receptor[^>]*>/i)
+      if (emisorMatch) {
+        const nm = emisorMatch[0].match(/Nombre="([^"]*)"/i)
+        if (nm) extractedEmisor = nm[1]
+      }
+      if (receptorMatch) {
+        const nm = receptorMatch[0].match(/Nombre="([^"]*)"/i)
+        if (nm) extractedReceptor = nm[1]
       }
 
       // Extract products
@@ -205,6 +234,14 @@ export default function SeleccionTipoPremium() {
 
       setXmlProducts(products)
 
+      setXmlMeta({
+        serie: extractedSerie || undefined,
+        folio: extractedFolio || undefined,
+        receptor: extractedReceptor || undefined,
+        emisor: extractedEmisor || undefined,
+        total: extractedTotal,
+      })
+
       const totalImporte = products.reduce((sum, p) => sum + p.importe, 0)
       const folioMessage = extractedFolio ? `\nFolio extraído: ${extractedFolio}` : ""
       alert(
@@ -226,7 +263,8 @@ export default function SeleccionTipoPremium() {
     } else if (type === "EXCEL") {
       excelInputRef.current?.click()
     } else if (type === "XML") {
-      xmlInputRef.current?.click()
+      // Open provider selection modal before opening file picker
+      setProviderModalOpen(true)
     }
   }
 
@@ -274,11 +312,30 @@ export default function SeleccionTipoPremium() {
         NO_IDENTIFICACION: product.noIdentificacion,
       }))
 
-      sessionStorage.setItem("xmlReciboData", JSON.stringify(xmlData))
-      sessionStorage.setItem("xmlReciboFolio", folio)
+      const payload = {
+        products: xmlData,
+        meta: xmlMeta || { folio, serie: undefined },
+      }
+
+      try {
+        sessionStorage.setItem("xmlReciboData", JSON.stringify(payload))
+        sessionStorage.setItem("xmlReciboFolio", folio)
+      } catch (e) {
+        console.warn("Could not persist xml recibo payload", e)
+      }
 
       router.push(`/xml`)
     }
+  }
+
+  const handleProviderSelect = (provider: "Grupo Panam Mexico" | "KRKN") => {
+    setSelectedProvider(provider)
+    try {
+      sessionStorage.setItem("snmicro_selected_provider", provider)
+    } catch (e) {
+    }
+    setProviderModalOpen(false)
+    setTimeout(() => xmlInputRef.current?.click(), 160)
   }
 
   return (
@@ -445,18 +502,101 @@ export default function SeleccionTipoPremium() {
                 ) : (
                   <div className="space-y-3">
                     <p className="text-gray-600 text-sm">No se ha seleccionado ningún archivo XML</p>
-                    <Button
-                      onClick={() => xmlInputRef.current?.click()}
-                      disabled={isProcessingXml}
-                      className="w-full bg-black-600 hover:bg-black-700 text-white"
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      {isProcessingXml ? "Procesando..." : "Seleccionar Archivo XML"}
-                    </Button>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm text-gray-700">Proveedor: </div>
+                        <div className="text-sm font-semibold text-black-700">{selectedProvider ?? "(No seleccionado)"}</div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-2">
+                        <Button
+                          onClick={() => {
+                            if (!selectedProvider) setProviderModalOpen(true)
+                            else xmlInputRef.current?.click()
+                          }}
+                          disabled={isProcessingXml}
+                          className="w-full bg-black-600 hover:bg-black-700 text-white"
+                        >
+                          <Upload className="h-4 w-4 mr-2" />
+                          {isProcessingXml ? "Procesando..." : "Seleccionar Archivo XML"}
+                        </Button>
+
+                        <Button
+                          variant="ghost"
+                          onClick={() => setProviderModalOpen(true)}
+                          className="w-full text-sm text-black-700"
+                        >
+                          Cambiar Proveedor
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
             </Card>
+          )}
+
+          {/* Provider Selection Modal */}
+          {providerModalOpen && (
+            <div
+              className="fixed inset-0 z-60 flex items-center justify-center px-4"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="provider-modal-title"
+            >
+              <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50 backdrop-blur-sm" onClick={() => setProviderModalOpen(false)} />
+
+              <Card className="z-70 max-w-xl w-full p-6 shadow-lg transform transition-all duration-150 scale-100">
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0">
+                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-indigo-500 to-blue-400 flex items-center justify-center text-white font-bold">S</div>
+                  </div>
+
+                  <div className="flex-1">
+                    <h3 id="provider-modal-title" className="text-lg font-semibold">¿De dónde viene el XML?</h3>
+                    <p className="text-sm text-gray-600">Selecciona el proveedor que generó el XML. Esto nos permite elegir el parser correcto.</p>
+
+                    <div className="mt-4 grid gap-3">
+                      <button
+                        onClick={() => handleProviderSelect("Grupo Panam Mexico")}
+                        className="group bg-white/5 hover:bg-white/10 border border-white/10 rounded-md p-3 flex items-center justify-between"
+                        aria-label="Seleccionar Grupo Panam Mexico"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-white/8 flex items-center justify-center text-sm font-semibold text-white">GP</div>
+                          <div>
+                            <div className="font-medium">Grupo Panam Mexico</div>
+                            <div className="text-sm text-gray-500">Formato: Panam / Mexico</div>
+                          </div>
+                        </div>
+                        <div className="text-sm text-indigo-300 group-hover:text-indigo-200">Seleccionar →</div>
+                      </button>
+
+                      <button
+                        onClick={() => handleProviderSelect("KRKN")}
+                        className="group bg-white/5 hover:bg-white/10 border border-white/10 rounded-md p-3 flex items-center justify-between"
+                        aria-label="Seleccionar KRKN"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-white/8 flex items-center justify-center text-sm font-semibold text-white">KK</div>
+                          <div>
+                            <div className="font-medium">KRKN</div>
+                            <div className="text-sm text-gray-500">Formato: KRKN</div>
+                          </div>
+                        </div>
+                        <div className="text-sm text-indigo-300 group-hover:text-indigo-200">Seleccionar →</div>
+                      </button>
+                    </div>
+
+                    <div className="mt-4">
+                      <button onClick={() => setProviderModalOpen(false)} className="text-sm text-gray-400 hover:text-gray-200">
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </div>
           )}
 
           {/* EXCEL File Status */}

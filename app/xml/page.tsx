@@ -8,6 +8,7 @@ export default function XmlReciboPage() {
   const router = useRouter()
   const [xmlData, setXmlData] = useState<any[]>([])
   const [folio, setFolio] = useState("")
+  const [meta, setMeta] = useState<{ serie?: string; folio?: string; emisor?: string; receptor?: string; total?: number } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -21,9 +22,20 @@ export default function XmlReciboPage() {
     }
 
     try {
-      const parsedData = JSON.parse(storedData)
-      setXmlData(parsedData)
-      setFolio(storedFolio)
+      const parsed = JSON.parse(storedData)
+
+      // support new shape { products, meta } or old array
+      if (parsed && typeof parsed === "object" && Array.isArray(parsed.products)) {
+        setXmlData(parsed.products)
+        setMeta(parsed.meta || null)
+        if (parsed.meta?.folio) setFolio(parsed.meta.folio)
+        else if (storedFolio) setFolio(storedFolio)
+      } else if (Array.isArray(parsed)) {
+        setXmlData(parsed)
+        setFolio(storedFolio)
+      } else {
+        throw new Error("Formato de datos inesperado")
+      }
     } catch (error) {
       console.error("[v0] Error parsing XML data from sessionStorage:", error)
       alert("Error al procesar los datos del XML")
@@ -36,14 +48,20 @@ export default function XmlReciboPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-blue-50 to-indigo-50 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 border-4 border-cyan-600 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-cyan-900 font-medium">Cargando datos del XML...</p>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ width: '40px', height: '40px', border: '4px solid #ccc', borderTop: '4px solid #000', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto' }}></div>
+          <p style={{ marginTop: '16px' }}>Cargando datos del XML...</p>
         </div>
       </div>
     )
   }
 
-  return <XmlReciboPremium xmlData={xmlData} folio={folio} />
+  return (
+    <div>
+
+
+      <XmlReciboPremium xmlData={xmlData} folio={meta?.folio ?? folio} />
+    </div>
+  )
 }
