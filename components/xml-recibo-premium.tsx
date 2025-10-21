@@ -45,7 +45,7 @@ export default function XmlReciboPremium({ xmlData, folio, meta }: XmlReciboProp
 
   const [detalles, setDetalles] = useState<XmlDetalle[]>(() => {
     return xmlData.map((item: any, idx: number) => ({
-      CLAVE: item.CLAVE || "",
+      CLAVE: item.CLAVE || item.resolvedClave || item.RESOLVED_CLAVE || "",
       DESCRIPCION: item.DESCRIPCION || "",
       UMED: item.UMED || null,
       CANTIDAD: Number(item.CANTIDAD) || 0,
@@ -57,6 +57,33 @@ export default function XmlReciboPremium({ xmlData, folio, meta }: XmlReciboProp
       scanned: 0,
     }))
   })
+
+  // Keep detalles in sync when the parent `xmlData` prop changes (for example,
+  // when xml/page resolves NoIdentificacion -> CLAVE asynchronously). Without
+  // this effect the component would keep the initial mapping and not pick up
+  // resolved CLAVE values.
+  useEffect(() => {
+    try {
+      // debug to help trace why unresolved NoIdentificacion might still appear
+      console.debug("XmlReciboPremium: xmlData prop changed, rebuilding detalles", { length: xmlData?.length })
+      const rebuilt: XmlDetalle[] = (xmlData || []).map((item: any, idx: number) => ({
+        CLAVE: item.CLAVE || item.resolvedClave || item.RESOLVED_CLAVE || "",
+        DESCRIPCION: item.DESCRIPCION || "",
+        UMED: item.UMED || null,
+        CANTIDAD: Number(item.CANTIDAD) || 0,
+        VALOR_UNITARIO: item.VALOR_UNITARIO !== undefined ? Number(item.VALOR_UNITARIO) || 0 : undefined,
+        IMPORTE: item.IMPORTE !== undefined ? Number(item.IMPORTE) || 0 : undefined,
+        NO_IDENTIFICACION: item.NO_IDENTIFICACION,
+        _key: `xml-${idx}`,
+        packed: 0,
+        scanned: 0,
+      }))
+
+      setDetalles(rebuilt)
+    } catch (e) {
+      console.warn("Error rebuilding detalles from xmlData:", e)
+    }
+  }, [xmlData])
 
   const [requireScan, setRequireScan] = useState(true)
   const [autoFill, setAutoFill] = useState(false)
@@ -497,17 +524,7 @@ export default function XmlReciboPremium({ xmlData, folio, meta }: XmlReciboProp
             {detalles.length > 0 && !receptionComplete && (
               <div className="space-y-4 pb-24">
                 <h3 className="text-xl font-semibold text-slate-900 mb-4">Productos</h3>
-                
-                {/* Cabecera de la tabla más grande */}
-                <div className="hidden md:flex items-center gap-4 px-4 py-3 text-base text-slate-600 font-medium bg-white/50 rounded-lg border border-white/20">
-                  <div className="w-32">Clave</div>
-                  <div className="flex-1">Descripción</div>
-                  <div className="w-24 text-right">Cantidad</div>
-                  <div className="w-32 text-right">Precio Unitario</div>
-                  <div className="w-32 text-right">Importe</div>
-                  <div className="w-40 text-right">Estado</div>
-                </div>
-
+             
                 {/* Filas de productos más grandes y con más espaciado */}
                 {detalles.map((item, index) => {
                   const req = item.CANTIDAD

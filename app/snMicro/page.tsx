@@ -25,6 +25,9 @@ interface XmlProduct {
   valorUnitario: number
   importe: number
   noIdentificacion?: string
+  groupSize?: number
+  resolvedClave?: string
+  resolvedRole?: number
 }
 
 export default function SeleccionTipoPremium() {
@@ -33,12 +36,13 @@ export default function SeleccionTipoPremium() {
   const [selectedType, setSelectedType] = useState<"MANUAL" | "XML" | "EXCEL" | null>(null)
   const [folio, setFolio] = useState("")
   const [providerModalOpen, setProviderModalOpen] = useState(false)
-  const [selectedProvider, setSelectedProvider] = useState<"Grupo Panam Mexico" | "KRKN" | null>(null)
+  const [selectedProvider, setSelectedProvider] = useState<"Grupo Panam Mexico" | "KRKN" | "Grupo El Cachorro" | null>(null)
   const [scannerActive, setScannerActive] = useState(false)
   const [scannedData, setScannedData] = useState("")
   const [excelProducts, setExcelProducts] = useState<ExcelProduct[]>([])
   const [isProcessingExcel, setIsProcessingExcel] = useState(false)
   const [xmlProducts, setXmlProducts] = useState<XmlProduct[]>([])
+  const [xmlDuplicates, setXmlDuplicates] = useState<{ noIdentificacion: string; count: number }[]>([])
   const [isProcessingXml, setIsProcessingXml] = useState(false)
   const [excelFileName, setExcelFileName] = useState("")
   const [xmlFileName, setXmlFileName] = useState("")
@@ -171,12 +175,8 @@ export default function SeleccionTipoPremium() {
         if (folioMatch) extractedFolio = folioMatch[1]
         if (totalMatch) extractedTotal = Number(totalMatch[1]) || undefined
 
-        // Combine serie and folio into a single display folio (e.g. PROD-400)
         if (extractedFolio) {
-          const combined = extractedSerie ? `${extractedSerie}-${extractedFolio}` : extractedFolio
-          setFolio(combined)
-          // use combined as the stored folio value
-          extractedFolio = combined
+          setFolio(extractedFolio)
         }
       }
 
@@ -232,7 +232,79 @@ export default function SeleccionTipoPremium() {
         throw new Error("No se encontraron conceptos válidos en el archivo XML")
       }
 
-      setXmlProducts(products)
+      // detect groups by NoIdentificacion
+      const groups: Record<string, XmlProduct[]> = {}
+      products.forEach((p) => {
+        const key = (p.noIdentificacion || p.clave || "__NOID__").trim()
+        if (!groups[key]) groups[key] = []
+        groups[key].push(p)
+      })
+
+      const duplicates = Object.entries(groups)
+        .filter(([, arr]) => arr.length > 1)
+        .map(([noIdentificacion, arr]) => ({ noIdentificacion, count: arr.length }))
+
+
+      // annotate products with groupSize for UI
+      let annotated = products.map((p) => {
+        const key = (p.noIdentificacion || p.clave || "__NOID__").trim()
+        const groupSize = groups[key] ? groups[key].length : 1
+        return { ...p, groupSize }
+      })
+
+      // If provider is Panam, resolve NoIdentificacion -> CLAVE_ARTICULO (role 17)
+      try {
+        const isPanam = (selectedProvider || "").toString().toLowerCase().includes("panam")
+        if (isPanam) {
+          // build unique keys to resolve
+          const unique = Array.from(new Set(annotated.map((p) => (p.noIdentificacion || p.clave || "").trim()).filter(Boolean)))
+
+          if (unique.length > 0) {
+            // prefer companyData.apiUrl if available, otherwise internal API route
+            const base = (companyData && companyData.apiUrl) ? companyData.apiUrl.replace(/\/+$/, "") : ""
+            const endpoint = base ? `${base}/resolve-role` : `/resolve-role`
+
+            const resolves = await Promise.all(unique.map(async (key) => {
+              try {
+                const url = `${endpoint}?noid=${encodeURIComponent(key)}&provider=panam`
+                const resp = await fetch(url, { method: "GET", headers: { Accept: "application/json" } })
+                if (!resp.ok) return { key, ok: false }
+                const j = await resp.json()
+                if (j?.ok && j?.data) return { key, ok: true, data: j.data }
+                return { key, ok: false }
+              } catch (e) {
+                return { key, ok: false }
+              }
+            }))
+
+            const map = new Map<string, { claveArticulo?: string; role?: number }>()
+            resolves.forEach((r) => {
+              if (r.ok && r.data) map.set(r.key, { claveArticulo: r.data.claveArticulo, role: r.data.role })
+            })
+
+            // apply resolved values
+            annotated = annotated.map((p) => {
+              const key = (p.noIdentificacion || p.clave || "").trim()
+              const found = map.get(key)
+              if (found) {
+                return { ...p, resolvedClave: found.claveArticulo || undefined, resolvedRole: typeof found.role === "number" ? found.role : undefined }
+              }
+              return p
+            })
+          }
+        }
+      } catch (e) {
+        console.warn("Error resolving NoIdentificacion -> claveArticulo:", e)
+      }
+
+      setXmlProducts(annotated)
+      setXmlDuplicates(duplicates)
+
+      if (duplicates.length > 0) {
+        const msg = `Se encontraron ${duplicates.length} NoIdentificacion(s) repetidos:\n` +
+          duplicates.map((d) => `• ${d.noIdentificacion} (${d.count})`).join("\n")
+        alert(msg)
+      }
 
       setXmlMeta({
         serie: extractedSerie || undefined,
@@ -303,18 +375,26 @@ export default function SeleccionTipoPremium() {
       router.push(`/excel`)
     } else if (selectedType === "XML") {
       const xmlData = xmlProducts.map((product) => ({
-        CLAVE: product.clave,
+        // canonical uppercase CLAVE used by XmlReciboPremium
+        CLAVE: (product.resolvedClave || product.clave || "") as string,
+        // also include a camelCase resolvedClave for other code paths
+        resolvedClave: product.resolvedClave || undefined,
         DESCRIPCION: product.descripcion,
         UMED: null,
         CANTIDAD: product.cantidad,
         VALOR_UNITARIO: product.valorUnitario,
         IMPORTE: product.importe,
         NO_IDENTIFICACION: product.noIdentificacion,
+        RESOLVED_ROLE: product.resolvedRole ?? null,
       }))
 
       const payload = {
         products: xmlData,
-        meta: xmlMeta || { folio, serie: undefined },
+        meta: {
+          ...(xmlMeta || { folio, serie: undefined }),
+          provider: selectedProvider,
+          duplicates: xmlDuplicates,
+        },
       }
 
       try {
@@ -328,7 +408,7 @@ export default function SeleccionTipoPremium() {
     }
   }
 
-  const handleProviderSelect = (provider: "Grupo Panam Mexico" | "KRKN") => {
+  const handleProviderSelect = (provider: "Grupo Panam Mexico" | "KRKN"| "Grupo El Cachorro") => {
     setSelectedProvider(provider)
     try {
       sessionStorage.setItem("snmicro_selected_provider", provider)
@@ -498,6 +578,20 @@ export default function SeleccionTipoPremium() {
                       <Upload className="h-4 w-4 mr-2" />
                       Seleccionar otro archivo
                     </Button>
+
+                    {xmlDuplicates.length > 0 && (
+                      <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-md text-sm text-orange-700">
+                        <div className="font-semibold">Advertencia: NoIdentificacion(s) repetidos</div>
+                        <div className="mt-2">
+                          {xmlDuplicates.map((d) => (
+                            <div key={d.noIdentificacion} className="flex items-center justify-between">
+                              <div>{d.noIdentificacion}</div>
+                              <div className="font-medium">{d.count} veces</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -571,7 +665,20 @@ export default function SeleccionTipoPremium() {
                         </div>
                         <div className="text-sm text-indigo-300 group-hover:text-indigo-200">Seleccionar →</div>
                       </button>
-
+       <button
+                        onClick={() => handleProviderSelect("Grupo El Cachorro")}
+                        className="group bg-white/5 hover:bg-white/10 border border-white/10 rounded-md p-3 flex items-center justify-between"
+                        aria-label="Seleccionar Grupo El Cachorro"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-white/8 flex items-center justify-center text-sm font-semibold text-white">GP</div>
+                          <div>
+                            <div className="font-medium">Grupo El Cachorro</div>
+                            <div className="text-sm text-gray-500">Formato: El Cachorro / Mexico</div>
+                          </div>
+                        </div>
+                        <div className="text-sm text-indigo-300 group-hover:text-indigo-200">Seleccionar →</div>
+                      </button>
                       <button
                         onClick={() => handleProviderSelect("KRKN")}
                         className="group bg-white/5 hover:bg-white/10 border border-white/10 rounded-md p-3 flex items-center justify-between"
