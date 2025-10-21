@@ -490,9 +490,9 @@ const searchAndAddArticle = async (clave: string) => {
         // .filter((x) => Number(x.CANTIDAD) > 0)
 
       const payload = {
-        P_SUCURSAL_ID: 9606947,
-        P_ALMACEN_ID: 188104,
+
     P_DESCRIPCION: descripcion,
+        P_USUARIO: usuario,
         detalles: detallesComp,
       }
 
