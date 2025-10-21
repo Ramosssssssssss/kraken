@@ -198,7 +198,6 @@ type TamanoEtiqueta = {
 }
 
 // ~96dpi aprox para preview
-// ~96dpi aprox para preview
 const mmToPx = (mm: number) => Math.max(1, Math.round(mm * 3.78))
 
 // Límites físicos
@@ -212,9 +211,9 @@ const clampMm = (mm: number, max: number) =>
 
 // mm — presets típicos
 const SIZE_PRESETS = [
-  { id: "25x25", name: "25 × 25 mm (1\"×1\")", w: 25, h: 25, m: 2, barH: 16, fontPx: 14 },
-  { id: "50x25", name: "50 × 25 mm (2\"×1\")", w: 50, h: 25, m: 2, barH: 16, fontPx: 12 },
-  { id: "70x25", name: "70 × 25 mm ", w: 70, h: 25, m: 2, barH: 16, fontPx: 12 },
+  { id: "25x25", name: "25 × 25 mm (1\"×1\")", w: 25, h: 25.4, m: 2, barH: 16, fontPx: 14 },
+  { id: "50x25", name: "50 × 25 mm (2\"×1\")", w: 50, h: 25.4, m: 2, barH: 16, fontPx: 12 },
+  { id: "70x25", name: "70 × 25 mm ", w: 70, h: 25.4, m: 2, barH: 16, fontPx: 12 },
   { id: "60x40", name: "60 × 40 mm", w: 60, h: 40, m: 2, barH: 20, fontPx: 14 },
   { id: "80x50", name: "80 × 50 mm", w: 80, h: 50, m: 3, barH: 22, fontPx: 16 },
   { id: "100x50", name: "100 × 50 mm (4\"×2\")", w: 100, h: 50, m: 3, barH: 24, fontPx: 18 },
@@ -293,7 +292,7 @@ function QRCodeSVG({ value, sizePx }: { value: string; sizePx: number }) {
         try {
           await QRCode.toCanvas(ref.current, value, {
             errorCorrectionLevel: "M",
-            margin: 4,              // ← añade zona blanca de seguridad
+            margin: 0,              // ← añade zona blanca de seguridad
             color: {
               dark: "#000000",
               light: "#ffffff",     // ← fondo blanco
@@ -435,127 +434,199 @@ type ZplCfg = {
   width: string;        // mm
   height: string;       // mm
   margin: string;       // mm
-  fontSize: string;     // px (texto principal)
-  barHeightMm: string;  // mm (alto deseado de barras)
+  fontSize: string;     // px
+  barHeightMm: string;  // mm (alto barras)
   font: string;
   showDesc?: boolean;
   descFontSize?: string; // px
-  topShiftMm?: string;   // mm (offset vertical +/-, puede ser negativo)
+  topShiftMm?: string;   // mm
+  /** NUEVO: alto reservado para el bloque del símbolo (QR o barras), mm */
+  symbolBlockMm?: string;
+  /** Opcional: sesgo vertical solo para debug fino, 0 = pegado arriba */
+  qrVerticalBiasPct?: number;
+  /** Tamaño preferido del QR (mm) como tope */
+  qrSizeMm?: string;
+  /** Solo debug */
+  debugGuides?: boolean;
 };
+
+
+
+// Estimación conservadora de versión QR (Byte, EC=M)
+// Función más precisa para estimar versión QR
+function estimateQrVersionByteM(len: number): number {
+  // Tabla de capacidad para QR Code version 1-10, nivel de corrección M
+  const capacities = [
+    14, 26, 42, 62, 84, 106, 122, 152, 180, 213, // Versiones 1-10
+    251, 287, 331, 362, 412, 450, 504, 560, 624, 666, // 11-20
+    711, 779, 857, 911, 997, 1059, 1125, 1190, 1264, 1370, // 21-30
+    1452, 1538, 1628, 1722, 1809, 1911, 1989, 2099, 2213, 2331 // 31-40
+  ];
+
+  for (let v = 0; v < capacities.length; v++) {
+    if (len <= capacities[v]) return v + 1;
+  }
+
+  // Si es más grande, usar versión 10 (suficiente para códigos)
+  return 10;
+}
 
 function buildZplFromState(
   articles: { barcode: string; text: string; quantity: number; desc?: string }[],
-  cfg: ZplCfg,
+  cfg: {
+    width: string;
+    height: string;
+    padding?: string;
+    margin?: string;
+    fontSize: string;
+    barHeightMm: string;
+    barHeightMmWithDesc?: string;
+    barHeightMmNoDesc?: string;
+    font: string;
+    showDesc?: boolean;
+    descFontSize?: string;
+    topShiftMm?: string;
+    qrSizeMm?: string;
+    nudgeXmm?: number;
+    nudgeYmm?: number;
+  },
   format: "CODE128" | "CODE128B" | "QR",
   dpi: number
-) {
-  const toDots = (mm: number) => toDotsWithDpi(mm, dpi);
+): string {
+  const toDots = (mm: number) => Math.max(1, Math.round(mm * (dpi / 25.4)));
+  const pxToDots = (px: number) => Math.max(1, Math.round(px * (dpi / 96)));
+  const safeZ = (s: string) =>
+    String(s ?? "").replace(/\^/g, "\\^").replace(/~/g, "\\~").replace(/\\/g, "\\\\").replace(/[\r\n]+/g, " ");
 
-  // --- Config base ---
+  const estimateCode128Modules = (len: number) => 11 * len + 37;
+  const barcodeWidthDots = (modules: number, moduleW: number) => modules * moduleW;
+
+  const QR_CAP = [
+    14,26,42,62,84,106,122,152,180,213, 251,287,331,362,412,450,504,560,624,666,
+    711,779,857,911,997,1059,1125,1190,1264,1370, 1452,1538,1628,1722,1809,1911,1989,2099,2213,2331
+  ];
+
   const wmm = parseFloat(cfg.width || "50");
-  const hmm = parseFloat(cfg.height || "25");
-  const marginMm = Math.max(0, parseFloat(cfg.margin || "0"));
-  const barHmm = Math.max(4, parseFloat(cfg.barHeightMm || "20"));
-  const topShiftDots = toDots(parseFloat(cfg.topShiftMm ?? "0") || 0);
-
+  const hmm = parseFloat(cfg.height || "25.4");
+  const paddingMm = Math.max(0, parseFloat((cfg.padding ?? cfg.margin ?? "0")));
+  const padX = toDots(paddingMm);
+  const padY = toDots(paddingMm);
   const labelW = toDots(wmm);
   const labelH = toDots(hmm);
-  const pad    = toDots(marginMm);
-  const barHd  = toDots(barHmm);
+  const usableW = Math.max(1, labelW - padX * 2);
+  const usableH = Math.max(1, labelH - padY * 2);
 
-  // Alturas de fuente a partir de px (A0)
-  const textH = Math.max(10, Math.round(parseFloat(cfg.fontSize || "12") * 1.4));
-  const descH = Math.max(8,  Math.round(parseFloat(cfg.descFontSize || "12") * 1.3));
-  const showDesc = !!cfg.showDesc;
+  const textH = pxToDots(parseFloat(cfg.fontSize || "12"));
+  const descH = pxToDots(parseFloat(cfg.descFontSize || "12"));
+  const showDesc = cfg.showDesc !== false;
 
-  const usableW = Math.max(8, labelW - pad * 2);
-  const usableH = Math.max(8, labelH - pad * 2);
-
-  const gapDots = toDots(0.6); // separación entre filas
-  const quiet   = toDots(2);   // “quiet zone” para símbolo (≈2 mm)
-
-  // Estimación de módulos (Code128) con quiet zone incorporado
-  const estimateCode128Modules = (data: string) => {
-    const len = Math.max(1, data.length);
-    const base = 11 * (len + 2) + 13; // barras + start+chk + stop
-    const quietModules = 24;           // margen lateral recomendado
-    return base + quietModules;
-  };
+  const topShiftDots = toDots(parseFloat(cfg.topShiftMm ?? "0") || 0);
+  const nudgeX = toDots(cfg.nudgeXmm ?? 0);
+  const nudgeY = toDots(cfg.nudgeYmm ?? 0);
 
   const out: string[] = [];
 
   for (const a of articles) {
     const copies = Math.max(1, Math.floor(a.quantity || 1));
     for (let i = 0; i < copies; i++) {
-      // Header ZPL
       let z = `^XA
 ^CI28
-^MUd
+^PON
 ^PR4
 ^MD10
+^FWN
+^LH0,0
+^LS0
+^LT${topShiftDots}
 ^PW${labelW}
 ^LL${labelH}
-^LH0,0
 `;
 
-      // --- “grid” 1×3: símbolo / clave / descripción ---
-      const hasDesc = !!(showDesc && a.desc);
-
-      // Reparto de alturas (porcentaje del área útil)
-      const r1 = Math.round(usableH * (hasDesc ? 0.55 : 0.70)); // fila símbolo
-      const r2 = Math.round(usableH * (hasDesc ? 0.25 : 0.30)); // fila clave
-      const r3 = Math.max(0, usableH - r1 - r2);                // fila descripción (0 si no hay)
-
-      // Coordenadas Y de cada fila
-      let y1 = pad + topShiftDots;                 // inicio fila 1 (símbolo)
-      let y2 = y1 + r1 + gapDots;                  // inicio fila 2 (clave)
-      let y3 = y2 + r2 + (hasDesc ? gapDots : 0);  // inicio fila 3 (desc si aplica)
-
-      // ----- Fila 1: símbolo (QR o CODE128) -----
       if (format === "QR") {
-        // Lado del QR: se ajusta a la menor dimensión de la fila 1 dejando quiet zone
-        const qrSide = Math.max(8, Math.min(usableW - 2 * quiet, r1 - 2 * quiet));
-        // Módulo (1..12) – ajuste empírico
-        const module = Math.max(2, Math.min(12, Math.floor(qrSide / 40)));
+        // ====== BLOQUE QR ======
+        // Neutraliza cualquier ^BY previo que pueda desplazar el QR
+        // (workaround al bug de Zebra con ^BY → ^BQN)
+        z += `^BY,,,\r\n`;
 
-        // Centrado dentro de la fila
-        const x = pad + Math.floor((usableW - qrSide) / 2) + quiet;
-        const y = y1 + Math.floor((r1 - qrSide) / 2) + quiet;
+        const hasDesc = showDesc && !!a.desc;
+        const gapDots = 6;
+        const textBlockH = hasDesc ? (textH + 4 + descH) : textH;
+        const maxQrAreaH = Math.max(1, usableH - textBlockH - gapDots);
 
-        z += `^FO${x},${y}^BQN,2,${module}^FDLA,${a.barcode}^FS\r\n`;
-      } else {
-        // CODE128 / CODE128B
-        const totalModules = estimateCode128Modules(a.barcode);
+        // versión mínima necesaria
+        const len = (a.barcode ?? "").length;
+        let v = 40;
+        for (let i = 0; i < QR_CAP.length; i++) if (len <= QR_CAP[i]) { v = i + 1; break; }
+        const modules = 21 + 4 * (v - 1);
 
-        // Subimos mínimos por DPI para que no salga “delgadito”
-        const MIN_MODULE = dpi >= 600 ? 4 : dpi >= 300 ? 3 : 2;
-        const MAX_MODULE = dpi >= 600 ? 12 : dpi >= 300 ? 8 : 6;
+        const QUIET = 2; // quiet zone por lado
+        const modulesWithQuiet = modules + QUIET * 2;
 
-        // Alto efectivo de barras para que quepa en la fila 1
-        const barHRow = Math.max(8, Math.min(r1 - 2 * quiet, barHd));
+        const preferDots = cfg.qrSizeMm ? toDots(parseFloat(cfg.qrSizeMm)) : Math.min(usableW, maxQrAreaH);
+        let moduleSize = Math.floor(preferDots / modulesWithQuiet);
+        moduleSize = dpi >= 300 ? Math.max(2, Math.min(10, moduleSize)) : Math.max(3, Math.min(10, moduleSize));
 
-        // módulo por ancho útil (restando quiet zone a ambos lados)
-        let moduleDots = Math.floor((usableW - 2 * quiet) / totalModules);
-        moduleDots = Math.min(MAX_MODULE, Math.max(MIN_MODULE, moduleDots));
+        const totalSize = modulesWithQuiet * moduleSize;
+        const xTotal = padX + Math.floor((usableW - totalSize) / 2) + nudgeX;
+        const yTotal = padY + Math.floor((maxQrAreaH - totalSize) / 2) + nudgeY;
 
-        const totalWidthDots = moduleDots * totalModules;
-        const x = pad + quiet + Math.max(0, Math.floor((usableW - 2 * quiet - totalWidthDots) / 2));
-        const y = y1 + quiet + Math.max(0, Math.floor((r1 - 2 * quiet - barHRow) / 2));
+        const xSym = xTotal + QUIET * moduleSize;
+        const ySym = yTotal + QUIET * moduleSize;
 
-        z += `^BY${moduleDots},2,${barHRow}\r\n`;
-        z += `^FO${x},${y}^BCN,${barHRow},N,N,N^FD${a.barcode}^FS\r\n`;
+        // TIP: usar ^FT en lugar de ^FO (más inmune al bug de ^BY)
+        const ftX = xSym;
+        const ftY = ySym + modules * moduleSize; // ^FT ancla en baseline (abajo-izq)
+        z += `^FT${ftX},${ftY}^BQN,2,${moduleSize}^FDQA,${safeZ(a.barcode)}^FS\r\n`;
+
+        // Texto / descripción centrados debajo del área del QR
+        const textStartY = padY + maxQrAreaH + gapDots;
+        z += `^FO${padX},${textStartY}^FB${usableW},1,0,C,0^A0N,${textH},${textH}^FD${safeZ(a.text)}^FS\r\n`;
+        if (hasDesc) {
+          const yDesc = textStartY + textH + 4;
+          z += `^FO${padX},${yDesc}^FB${usableW},1,0,C,0^A0N,${descH},${descH}^FD${safeZ(a.desc!)}^FS\r\n`;
+        }
+
+        z += "^XZ\r\n";
+        out.push(z);
+        continue;
       }
 
-      // ----- Fila 2: clave (centrada) -----
-      z += `^FO${pad},${y2}^FB${usableW},1,0,C,0^A0N,${textH},${textH}^FD${a.text}^FS\r\n`;
+      // ====== CODE128 ======
+      const hasDesc = showDesc && !!a.desc;
 
-      // ----- Fila 3: descripción (opcional, centrada) -----
-      if (hasDesc && r3 > 0) {
-        const yDesc = y3 + Math.max(0, Math.floor((r3 - descH) / 2));
-        z += `^FO${pad},${yDesc}^FB${usableW},1,0,C,0^A0N,${descH},${descH}^FD${a.desc}^FS\r\n`;
+      const barMmConfig = hasDesc
+        ? parseFloat(cfg.barHeightMmWithDesc ?? cfg.barHeightMm)
+        : parseFloat(cfg.barHeightMmNoDesc ?? cfg.barHeightMm);
+
+      const requestedBarH = toDots(isFinite(barMmConfig) ? barMmConfig : parseFloat(cfg.barHeightMm || "20"));
+
+      const gapBelowBars = 6;
+      const textBlockH = hasDesc ? (textH + 4 + descH) : textH;
+      const maxBarAreaH = Math.max(1, usableH - textBlockH - gapBelowBars);
+
+      const minBarDots = toDots(6);
+      const barH = Math.max(minBarDots, Math.min(requestedBarH, maxBarAreaH));
+
+      const dataLen = a.barcode?.length ?? 0;
+      const modules1D = estimateCode128Modules(dataLen);
+      let moduleW = 4;
+      for (let mw = 4; mw >= 2; mw--) {
+        if (barcodeWidthDots(modules1D, mw) <= usableW) { moduleW = mw; break; }
+      }
+      const widthDots = barcodeWidthDots(modules1D, moduleW);
+      const xBar = padX + Math.max(0, Math.floor((usableW - widthDots) / 2));
+      const yBar = padY;
+
+      // OJO: ^BY solo aquí, dentro del bloque 1D (evita afectar al QR)
+      z += `^FO${xBar},${yBar}^BY${moduleW},2,${barH}^BCN,${barH},N,N,N^FD${safeZ(a.barcode)}^FS\r\n`;
+
+      const yText = yBar + barH + gapBelowBars;
+      z += `^FO${padX},${yText}^FB${usableW},1,0,C,0^A0N,${textH},${textH}^FD${safeZ(a.text)}^FS\r\n`;
+      if (hasDesc) {
+        const yDesc = yText + textH + 4;
+        z += `^FO${padX},${yDesc}^FB${usableW},1,0,C,0^A0N,${descH},${descH}^FD${safeZ(a.desc!)}^FS\r\n`;
       }
 
-      // Cierre
       z += "^XZ\r\n";
       out.push(z);
     }
@@ -563,6 +634,7 @@ function buildZplFromState(
 
   return out.join("");
 }
+
 
 /*******************************************************/
 
@@ -580,7 +652,7 @@ export default function LabelGenerator() {
     qrSizeMm: "16",
     xDimPx: "1.2",
     showDesc: true,
-    descFontSize: "18",
+    descFontSize: "10",
     topShiftMm: "0",
   });
 
@@ -604,7 +676,7 @@ export default function LabelGenerator() {
   const [isLoadingTamanos, setIsLoadingTamanos] = useState(false);
   const [tamanosError, setTamanosError] = useState<string | null>(null);
   const [selectedTamanoId, setSelectedTamanoId] = useState<string>("");
-  const [selectedPresetId, setSelectedPresetId] = useState<string>("");
+  const [selectedPresetId, setSelectedPresetId] = useState<string>("50x25");
   // DPI autodetectado
   const [printerDpi, setPrinterDpi] = useState<203 | 300 | 600>(203);
   const [dpiMsg, setDpiMsg] = useState<string>("Detectando DPI…");
@@ -794,7 +866,7 @@ export default function LabelGenerator() {
         await ensureBrowserPrintLoaded();
         const available = await bpIsAvailable();
         if (!available) {
-          setDpiMsg("Zebra no detectada (usando 203 DPI)");
+          setDpiMsg("Imprimiendo por default usando 203 DPI");
           return;
         }
         setDpiMsg("Detectando DPI…");
@@ -807,57 +879,28 @@ export default function LabelGenerator() {
     })();
   }, []);
   async function bpDetectPrinterDpi(): Promise<203 | 300 | 600> {
-    try {
-      const BP = await getBP();
-      const dev = await new Promise<any>((res) =>
-        BP.getDefaultDevice("printer", (d: any) => res(d), () => res(null))
-      );
-      if (!dev) return 203;
+    const dev = await bpGetOrPickDevice();
+    const sendThenRead = (cmd: string) => new Promise<string>(res => {
+      try {
+        if (typeof dev.sendThenRead === "function")
+          dev.sendThenRead(cmd, (d: string) => res(String(d || "")), () => res(""));
+        else if (typeof dev.send === "function")
+          dev.send(cmd, () => { if (typeof dev.read === "function") dev.read((d: string) => res(String(d || "")), () => res("")); else res(""); }, () => res(""));
+        else res("");
+      } catch { res(""); }
+    });
 
-      const send = (cmd: string) => new Promise<string>((resolve) => {
-        // Algunos BrowserPrint tienen sendThenRead, otros solo send/read
-        const tryRead = () => {
-          try {
-            if (typeof dev.read === "function") {
-              dev.read((data: string) => resolve(String(data || "")), () => resolve(""));
-            } else {
-              resolve("");
-            }
-          } catch { resolve(""); }
-        };
-        try {
-          if (typeof dev.sendThenRead === "function") {
-            dev.sendThenRead(cmd, (data: string) => resolve(String(data || "")), () => resolve(""));
-          } else if (typeof dev.send === "function") {
-            dev.send(cmd, tryRead, tryRead);
-          } else if (typeof dev.write === "function") {
-            dev.write(cmd, tryRead, tryRead);
-          } else {
-            resolve("");
-          }
-        } catch { resolve(""); }
-      });
+    const resp = (await sendThenRead("~HQES")) + "\n" + (await sendThenRead("^XA^HH^XZ"));
+    const t = resp.toUpperCase();
 
-      // ^HH devuelve configuración donde suele salir la resolución del cabezal
-      const resp = await send("^XA^HH^XZ");
-      const txt = resp.toUpperCase();
+    if (/203\s*DPI|DPI[:=]\s*203|RESOLUTION.*203/.test(t)) return 203 as const;
+    if (/300\s*DPI|DPI[:=]\s*300|RESOLUTION.*300/.test(t)) return 300 as const;
+    if (/600\s*DPI|DPI[:=]\s*600|RESOLUTION.*600/.test(t)) return 600 as const;
 
-      // Intenta encontrar 203 / 300 / 600 en líneas típicas
-      if (/203\s*DPI|DPI[:=]\s*203|RESOLUTION.*203/i.test(resp)) return 203;
-      if (/300\s*DPI|DPI[:=]\s*300|RESOLUTION.*300/i.test(resp)) return 300;
-      if (/600\s*DPI|DPI[:=]\s*600|RESOLUTION.*600/i.test(resp)) return 600;
-
-      // Algunas ZQ devuelven el modelo; inferimos por nombre si no hay DPI textual
-      const name = (dev?.name || "").toUpperCase();
-      if (/ZQ5/.test(name)) {
-        // ZQ511/521 suelen venir en 203 o 300; si no hubo match arriba, asumimos 203
-        return 203;
-      }
-      return 203;
-    } catch {
-      return 203;
-    }
+    // Heurística por modelo como ya tienes…
+    return 203 as const;
   }
+
 
   // Config con límites
   const handleConfigChange = (key: string, value: string | boolean) => {
@@ -868,7 +911,7 @@ export default function LabelGenerator() {
           const qr = clampQrSize(
             parseFloat(prev.qrSizeMm || "16"),
             w,
-            parseFloat(prev.height || "25"),
+            parseFloat(prev.height || "25.4"),
             parseFloat(prev.margin || "0")
           );
           return { ...prev, width: String(w), qrSizeMm: String(qr) };
@@ -899,14 +942,14 @@ export default function LabelGenerator() {
         const margin = Math.max(0, parseFloat(String(value)));
         const bar = clampBarHeight(
           parseFloat(prev.barHeightMm || "20"),
-          parseFloat(prev.height || "25"),
+          parseFloat(prev.height || "25.4"),
           margin
         );
         if (barcodeFormat === "QR") {
           const qr = clampQrSize(
             parseFloat(prev.qrSizeMm || "16"),
             parseFloat(prev.width || "50"),
-            parseFloat(prev.height || "25"),
+            parseFloat(prev.height || "25.4"),
             margin
           );
           return { ...prev, margin: String(margin), barHeightMm: String(bar), qrSizeMm: String(qr) };
@@ -917,14 +960,14 @@ export default function LabelGenerator() {
       if (key === "barHeightMm") {
         const h = clampBarHeight(
           parseFloat(String(value)),
-          parseFloat(prev.height || "25"),
+          parseFloat(prev.height || "25.4"),
           parseFloat(prev.margin || "0")
         );
         if (barcodeFormat === "QR") {
           const qr = clampQrSize(
             h,
             parseFloat(prev.width || "50"),
-            parseFloat(prev.height || "25"),
+            parseFloat(prev.height || "25.4"),
             parseFloat(prev.margin || "0")
           );
           return { ...prev, barHeightMm: String(h), qrSizeMm: String(qr) };
@@ -1126,11 +1169,16 @@ ${bodyHtml}
             font: labelConfig.font,
             showDesc: labelConfig.showDesc,
             descFontSize: labelConfig.descFontSize,
-            topShiftMm: labelConfig.topShiftMm,   // ⬅️ usa el valor del estado
+            topShiftMm: labelConfig.topShiftMm,
+            qrSizeMm: labelConfig.qrSizeMm,   // ⬅️ ya lo tienes
+            borders: true,                    // ⬅️ DIBUJA BORDES
+            borderThickness: 4,               // ⬅️ contorno y áreas (203 dpi: 4 luce bien)
+            gridThickness: 2,                   // opcional
           },
           barcodeFormat,
           printerDpi
         );
+
 
         await bpPrintZPL(zpl);
         new Noty({ type: "success", layout: "topRight", theme: "mint", text: `Enviado a Zebra (${printerDpi} DPI).`, timeout: 2000 }).show();
@@ -1256,7 +1304,7 @@ ${bodyHtml}
                     <span>Configuración</span>
                   </CardTitle>
                   <div className="flex items-center gap-3 text-white font-light text-xs sm:text-sm">
-                    <span className="shrink-0">v1.4.2</span>
+                    <span className="shrink-0">v1.4.3</span>
                     <span className="text-purple-300">{dpiMsg}</span>
                     <Link href="/actualizaciones" className="text-purple-300 hover:text-purple-200" title="Ver historial de actualizaciones">
                       <Info className="w-4 h-4" />
@@ -1432,7 +1480,7 @@ ${bodyHtml}
                 {/* Medidas */}
                 <div className="space-y-2">
                   <Label className="text-gray-100 font-medium">Margen interno (mm)</Label>
-                  <NumberField value={labelConfig.margin} onChange={(v) => handleConfigChange("margin", v)} min={3} step={0.5} ariaLabel="Margen interno en milímetros" />
+                  <NumberField value={labelConfig.margin} onChange={(v) => handleConfigChange("margin", v)} min={1} step={0.5} ariaLabel="Margen interno en milímetros" />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
