@@ -54,8 +54,7 @@ const ALLOWED_SECTIONS = new Set([
   "EMBARQUES",
   "INTEGRACIONES",
   "CONFIGURACION",
-    "ADMIN",
-
+  "ADMIN",
 
   // nuevas que van a placeholder
   "ADUANA",
@@ -71,8 +70,12 @@ const PLACEHOLDER_SECTIONS = new Set([
   "INTEGRACIONES",
   "KPI'S",
   "PLANEACION",
-  "LAYOUT",
 ])
+
+// Secciones que redirigen a otras páginas
+const REDIRECT_SECTIONS: Record<string, string> = {
+  "LAYOUT": "/almacenes",
+}
 /* ---------- Wrapper con Suspense ---------- */
 export default function DashboardPage() {
   return (
@@ -151,6 +154,13 @@ function DashboardPageInner() {
 
   const handleSectionChange = (section: string) => {
     const s = section.toUpperCase()
+    
+    // Si la sección tiene una redirección configurada, navegar a esa página
+    if (REDIRECT_SECTIONS[s]) {
+      router.push(REDIRECT_SECTIONS[s])
+      return
+    }
+    
     setActiveSection(s)
     try { localStorage.setItem("dashboard:lastSection", s) } catch {}
     router.replace(`/dashboard?section=${s}`)

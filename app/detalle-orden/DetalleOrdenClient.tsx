@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useCallback, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useCompany } from "@/lib/company-context"
 import { printLabels } from "@/lib/etiquetador-utils"
+import { fetchJsonWithRetry, fetchWithRetry } from "@/lib/fetch-with-retry"
 
 type DetalleItem = {
   articuloId: number
@@ -113,14 +114,13 @@ export default function DetalleOrden() {
   const validarCaja = async (codigo: string) => {
     try {
       const url = `${baseURL}/validar-caja`
-      const resp = await fetch(url, {
+      const json = await fetchJsonWithRetry(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ CODIGO: codigo }),
       })
-      const json = await resp.json()
 
-      if (!resp.ok || !json?.ok) {
+      if (!json?.ok) {
         playSound("wrong")
         showToast(json?.message || "Código de caja no encontrado", "error")
         return

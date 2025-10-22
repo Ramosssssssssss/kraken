@@ -6,6 +6,7 @@ import { Eye, EyeOff, User, Lock, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useCompany } from "@/lib/company-context"
 import { parseModulesCSV } from "@/lib/parse-mods"
+import { fetchJsonWithRetry } from "@/lib/fetch-with-retry"
 
 function getTenantFromHost(hostname: string) {
   const parts = hostname.split(".")
@@ -41,31 +42,6 @@ export default function LoginPage() {
     [],
   )
 
-  const MAX_RETRIES = 3
-  const RETRY_DELAY_MS = 1000
-
-  const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
-
-  const fetchWithRetry = async (url: string, options: RequestInit, retries = MAX_RETRIES): Promise<Response> => {
-    for (let i = 0; i < retries; i++) {
-      try {
-        const response = await fetch(url, options)
-        if (!response.ok && response.status >= 500) {
-          throw new Error(`Error del servidor: ${response.status}`)
-        }
-        return response
-      } catch (error) {
-        if (i < retries - 1) {
-          console.warn(`Intento ${i + 1} fallido. Reintentando en ${RETRY_DELAY_MS}ms...`)
-          await delay(RETRY_DELAY_MS)
-        } else {
-          throw error
-        }
-      }
-    }
-    throw new Error("No se pudo completar la solicitud después de varios intentos.")
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
@@ -86,15 +62,13 @@ export default function LoginPage() {
     }
 
     try {
-      const response = await fetchWithRetry(`${apiUrl}/login`, {
+      const data = await fetchJsonWithRetry(`${apiUrl}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user: email, password }),
       })
 
-      const data = await response.json()
-
-      if (response.ok && data.message === "✅ Login exitoso") {
+      if (data.message === "✅ Login exitoso") {
         const modulosArr = parseModulesCSV(data.user?.MODULOS_KRKN)
         const userDataToSave = {
           ...data.user,

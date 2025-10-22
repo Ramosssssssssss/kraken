@@ -448,31 +448,31 @@ export default function SeleccionTipoPremium() {
   }
 
   return (
-    <div className="min-h-screen bg-black from-black-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900">
       {/* Header */}
-      <div className="glass-dark sticky top-0 z-50 border-b border-white/20">
-        <div className="container mx-auto px-4 py-4">
+      <div className="sticky top-0 z-50 backdrop-blur-xl bg-black/40 border-b border-white/5">
+        <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              size="icon"
+            <button
               onClick={() => router.push("/dashboard")}
-              className="text-white hover:bg-white/10"
+              className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/30 to-blue-500/30 flex items-center justify-center hover:scale-105 transition-transform"
             >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
+              <ArrowLeft className="w-6 h-6 text-white" />
+            </button>
 
-            <h1 className="text-lg font-semibold text-white">Selección de Tipo</h1>
+            <h1 className="text-xl font-bold text-white">Selección de Tipo</h1>
 
-            <Button
-              variant="ghost"
-              size="sm"
+            <button
               onClick={handleScannerToggle}
-              className={`text-white ${scannerActive ? "bg-black-500/30" : "hover:bg-white/10"}`}
+              className={`px-4 py-2 rounded-xl transition-all duration-200 flex items-center gap-2 ${
+                scannerActive 
+                  ? "bg-gradient-to-br from-purple-500/30 to-blue-500/30 text-white shadow-lg" 
+                  : "bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10"
+              }`}
             >
-              <Scan className="h-4 w-4 mr-2" />
+              <Scan className="h-5 w-5" />
               {scannerActive ? "ON" : "OFF"}
-            </Button>
+            </button>
           </div>
         </div>
       </div>
@@ -482,140 +482,145 @@ export default function SeleccionTipoPremium() {
         <div className="space-y-6">
           {/* Title */}
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-black-900 mb-2">Selecciona el Tipo de Procesamiento</h2>
-            <p className="text-black-700">Elige cómo deseas ingresar los datos</p>
+            <h2 className="text-2xl font-bold text-white mb-2">Selecciona el Tipo de Procesamiento</h2>
+            <p className="text-gray-400">Elige cómo deseas ingresar los datos</p>
           </div>
 
           {/* Type Selection Cards */}
           <div className="grid gap-4 md:grid-cols-3">
             {/* MANUAL */}
-            <Card
-              className={`cursor-pointer transition-all duration-300 hover:scale-105 ${
+            <div
+              className={`cursor-pointer transition-all duration-300 hover:scale-105 rounded-2xl p-6 backdrop-blur-xl border ${
                 selectedType === "MANUAL"
-                  ? "glass-dark border-black-400 shadow-lg shadow-black-500/50"
-                  : "glass border-white/40 hover:border-black-300"
+                  ? "bg-gradient-to-br from-purple-500/20 to-blue-500/20 border-purple-500/30 shadow-lg shadow-purple-500/20"
+                  : "bg-gradient-to-br from-white/5 to-white/[0.02] border-white/10 hover:border-purple-500/30"
               }`}
               onClick={() => handleTypeSelection("MANUAL")}
             >
-              <div className="p-6 flex flex-col items-center text-center space-y-4">
-                <div className={`p-4 rounded-full ${selectedType === "MANUAL" ? "bg-black-500" : "bg-black-100"}`}>
-                  <Edit3 className={`h-8 w-8 ${selectedType === "MANUAL" ? "text-white" : "text-black-700"}`} />
+              <div className="flex flex-col items-center text-center space-y-4">
+                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${
+                  selectedType === "MANUAL" 
+                    ? "bg-gradient-to-br from-purple-500/30 to-blue-500/30" 
+                    : "bg-white/5"
+                }`}>
+                  <Edit3 className={`h-8 w-8 ${selectedType === "MANUAL" ? "text-white" : "text-gray-400"}`} />
                 </div>
                 <div>
-                  <h3
-                    className={`text-xl font-bold mb-2 ${selectedType === "MANUAL" ? "text-white" : "text-black-900"}`}
-                  >
+                  <h3 className={`text-xl font-bold mb-2 ${selectedType === "MANUAL" ? "text-white" : "text-gray-300"}`}>
                     MANUAL
                   </h3>
-                  <p className={`text-sm ${selectedType === "MANUAL" ? "text-black-100" : "text-black-700"}`}>
+                  <p className={`text-sm ${selectedType === "MANUAL" ? "text-purple-200" : "text-gray-400"}`}>
                     Ingreso manual de datos
                   </p>
                 </div>
                 {selectedType === "MANUAL" && (
-                  <div className="bg-black-400 text-black-900 px-3 py-1 rounded-full text-xs font-semibold">
+                  <div className="bg-gradient-to-r from-purple-400 to-blue-400 text-white px-3 py-1 rounded-full text-xs font-semibold">
                     SELECCIONADO
                   </div>
                 )}
               </div>
-            </Card>
+            </div>
 
             {/* XML */}
-            <Card
-              className={`cursor-pointer transition-all duration-300 hover:scale-105 ${
+            <div
+              className={`cursor-pointer transition-all duration-300 hover:scale-105 rounded-2xl p-6 backdrop-blur-xl border ${
                 selectedType === "XML"
-                  ? "glass-dark border-black-400 shadow-lg shadow-black-500/50"
-                  : "glass border-white/40 hover:border-black-300"
+                  ? "bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-purple-500/30 shadow-lg shadow-purple-500/20"
+                  : "bg-gradient-to-br from-white/5 to-white/[0.02] border-white/10 hover:border-purple-500/30"
               }`}
               onClick={() => handleTypeSelection("XML")}
             >
-              <div className="p-6 flex flex-col items-center text-center space-y-4">
-                <div className={`p-4 rounded-full ${selectedType === "XML" ? "bg-black-500" : "bg-black-100"}`}>
-                  <FileText className={`h-8 w-8 ${selectedType === "XML" ? "text-white" : "text-black-700"}`} />
+              <div className="flex flex-col items-center text-center space-y-4">
+                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${
+                  selectedType === "XML" 
+                    ? "bg-gradient-to-br from-purple-500 to-pink-500" 
+                    : "bg-white/5"
+                }`}>
+                  <FileText className={`h-8 w-8 ${selectedType === "XML" ? "text-white" : "text-gray-400"}`} />
                 </div>
                 <div>
-                  <h3 className={`text-xl font-bold mb-2 ${selectedType === "XML" ? "text-white" : "text-black-900"}`}>
+                  <h3 className={`text-xl font-bold mb-2 ${selectedType === "XML" ? "text-white" : "text-gray-300"}`}>
                     XML
                   </h3>
-                  <p className={`text-sm ${selectedType === "XML" ? "text-black-100" : "text-black-700"}`}>
+                  <p className={`text-sm ${selectedType === "XML" ? "text-purple-200" : "text-gray-400"}`}>
                     Procesamiento de archivo XML
                   </p>
                 </div>
                 {selectedType === "XML" && (
-                  <div className="bg-black-400 text-black-900 px-3 py-1 rounded-full text-xs font-semibold">
+                  <div className="bg-gradient-to-r from-purple-400 to-pink-400 text-white px-3 py-1 rounded-full text-xs font-semibold">
                     SELECCIONADO
                   </div>
                 )}
               </div>
-            </Card>
+            </div>
 
             {/* EXCEL */}
-            <Card
-              className={`cursor-pointer transition-all duration-300 hover:scale-105 ${
+            <div
+              className={`cursor-pointer transition-all duration-300 hover:scale-105 rounded-2xl p-6 backdrop-blur-xl border ${
                 selectedType === "EXCEL"
-                  ? "glass-dark border-black-400 shadow-lg shadow-black-500/50"
-                  : "glass border-white/40 hover:border-black-300"
+                  ? "bg-gradient-to-br from-green-500/20 to-emerald-500/20 border-green-500/30 shadow-lg shadow-green-500/20"
+                  : "bg-gradient-to-br from-white/5 to-white/[0.02] border-white/10 hover:border-green-500/30"
               }`}
               onClick={() => handleTypeSelection("EXCEL")}
             >
-              <div className="p-6 flex flex-col items-center text-center space-y-4">
-                <div className={`p-4 rounded-full ${selectedType === "EXCEL" ? "bg-black-500" : "bg-black-100"}`}>
-                  <FileSpreadsheet
-                    className={`h-8 w-8 ${selectedType === "EXCEL" ? "text-white" : "text-black-700"}`}
-                  />
+              <div className="flex flex-col items-center text-center space-y-4">
+                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${
+                  selectedType === "EXCEL" 
+                    ? "bg-gradient-to-br from-green-500 to-emerald-500" 
+                    : "bg-white/5"
+                }`}>
+                  <FileSpreadsheet className={`h-8 w-8 ${selectedType === "EXCEL" ? "text-white" : "text-gray-400"}`} />
                 </div>
                 <div>
-                  <h3
-                    className={`text-xl font-bold mb-2 ${selectedType === "EXCEL" ? "text-white" : "text-black-900"}`}
-                  >
+                  <h3 className={`text-xl font-bold mb-2 ${selectedType === "EXCEL" ? "text-white" : "text-gray-300"}`}>
                     EXCEL
                   </h3>
-                  <p className={`text-sm ${selectedType === "EXCEL" ? "text-black-100" : "text-black-700"}`}>
+                  <p className={`text-sm ${selectedType === "EXCEL" ? "text-green-200" : "text-gray-400"}`}>
                     Procesamiento de archivo Excel
                   </p>
                 </div>
                 {selectedType === "EXCEL" && (
-                  <div className="bg-black-400 text-black-900 px-3 py-1 rounded-full text-xs font-semibold">
+                  <div className="bg-gradient-to-r from-green-400 to-emerald-400 text-white px-3 py-1 rounded-full text-xs font-semibold">
                     SELECCIONADO
                   </div>
                 )}
               </div>
-            </Card>
+            </div>
           </div>
 
           {/* XML File Status */}
           {selectedType === "XML" && (
-            <Card className="glass border-white/40">
-              <div className="p-6 space-y-4">
+            <div className="rounded-2xl p-6 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10">
+              <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   {xmlProducts.length > 0 ? (
-                    <CheckCircle2 className="h-6 w-6 text-black-500" />
+                    <CheckCircle2 className="h-6 w-6 text-purple-400" />
                   ) : (
                     <FileText className="h-6 w-6 text-gray-400" />
                   )}
-                  <h3 className="text-lg font-semibold text-black-900">Archivo XML</h3>
+                  <h3 className="text-lg font-semibold text-white">Archivo XML</h3>
                 </div>
 
                 {xmlProducts.length > 0 ? (
                   <div className="space-y-3">
-                    <p className="text-black-600 font-medium">✓ {xmlProducts.length} conceptos encontrados</p>
-                    <p className="text-sm text-gray-600">{xmlFileName}</p>
-                    <Button
-                      variant="outline"
+                    <p className="text-purple-400 font-medium">✓ {xmlProducts.length} conceptos encontrados</p>
+                    <p className="text-sm text-gray-400">{xmlFileName}</p>
+                    <button
                       onClick={() => xmlInputRef.current?.click()}
-                      className="w-full border-black-300 text-black-700 hover:bg-black-50"
+                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 transition-all duration-200 flex items-center justify-center gap-2"
                     >
-                      <Upload className="h-4 w-4 mr-2" />
+                      <Upload className="h-4 w-4" />
                       Seleccionar otro archivo
-                    </Button>
+                    </button>
 
                     {xmlDuplicates.length > 0 && (
-                      <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-md text-sm text-orange-700">
-                        <div className="font-semibold">Advertencia: NoIdentificacion(s) repetidos</div>
-                        <div className="mt-2">
+                      <div className="mt-3 p-4 bg-orange-500/10 border border-orange-500/20 rounded-xl text-sm">
+                        <div className="font-semibold text-orange-400 mb-2">Advertencia: NoIdentificacion(s) repetidos</div>
+                        <div className="space-y-1">
                           {xmlDuplicates.map((d) => (
-                            <div key={d.noIdentificacion} className="flex items-center justify-between">
+                            <div key={d.noIdentificacion} className="flex items-center justify-between text-gray-300">
                               <div>{d.noIdentificacion}</div>
-                              <div className="font-medium">{d.count} veces</div>
+                              <div className="font-medium text-orange-400">{d.count} veces</div>
                             </div>
                           ))}
                         </div>
@@ -624,39 +629,38 @@ export default function SeleccionTipoPremium() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <p className="text-gray-600 text-sm">No se ha seleccionado ningún archivo XML</p>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm text-gray-700">Proveedor: </div>
-                        <div className="text-sm font-semibold text-black-700">{selectedProvider ?? "(No seleccionado)"}</div>
+                    <p className="text-gray-400 text-sm">No se ha seleccionado ningún archivo XML</p>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
+                        <div className="text-sm text-gray-400">Proveedor: </div>
+                        <div className="text-sm font-semibold text-white">{selectedProvider ?? "(No seleccionado)"}</div>
                       </div>
 
                       <div className="grid grid-cols-1 gap-2">
-                        <Button
+                        <button
                           onClick={() => {
                             if (!selectedProvider) setProviderModalOpen(true)
                             else xmlInputRef.current?.click()
                           }}
                           disabled={isProcessingXml}
-                          className="w-full bg-black-600 hover:bg-black-700 text-white"
+                          className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold transition-all duration-200 shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
                         >
-                          <Upload className="h-4 w-4 mr-2" />
+                          <Upload className="h-4 w-4" />
                           {isProcessingXml ? "Procesando..." : "Seleccionar Archivo XML"}
-                        </Button>
+                        </button>
 
-                        <Button
-                          variant="ghost"
+                        <button
                           onClick={() => setProviderModalOpen(true)}
-                          className="w-full text-sm text-black-700"
+                          className="w-full px-4 py-2 rounded-xl text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200"
                         >
                           Cambiar Proveedor
-                        </Button>
+                        </button>
                       </div>
                     </div>
                   </div>
                 )}
               </div>
-            </Card>
+            </div>
           )}
 
           {/* Provider Selection Modal */}
@@ -667,168 +671,172 @@ export default function SeleccionTipoPremium() {
               aria-modal="true"
               aria-labelledby="provider-modal-title"
             >
-              <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50 backdrop-blur-sm" onClick={() => setProviderModalOpen(false)} />
+              <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setProviderModalOpen(false)} />
 
-              <Card className="z-70 max-w-xl w-full p-6 shadow-lg transform transition-all duration-150 scale-100">
+              <div className="z-70 max-w-xl w-full p-8 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/10 shadow-2xl transform transition-all duration-150 scale-100">
                 <div className="flex items-start gap-4">
                   <div className="flex-shrink-0">
-                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-indigo-500 to-blue-400 flex items-center justify-center text-white font-bold">S</div>
+                    <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-xl shadow-lg">S</div>
                   </div>
 
                   <div className="flex-1">
-                    <h3 id="provider-modal-title" className="text-lg font-semibold">¿De dónde viene el XML?</h3>
-                    <p className="text-sm text-gray-600">Selecciona el proveedor que generó el XML. Esto nos permite elegir el parser correcto.</p>
+                    <h3 id="provider-modal-title" className="text-xl font-bold text-white mb-2">¿De dónde viene el XML?</h3>
+                    <p className="text-sm text-gray-300">Selecciona el proveedor que generó el XML. Esto nos permite elegir el parser correcto.</p>
 
-                    <div className="mt-4 grid gap-3">
+                    <div className="mt-6 grid gap-3">
                       <button
                         onClick={() => handleProviderSelect("Grupo Panam Mexico")}
-                        className="group bg-white/5 hover:bg-white/10 border border-white/10 rounded-md p-3 flex items-center justify-between"
+                        className="group bg-gradient-to-br from-white/5 to-white/[0.02] hover:from-white/10 hover:to-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between transition-all duration-200"
                         aria-label="Seleccionar Grupo Panam Mexico"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-full bg-white/8 flex items-center justify-center text-sm font-semibold text-white">GP</div>
-                          <div>
-                            <div className="font-medium">Grupo Panam Mexico</div>
-                            <div className="text-sm text-gray-500">Formato: Panam / Mexico</div>
+                          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-purple-500/30 to-blue-500/30 flex items-center justify-center text-sm font-bold text-white">GP</div>
+                          <div className="text-left">
+                            <div className="font-semibold text-white">Grupo Panam Mexico</div>
+                            <div className="text-sm text-gray-400">Formato: Panam / Mexico</div>
                           </div>
                         </div>
-                        <div className="text-sm text-indigo-300 group-hover:text-indigo-200">Seleccionar →</div>
+                        <div className="text-sm text-purple-400 group-hover:text-purple-300">Seleccionar →</div>
                       </button>
        <button
                         onClick={() => handleProviderSelect("Grupo El Cachorro")}
-                        className="group bg-white/5 hover:bg-white/10 border border-white/10 rounded-md p-3 flex items-center justify-between"
+                        className="group bg-gradient-to-br from-white/5 to-white/[0.02] hover:from-white/10 hover:to-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between transition-all duration-200"
                         aria-label="Seleccionar Grupo El Cachorro"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-full bg-white/8 flex items-center justify-center text-sm font-semibold text-white">GP</div>
-                          <div>
-                            <div className="font-medium">Grupo El Cachorro</div>
-                            <div className="text-sm text-gray-500">Formato: El Cachorro / Mexico</div>
+                          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center text-sm font-bold text-white">GC</div>
+                          <div className="text-left">
+                            <div className="font-semibold text-white">Grupo El Cachorro</div>
+                            <div className="text-sm text-gray-400">Formato: El Cachorro / Mexico</div>
                           </div>
                         </div>
-                        <div className="text-sm text-indigo-300 group-hover:text-indigo-200">Seleccionar →</div>
+                        <div className="text-sm text-green-400 group-hover:text-green-300">Seleccionar →</div>
                       </button>
                       <button
                         onClick={() => handleProviderSelect("KRKN")}
-                        className="group bg-white/5 hover:bg-white/10 border border-white/10 rounded-md p-3 flex items-center justify-between"
+                        className="group bg-gradient-to-br from-white/5 to-white/[0.02] hover:from-white/10 hover:to-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between transition-all duration-200"
                         aria-label="Seleccionar KRKN"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-full bg-white/8 flex items-center justify-center text-sm font-semibold text-white">KK</div>
-                          <div>
-                            <div className="font-medium">KRKN</div>
-                            <div className="text-sm text-gray-500">Formato: KRKN</div>
+                          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-sm font-bold text-white">KK</div>
+                          <div className="text-left">
+                            <div className="font-semibold text-white">KRKN</div>
+                            <div className="text-sm text-gray-400">Formato: KRKN</div>
                           </div>
                         </div>
-                        <div className="text-sm text-indigo-300 group-hover:text-indigo-200">Seleccionar →</div>
+                        <div className="text-sm text-purple-400 group-hover:text-purple-300">Seleccionar →</div>
                       </button>
                     </div>
 
-                    <div className="mt-4">
-                      <button onClick={() => setProviderModalOpen(false)} className="text-sm text-gray-400 hover:text-gray-200">
+                    <div className="mt-6 pt-4 border-t border-white/10">
+                      <button 
+                        onClick={() => setProviderModalOpen(false)} 
+                        className="w-full px-4 py-2 rounded-xl text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200"
+                      >
                         Cancelar
                       </button>
                     </div>
                   </div>
                 </div>
-              </Card>
+              </div>
             </div>
           )}
 
           {/* EXCEL File Status */}
           {selectedType === "EXCEL" && (
-            <Card className="glass border-white/40">
-              <div className="p-6 space-y-4">
+            <div className="rounded-2xl p-6 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10">
+              <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   {excelProducts.length > 0 ? (
-                    <CheckCircle2 className="h-6 w-6 text-black-500" />
+                    <CheckCircle2 className="h-6 w-6 text-green-400" />
                   ) : (
                     <FileSpreadsheet className="h-6 w-6 text-gray-400" />
                   )}
-                  <h3 className="text-lg font-semibold text-black-900">Archivo Excel</h3>
+                  <h3 className="text-lg font-semibold text-white">Archivo Excel</h3>
                 </div>
 
                 {excelProducts.length > 0 ? (
                   <div className="space-y-3">
-                    <p className="text-black-600 font-medium">✓ {excelProducts.length} productos encontrados</p>
-                    <p className="text-sm text-gray-600">{excelFileName}</p>
-                    <Button
-                      variant="outline"
+                    <p className="text-green-400 font-medium">✓ {excelProducts.length} productos encontrados</p>
+                    <p className="text-sm text-gray-400">{excelFileName}</p>
+                    <button
                       onClick={() => excelInputRef.current?.click()}
-                      className="w-full border-black-300 text-black-700 hover:bg-black-50"
+                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 transition-all duration-200 flex items-center justify-center gap-2"
                     >
-                      <Upload className="h-4 w-4 mr-2" />
+                      <Upload className="h-4 w-4" />
                       Seleccionar otro archivo
-                    </Button>
+                    </button>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <p className="text-gray-600 text-sm">No se ha seleccionado ningún archivo</p>
-                    <Button
+                    <p className="text-gray-400 text-sm">No se ha seleccionado ningún archivo</p>
+                    <button
                       onClick={() => excelInputRef.current?.click()}
                       disabled={isProcessingExcel}
-                      className="w-full bg-black-600 hover:bg-black-700 text-white"
+                      className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold transition-all duration-200 shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
                     >
-                      <Upload className="h-4 w-4 mr-2" />
+                      <Upload className="h-4 w-4" />
                       {isProcessingExcel ? "Procesando..." : "Seleccionar Archivo Excel"}
-                    </Button>
+                    </button>
                   </div>
                 )}
               </div>
-            </Card>
+            </div>
           )}
 
           {/* Financial Summary for XML */}
           {selectedType === "XML" && xmlProducts.length > 0 && (
-            <Card className="glass border-black-300">
-              <div className="p-6 space-y-4">
+            <div className="rounded-2xl p-6 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10">
+              <div className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <DollarSign className="h-6 w-6 text-black-600" />
-                  <h3 className="text-lg font-semibold text-black-900">Resumen Financiero XML</h3>
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                    <DollarSign className="h-5 w-5 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-white">Resumen Financiero XML</h3>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <p className="text-sm text-gray-600">Conceptos</p>
-                    <p className="text-xl font-bold text-black-700">{xmlProducts.length}</p>
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                    <p className="text-sm text-gray-400 mb-1">Conceptos</p>
+                    <p className="text-2xl font-bold text-white">{xmlProducts.length}</p>
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-gray-600">Total Cantidad</p>
-                    <p className="text-xl font-bold text-black-700">
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                    <p className="text-sm text-gray-400 mb-1">Total Cantidad</p>
+                    <p className="text-2xl font-bold text-white">
                       {xmlProducts.reduce((sum, p) => sum + p.cantidad, 0)} pzs
                     </p>
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-gray-600">Total Importe</p>
-                    <p className="text-xl font-bold text-black-700">
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                    <p className="text-sm text-gray-400 mb-1">Total Importe</p>
+                    <p className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
                       ${xmlProducts.reduce((sum, p) => sum + p.importe, 0).toFixed(2)}
                     </p>
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-gray-600">Precio Promedio</p>
-                    <p className="text-xl font-bold text-black-700">
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                    <p className="text-sm text-gray-400 mb-1">Precio Promedio</p>
+                    <p className="text-2xl font-bold text-white">
                       ${(xmlProducts.reduce((sum, p) => sum + p.valorUnitario, 0) / xmlProducts.length).toFixed(2)}
                     </p>
                   </div>
                 </div>
               </div>
-            </Card>
+            </div>
           )}
 
           {/* Folio Input */}
           {selectedType && (
-            <Card className="glass border-white/40">
-              <div className="p-6 space-y-4">
-                <h3 className="text-lg font-semibold text-black-900">Ingresa el Folio</h3>
+            <div className="rounded-2xl p-6 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-white">Ingresa el Folio</h3>
 
-                <Input
+                <input
                   value={folio}
                   onChange={(e) => setFolio(e.target.value)}
                   placeholder="Folio del documento"
-                  className="border-black-300 focus:border-black-500 focus:ring-black-500"
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all duration-200"
                 />
 
-                <Button
+                <button
                   onClick={handleContinue}
                   disabled={
                     !selectedType ||
@@ -836,12 +844,12 @@ export default function SeleccionTipoPremium() {
                     (selectedType === "EXCEL" && excelProducts.length === 0) ||
                     (selectedType === "XML" && xmlProducts.length === 0)
                   }
-                  className="w-full bg-black-600 hover:bg-black-700 text-white disabled:bg-gray-300 disabled:text-gray-500"
+                  className="w-full px-6 py-4 rounded-xl bg-gradient-to-r from-purple-500/30 to-blue-500/30 hover:from-purple-500/40 hover:to-blue-500/40 text-white font-bold transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Continuar
-                </Button>
+                </button>
               </div>
-            </Card>
+            </div>
           )}
         </div>
       </div>

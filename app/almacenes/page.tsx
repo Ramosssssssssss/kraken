@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Search, X, Package, MapPin, AlertTriangle, BarChart3, Grid3x3, Warehouse, Plus } from "lucide-react"
+import { Search, X, Package, MapPin, AlertTriangle, BarChart3, Grid3x3, Warehouse, Plus, ArrowLeft } from "lucide-react"
+import { useRouter } from "next/navigation"
 import {
   WAREHOUSES,
   MOCK_INVENTORY,
@@ -14,6 +15,7 @@ import { AddWarehouseDialog } from "./add-warehouse-dialog"
 
 import { RackConfigDialog } from "./rack-config-warehouse"
 export default function AlmacenesPage() {
+  const router = useRouter()
   const [selectedWarehouse, setSelectedWarehouse] = useState("b1")
   const [searchQuery, setSearchQuery] = useState("")
   const [highlightedRack, setHighlightedRack] = useState<string | null>(null)
@@ -136,18 +138,27 @@ export default function AlmacenesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900">
 
       {/* Warehouse Selection Bar */}
-      <div className="border-b border-zinc-800 bg-zinc-950">
+      <div className="border-b border-white/5 backdrop-blur-xl bg-black/40">
         <div className="mx-auto max-w-[1920px] px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
+              <button
+                onClick={() => router.push('/dashboard?section=LAYOUT')}
+                className="p-3 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-all duration-300 group"
+              >
+                <ArrowLeft className="w-5 h-5 transition-transform duration-300 group-hover:-translate-x-0.5" />
+              </button>
+              
               <div className="flex items-center gap-3">
-                <Warehouse className="h-8 w-8 text-blue-500" />
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/30 to-blue-500/30 flex items-center justify-center">
+                  <Warehouse className="h-6 w-6 text-white" />
+                </div>
                 <div>
-                  <h1 className="font-semibold text-xl text-white">Almacén</h1>
-                  <p className="text-xs text-zinc-500">Sistema de gestión</p>
+                  <h1 className="font-bold text-xl text-white">Almacén</h1>
+                  <p className="text-xs text-gray-400">Sistema de gestión</p>
                 </div>
               </div>
 
@@ -162,10 +173,10 @@ export default function AlmacenesPage() {
                       setSelectedRack(null)
                       setSelectedZone(null)
                     }}
-                    className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+                    className={`rounded-xl px-4 py-2 text-sm font-medium transition-all ${
                       selectedWarehouse === warehouse.id
-                        ? "bg-blue-600 text-white"
-                        : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white"
+                        ? "bg-gradient-to-br from-purple-500/30 to-blue-500/30 text-white shadow-lg"
+                        : "bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 hover:text-white"
                     }`}
                   >
                     {warehouse.name}
@@ -176,13 +187,13 @@ export default function AlmacenesPage() {
 
             <div className="flex items-center gap-3">
               <div className="relative w-[400px]">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Buscar por código, nombre o categoría..."
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="w-full rounded-lg border border-zinc-700 bg-zinc-900 py-2 pl-10 pr-10 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full rounded-xl border border-white/10 bg-white/5 py-2 pl-10 pr-10 text-sm text-white placeholder-gray-500 focus:border-purple-500/50 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
                 />
                 {searchQuery && (
                   <button
@@ -191,7 +202,7 @@ export default function AlmacenesPage() {
                       setHighlightedRack(null)
                       setIsSearching(false)
                     }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -200,7 +211,7 @@ export default function AlmacenesPage() {
 
               <button
                 onClick={() => setShowAddDialog(true)}
-                className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-blue-700"
+                className="flex items-center gap-2 rounded-xl bg-gradient-to-br from-purple-500/30 to-blue-500/30 px-4 py-2 text-sm font-medium text-white transition-all hover:from-purple-500/40 hover:to-blue-500/40 shadow-lg"
               >
                 <Plus className="h-4 w-4" />
                 Añadir
@@ -209,8 +220,8 @@ export default function AlmacenesPage() {
           </div>
 
           {searchQuery && searchResults.length > 0 && (
-            <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-              <div className="mb-3 text-xs text-zinc-400">{searchResults.length} resultado(s) encontrado(s)</div>
+            <div className="mt-4 rounded-xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl p-4">
+              <div className="mb-3 text-xs text-gray-400">{searchResults.length} resultado(s) encontrado(s)</div>
               <div className="grid grid-cols-2 gap-3">
                 {searchResults.map((item) => (
                   <div
@@ -220,7 +231,7 @@ export default function AlmacenesPage() {
                       setIsSearching(true)
                       setTimeout(() => setIsSearching(false), 8000)
                     }}
-                    className="group cursor-pointer rounded-lg border border-zinc-800 bg-zinc-800/50 p-3 transition-all hover:border-zinc-700 hover:bg-zinc-800"
+                    className="group cursor-pointer rounded-xl border border-white/10 bg-white/5 p-3 transition-all hover:border-purple-500/30 hover:bg-white/10"
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
