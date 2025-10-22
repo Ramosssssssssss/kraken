@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useCompany } from "@/lib/company-context"
 import { motion, AnimatePresence } from "framer-motion"
 import { ArrowLeft, Package, Minus, Plus, Send, AlertCircle, CheckCircle2, Trash2, Scan, Target } from "lucide-react"
+import { fetchJsonWithRetry, fetchWithRetry } from "@/lib/fetch-with-retry"
 
 interface Articulo {
   ARTICULO_ID: number
@@ -92,7 +93,7 @@ export default function TraspasoDetailPage({
   useEffect(() => {
     const verificarEstatus = async () => {
       try {
-        const res = await fetch(`${apiUrl}/tras-detalle`, {
+        const res = await fetchWithRetry(`${apiUrl}/tras-detalle`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ traspasoInId }),
@@ -199,7 +200,7 @@ export default function TraspasoDetailPage({
     setLoadingEnvio(true)
 
     try {
-      const response = await fetch(`${apiUrl}/traspaso-enviado`, {
+      const response = await fetchWithRetry(`${apiUrl}/traspaso-enviado`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -7,6 +7,7 @@ import { User, Mail, Lock, FileText, Camera, X, Loader2, Check, Upload, ImageIco
 import { useCompany } from "@/lib/company-context"
 import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
+import { fetchJsonWithRetry } from "@/lib/fetch-with-retry"
 
 interface UserProfile {
   id: number
@@ -173,15 +174,13 @@ function ChangePasswordModal({ open, onClose, profileId }: { open: boolean; onCl
         PASS: newPassword,
       }
 
-      const res = await fetch(`${apiUrl}/editar-piker`, {
+      const data = await fetchJsonWithRetry(`${apiUrl}/editar-piker`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
       })
 
-      const data = await res.json()
-
-      if (!res.ok || !data?.ok) {
+      if (!data?.ok) {
         throw new Error(data?.message || "Error al cambiar la contraseña")
       }
 
@@ -298,10 +297,9 @@ export default function PerfilPage() {
 
       console.log("[v0] Fetching user data from /pikers for userId:", userId)
 
-      const res = await fetch(`${apiUrl}/pikers`)
-      const data = await res.json()
+      const data = await fetchJsonWithRetry(`${apiUrl}/pikers`)
 
-      if (!res.ok || !data?.pikers) {
+      if (!data?.pikers) {
         throw new Error("Error al obtener los datos del usuario")
       }
 
@@ -411,7 +409,7 @@ export default function PerfilPage() {
         setRefreshKey(prev => prev + 1)
 
         // Enviamos la imagen al servidor
-        const res = await fetch(`${apiUrl}/editar-piker`, {
+        const data = await fetchJsonWithRetry(`${apiUrl}/editar-piker`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -421,9 +419,7 @@ export default function PerfilPage() {
           }),
         })
 
-        const data = await res.json()
-
-        if (!res.ok || !data?.ok) {
+        if (!data?.ok) {
           throw new Error(data?.message || "Error al subir la foto")
         }
 
@@ -485,7 +481,7 @@ export default function PerfilPage() {
       setRefreshKey(prev => prev + 1)
 
       // Para avatares predefinidos, enviamos una cadena vacía para limpiar la imagen actual
-      const res = await fetch(`${apiUrl}/editar-piker`, {
+      const data = await fetchJsonWithRetry(`${apiUrl}/editar-piker`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -494,9 +490,7 @@ export default function PerfilPage() {
         }),
       })
 
-      const data = await res.json()
-
-      if (!res.ok || !data?.ok) {
+      if (!data?.ok) {
         throw new Error(data?.message || "Error al actualizar la foto")
       }
 
@@ -532,7 +526,7 @@ export default function PerfilPage() {
 
       console.log("[v0] Sending name update with PIKER_ID:", profile.id)
 
-      const res = await fetch(`${apiUrl}/editar-piker`, {
+      const data = await fetchJsonWithRetry(`${apiUrl}/editar-piker`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -541,9 +535,7 @@ export default function PerfilPage() {
         }),
       })
 
-      const data = await res.json()
-
-      if (!res.ok || !data?.ok) {
+      if (!data?.ok) {
         throw new Error(data?.message || "Error al actualizar el nombre")
       }
 

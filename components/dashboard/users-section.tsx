@@ -16,6 +16,7 @@ import {
   AlertTriangle,
 } from "lucide-react"
 import { useCompany } from "@/lib/company-context"
+import { fetchJsonWithRetry } from "@/lib/fetch-with-retry"
 
 type Estatus = "A" | "I"
 type RolString = "PICKER" | "EDITOR" | "ADMIN"
@@ -150,13 +151,12 @@ export default function UsersSection() {
 
     try {
       setSavingEdit(true)
-      const res = await fetch(`${apiUrl}/editar-piker`, {
+      const data = await fetchJsonWithRetry(`${apiUrl}/editar-piker`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       })
-      const data = await res.json()
-      if (!res.ok || !data?.ok) {
+      if (!data?.ok) {
         return setEditError(data?.message || "No se pudo actualizar el usuario")
       }
 
@@ -205,39 +205,31 @@ export default function UsersSection() {
 
     const tryDelete = async () => {
       try {
-        const res = await fetch(`${normalizedApi}/eliminar-piker/${userToDelete.PIKER_ID}`, {
+        const data = await fetchJsonWithRetry(`${normalizedApi}/eliminar-piker/${userToDelete.PIKER_ID}`, {
           method: "DELETE",
           mode: "cors",
         })
-        let data: any = null
-        try {
-          data = await res.json()
-        } catch {}
-        if (res.ok && data?.ok) return true
+        if (data?.ok) return true
 
-        if (!res.ok) {
-          const res2 = await fetch(`${normalizedApi}/eliminar-piker`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            mode: "cors",
-            body: JSON.stringify({ id: userToDelete.PIKER_ID }),
-          })
-          const data2 = await res2.json().catch(() => ({}))
-          if (res2.ok && data2?.ok) return true
-          throw new Error(data2?.message || "No se pudo eliminar (POST fallback)")
-        }
-
-        throw new Error(data?.message || "No se pudo eliminar")
+        // Si falla, intenta con POST
+        const data2 = await fetchJsonWithRetry(`${normalizedApi}/eliminar-piker`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          mode: "cors",
+          body: JSON.stringify({ id: userToDelete.PIKER_ID }),
+        })
+        if (data2?.ok) return true
+        throw new Error(data2?.message || "No se pudo eliminar (POST fallback)")
       } catch (err) {
+        // Último intento con POST
         try {
-          const res2 = await fetch(`${normalizedApi}/eliminar-piker`, {
+          const data2 = await fetchJsonWithRetry(`${normalizedApi}/eliminar-piker`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             mode: "cors",
             body: JSON.stringify({ id: userToDelete.PIKER_ID }),
           })
-          const data2 = await res2.json().catch(() => ({}))
-          if (res2.ok && data2?.ok) return true
+          if (data2?.ok) return true
           throw new Error(data2?.message || "No se pudo eliminar (POST fallback)")
         } catch (e2) {
           throw e2
@@ -277,10 +269,9 @@ export default function UsersSection() {
       setError("")
       setLoading(true)
       try {
-        const res = await fetch(`${apiUrl}/pikers`)
-        const data = await res.json()
+        const data = await fetchJsonWithRetry(`${apiUrl}/pikers`)
         const list: Piker[] = Array.isArray(data) ? data : Array.isArray(data?.pikers) ? data.pikers : []
-        if (!res.ok || !Array.isArray(list)) throw new Error(data?.message || "No se pudieron cargar los pickers")
+        if (!Array.isArray(list)) throw new Error(data?.message || "No se pudieron cargar los pickers")
         setAll(list)
         setPage(1)
       } catch (e: any) {
@@ -336,13 +327,12 @@ export default function UsersSection() {
 
     try {
       setCreating(true)
-      const res = await fetch(`${apiUrl}/anadir-piker`, {
+      const data = await fetchJsonWithRetry(`${apiUrl}/anadir-piker`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       })
-      const data = await res.json()
-      if (!res.ok || !data?.ok) {
+      if (!data?.ok) {
         return setCreateError(data?.message || "No se pudo crear el usuario")
       }
 

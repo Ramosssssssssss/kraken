@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useCompany } from "@/lib/company-context"
 import { Package, Calendar, Box, ArrowLeft, Search, ArrowUpDown, RefreshCw } from "lucide-react"
+import { fetchJsonWithRetry } from "@/lib/fetch-with-retry"
 
 type OrdenPacking = {
   key: string
@@ -72,13 +73,13 @@ export default function OrdenesPacking() {
   const fetchOrdenes = useCallback(async () => {
     try {
       const url = `${baseURL}/ordenes`
-      const resp = await fetch(url, {
+      const json = await fetchJsonWithRetry(url, {
         method: "GET",
         headers: { Accept: "application/json" },
       })
-      const json = await resp.json()
-      if (!resp.ok || !json?.ok) {
-        throw new Error(json?.error || `Error ${resp.status}`)
+      
+      if (!json?.ok) {
+        throw new Error(json?.error || "Error en la respuesta del servidor")
       }
 
       const arr = Array.isArray(json?.ordenes) ? json.ordenes : []
@@ -86,6 +87,8 @@ export default function OrdenesPacking() {
       setOrdenes(mapped)
     } catch (err: any) {
       console.error("❌ fetchOrdenes:", err)
+      // Silenciosamente falla para no mostrar error al usuario
+      // Los reintentos ya se intentaron
     }
   }, [baseURL, mapFromAPI])
 

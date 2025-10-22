@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useCompany } from "@/lib/company-context"
 import { motion, AnimatePresence } from "framer-motion"
 import { ArrowLeft, Search, X, Package, Calendar, Clock, ArrowRight, RefreshCw, User } from "lucide-react"
+import { fetchJsonWithRetry, fetchWithRetry } from "@/lib/fetch-with-retry"
 
 type Pendiente = {
   TRASPASO_IN_ID: string
@@ -40,8 +41,7 @@ export default function TraspasosPage() {
 
   const fetchPendientes = async () => {
     try {
-      const res = await fetch(`${apiUrl}/traspasos`)
-      const json = await res.json()
+      const json = await fetchJsonWithRetry(`${apiUrl}/traspasos`)
 
       if (Array.isArray(json.pendientes)) {
         setData(json.pendientes)
@@ -73,25 +73,15 @@ export default function TraspasosPage() {
     const horaIni = ahora.toTimeString().split(" ")[0].slice(0, 5)
 
     try {
-      const res = await fetch(`${apiUrl}/tras-detalle`, {
+      const json = await fetchJsonWithRetry(`${apiUrl}/tras-detalle`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ traspasoInId }),
       })
 
-      if (!res.ok) {
-        const errorText = await res.text()
-        console.error("Error al obtener detalle:", errorText)
-        setMensajeError("No se pudo obtener el detalle del traspaso.")
-        setModalErrorVisible(true)
-        setLoadingDetalle(false)
-        return
-      }
-
-      const json = await res.json()
       console.log("Detalles obtenidos:", json)
 
-      const updateRes = await fetch(`${apiUrl}/traspaso-tomado`, {
+      const updateRes = await fetchWithRetry(`${apiUrl}/traspaso-tomado`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

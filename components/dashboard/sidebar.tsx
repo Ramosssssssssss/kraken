@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef } from "react";
 import {
   UserCircle,
   LogOut,
@@ -21,20 +21,20 @@ import {
   Users2,
   Settings,
   Search,
-} from "lucide-react"
-import { useCompany } from "@/lib/company-context"
+} from "lucide-react";
+import { useCompany } from "@/lib/company-context";
 
 interface SidebarProps {
-  activeSection: string
-  onSectionChange: (section: string) => void
-  onLogout: () => void
+  activeSection: string;
+  onSectionChange: (section: string) => void;
+  onLogout: () => void;
 }
 
 interface MenuItem {
-  name: string
-  icon: any
-  children?: MenuItem[]
-  requiresModule?: number
+  name: string;
+  icon: any;
+  children?: MenuItem[];
+  requiresModule?: number;
 }
 
 export default function Sidebar({
@@ -42,33 +42,33 @@ export default function Sidebar({
   onSectionChange,
   onLogout,
 }: SidebarProps) {
-  const [expandedSections, setExpandedSections] = useState<string[]>([])
-  const [showCollapsedMenu, setShowCollapsedMenu] = useState(false)
-  const [isHovered, setIsHovered] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
-  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const [expandedSections, setExpandedSections] = useState<string[]>([]);
+  const [showCollapsedMenu, setShowCollapsedMenu] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { userData } = useCompany()
+  const { userData } = useCompany();
 
   const hasModule = (moduleId: number): boolean => {
-    if (!userData?.MODULOS_KRKN) return false
+    if (!userData?.MODULOS_KRKN) return false;
 
-    let modules: number[] = []
+    let modules: number[] = [];
 
     if (Array.isArray(userData.MODULOS_KRKN)) {
-      modules = userData.MODULOS_KRKN
+      modules = userData.MODULOS_KRKN;
     } else if (typeof userData.MODULOS_KRKN === "string") {
       try {
-        modules = JSON.parse(userData.MODULOS_KRKN)
+        modules = JSON.parse(userData.MODULOS_KRKN);
       } catch {
         modules = userData.MODULOS_KRKN.split(",")
           .map((m) => Number.parseInt(m.trim()))
-          .filter((n) => !isNaN(n))
+          .filter((n) => !isNaN(n));
       }
     }
 
-    return modules.includes(moduleId)
-  }
+    return modules.includes(moduleId);
+  };
 
   const allMenuItems: MenuItem[] = [
     { name: "ADUANA", icon: Globe },
@@ -82,55 +82,59 @@ export default function Sidebar({
     // { name: "PLANEACIÓN", icon: CalendarClock },
     { name: "PROCESOS", icon: ClipboardList },
     { name: "TABLEROS", icon: BarChart3 },
-  ]
+  ];
 
   const menuItems = allMenuItems.filter((item) => {
     if (item.requiresModule) {
-      return hasModule(item.requiresModule)
+      return hasModule(item.requiresModule);
     }
-    return true
-  })
+    return true;
+  });
 
-  const filteredMenuItems = menuItems.filter((item) => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredMenuItems = menuItems.filter((item) =>
+    item.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const toggleSection = (sectionName: string) => {
     setExpandedSections((prev) =>
-      prev.includes(sectionName) ? prev.filter((s) => s !== sectionName) : [...prev, sectionName],
-    )
-  }
+      prev.includes(sectionName)
+        ? prev.filter((s) => s !== sectionName)
+        : [...prev, sectionName]
+    );
+  };
 
   const handleMenuClick = (itemName: string, hasChildren: boolean) => {
     if (hasChildren) {
-      toggleSection(itemName)
+      toggleSection(itemName);
     } else {
-      onSectionChange(itemName)
+      onSectionChange(itemName);
     }
-  }
+  };
 
   const handleMouseEnter = () => {
     if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current)
+      clearTimeout(hoverTimeoutRef.current);
     }
-    setIsHovered(true)
-  }
+    setIsHovered(true);
+  };
 
   const handleMouseLeave = () => {
     hoverTimeoutRef.current = setTimeout(() => {
-      setIsHovered(false)
-      setSearchQuery("")
-    }, 300)
-  }
+      setIsHovered(false);
+      setSearchQuery("");
+    }, 300);
+  };
 
   useEffect(() => {
     return () => {
       if (hoverTimeoutRef.current) {
-        clearTimeout(hoverTimeoutRef.current)
+        clearTimeout(hoverTimeoutRef.current);
       }
-    }
-  }, [])
+    };
+  }, []);
 
   // Solo se expande cuando el cursor está sobre el sidebar
-  const isExpanded = isHovered
+  const isExpanded = isHovered;
 
   return (
     <div
@@ -150,7 +154,11 @@ export default function Sidebar({
               </svg>
             </div>
           </div>
-          {isExpanded && <span className="text-white font-medium text-sm whitespace-nowrap">KRKN Dashboard</span>}
+          {isExpanded && (
+            <span className="text-white font-medium text-sm whitespace-nowrap">
+              KRKN Dashboard
+            </span>
+          )}
         </div>
       </div>
 
@@ -173,23 +181,29 @@ export default function Sidebar({
       {/* Menu Items */}
       <nav className="flex-1 p-2 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
         {filteredMenuItems.map((item) => {
-          const Icon = item.icon
-          const hasChildren = item.children && item.children.length > 0
-          const isSectionExpanded = expandedSections.includes(item.name)
-          const isActive = activeSection === item.name
+          const Icon = item.icon;
+          const hasChildren = item.children && item.children.length > 0;
+          const isSectionExpanded = expandedSections.includes(item.name);
+          const isActive = activeSection === item.name;
 
           return (
             <div key={item.name}>
               <button
                 onClick={() => handleMenuClick(item.name, !!hasChildren)}
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-200 group ${
-                  isActive ? "bg-purple-500/10 text-purple-400" : "text-gray-400 hover:text-white hover:bg-white/5"
+                  isActive
+                    ? "bg-purple-500/10 text-purple-400"
+                    : "text-gray-400 hover:text-white hover:bg-white/5"
                 }`}
                 title={!isExpanded ? item.name : undefined}
               >
                 <div className="flex items-center space-x-3 overflow-hidden">
                   <Icon className="w-5 h-5 flex-shrink-0" />
-                  {isExpanded && <span className="text-sm font-normal whitespace-nowrap">{item.name}</span>}
+                  {isExpanded && (
+                    <span className="text-sm font-normal whitespace-nowrap">
+                      {item.name}
+                    </span>
+                  )}
                 </div>
                 {isExpanded && hasChildren && (
                   <ChevronDown
@@ -204,8 +218,8 @@ export default function Sidebar({
               {isExpanded && hasChildren && isSectionExpanded && (
                 <div className="ml-3 mt-1 space-y-1 border-l border-white/5 pl-3">
                   {item.children?.map((child) => {
-                    const ChildIcon = child.icon
-                    const isChildActive = activeSection === child.name
+                    const ChildIcon = child.icon;
+                    const isChildActive = activeSection === child.name;
 
                     return (
                       <button
@@ -218,14 +232,16 @@ export default function Sidebar({
                         }`}
                       >
                         <ChildIcon className="w-4 h-4 flex-shrink-0" />
-                        <span className="text-sm font-normal whitespace-nowrap">{child.name}</span>
+                        <span className="text-sm font-normal whitespace-nowrap">
+                          {child.name}
+                        </span>
                       </button>
-                    )
+                    );
                   })}
                 </div>
               )}
             </div>
-          )
+          );
         })}
       </nav>
 
@@ -269,12 +285,15 @@ export default function Sidebar({
 
             {showCollapsedMenu && (
               <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowCollapsedMenu(false)} />
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowCollapsedMenu(false)}
+                />
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-[#0a0a0a] border border-white/10 rounded-lg shadow-xl z-50 py-1 min-w-[160px]">
                   <button
                     onClick={() => {
-                      onSectionChange("PERFIL")
-                      setShowCollapsedMenu(false)
+                      onSectionChange("PERFIL");
+                      setShowCollapsedMenu(false);
                     }}
                     className="w-full px-4 py-2.5 text-left text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200 flex items-center gap-3"
                   >
@@ -284,8 +303,8 @@ export default function Sidebar({
 
                   <button
                     onClick={() => {
-                      onSectionChange("CONFIGURACION")
-                      setShowCollapsedMenu(false)
+                      onSectionChange("CONFIGURACION");
+                      setShowCollapsedMenu(false);
                     }}
                     className="w-full px-4 py-2.5 text-left text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200 flex items-center gap-3"
                   >
@@ -297,8 +316,8 @@ export default function Sidebar({
 
                   <button
                     onClick={() => {
-                      onLogout()
-                      setShowCollapsedMenu(false)
+                      onLogout();
+                      setShowCollapsedMenu(false);
                     }}
                     className="w-full px-4 py-2.5 text-left text-sm text-gray-400 hover:text-red-400 hover:bg-red-950/20 transition-all duration-200 flex items-center gap-3"
                   >
@@ -312,5 +331,5 @@ export default function Sidebar({
         )}
       </div>
     </div>
-  )
+  );
 }

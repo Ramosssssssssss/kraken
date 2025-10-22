@@ -5,6 +5,7 @@ import { useMemo, useState, useEffect } from "react"
 import { Loader2, Warehouse, ArrowLeft, MapPin, Box, Search, Filter, BarChart3, Package, Plus, X, Check } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useCompany } from "@/lib/company-context"
+import { fetchJsonWithRetry, fetchWithRetry } from "@/lib/fetch-with-retry"
 
 // 1. Define la interfaz para tipar los almacenes (añadí ESTATUS para el filtro)
 interface Almacen {
@@ -63,28 +64,6 @@ export default function ProveedoresPage() {
       almacen.PROVEEDOR_ID.toString().includes(searchQuery)
     );
   }, [almacenes, searchQuery, selectedFilter]);
-
-  const MAX_RETRIES = 3
-  const RETRY_DELAY_MS = 1000
-  const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
-
-  const fetchWithRetry = async (url: string, options: RequestInit, retries = MAX_RETRIES): Promise<Response> => {
-    for (let i = 0; i < retries; i++) {
-      try {
-        const response = await fetch(url, options)
-        if (!response.ok && response.status >= 500) throw new Error(`Error del servidor: ${response.status}`)
-        return response
-      } catch (error) {
-        if (i < retries - 1) {
-          console.warn(`Intento ${i + 1} fallido. Reintentando en ${RETRY_DELAY_MS}ms...`)
-          await delay(RETRY_DELAY_MS)
-        } else {
-          throw error
-        }
-      }
-    }
-    throw new Error("No se pudo completar la solicitud después de varios intentos.")
-  }
 
   // --- FUNCIÓN PARA OBTENER ALMACENES ---
   useEffect(() => {
@@ -188,7 +167,7 @@ export default function ProveedoresPage() {
         <div className="max-w-screen-2xl mx-auto px-6 sm:px-8 lg:px-10">
           <div className="flex items-center justify-between h-20">
             <div className="flex items-center space-x-6">
-              <button onClick={() => router.back()} className="p-3 rounded-xl bg-neutral-800/50 hover:bg-neutral-700/50 text-neutral-400 hover:text-white transition-all duration-300 group">
+              <button onClick={() => router.push('/dashboard?section=LAYOUT')} className="p-3 rounded-xl bg-neutral-800/50 hover:bg-neutral-700/50 text-neutral-400 hover:text-white transition-all duration-300 group">
                 <ArrowLeft className="w-5 h-5 transition-transform duration-300 group-hover:-translate-x-0.5" />
               </button>
               <div className="flex items-center space-x-4">
