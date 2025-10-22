@@ -151,7 +151,7 @@ export default function LoginPage() {
 
           <div className="absolute inset-0 flex items-center justify-center">
             <img
-              src={ "/test.jpg"}
+      src={"/test.jpg"}
               alt={  "3D Octopus"}
               //     src={customBackground || "/test.jpg"}
               // alt={customBackground ? "Custom Background" : "3D Octopus"}

@@ -43,6 +43,11 @@ export default function InventarioFisicoPage() {
   const router = useRouter()
 
   const [detalles, setDetalles] = useState<InventarioDetalle[]>([])
+  const [sucursalesAlmacenes, setSucursalesAlmacenes] = useState<any[]>([])
+  const [selectedSucursal, setSelectedSucursal] = useState<number | null>(null)
+  const [availableAlmacenes, setAvailableAlmacenes] = useState<any[]>([])
+  const [selectedAlmacen, setSelectedAlmacen] = useState<number | null>(null)
+  const [scannerEnabled, setScannerEnabled] = useState(false)
   const [requireScan, setRequireScan] = useState(true)
   const [autoFill, setAutoFill] = useState(false)
 
@@ -93,10 +98,45 @@ export default function InventarioFisicoPage() {
 
   const baseURL = useMemo(() => (apiUrl || "").trim().replace(/\/+$/, ""), [apiUrl])
 
+  // Fetch sucursales+almacenes on mount
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        const resp = await fetch(`${baseURL}/sucursales-almacenes`)
+        const j = await resp.json()
+        if (!mounted) return
+        if (j?.ok && Array.isArray(j.data)) {
+          setSucursalesAlmacenes(j.data)
+          // set defaults if only one sucursal
+          const sucursales = Array.from(new Map(j.data.map((r: any) => [r.SUCURSAL_ID, r.NOMBRE_SUCURSAL]))).map(([id, name]) => ({ id, name }))
+          if (sucursales.length === 1) setSelectedSucursal(Number(sucursales[0].id))
+        }
+      } catch (e) {
+        console.warn("Error fetching sucursales-almacenes", e)
+      }
+    })()
+    return () => { mounted = false }
+  }, [baseURL])
+
+  // When selectedSucursal changes, compute available almacenes
+  useEffect(() => {
+    if (!selectedSucursal) {
+      setAvailableAlmacenes([])
+      setSelectedAlmacen(null)
+      return
+    }
+    const filtered = sucursalesAlmacenes.filter((r: any) => Number(r.SUCURSAL_ID) === Number(selectedSucursal))
+    const unique = Array.from(new Map(filtered.map((r: any) => [r.ALMACEN_ID, r.NOMBRE_ALMACEN]))).map(([id, name]) => ({ id, name }))
+    setAvailableAlmacenes(unique)
+    if (unique.length === 1) setSelectedAlmacen(Number(unique[0].id))
+  }, [selectedSucursal, sucursalesAlmacenes])
+
   const focusScanner = useCallback(() => {
     requestAnimationFrame(() => {
       if (
         scannerRef.current &&
+        scannerEnabled &&
         document.activeElement !== claveInputRef.current &&
         document.activeElement !== descripcionInputRef.current &&
         document.activeElement !== cantidadInputRef.current
@@ -106,7 +146,10 @@ export default function InventarioFisicoPage() {
     })
   }, [])
 
+  // Only enable scanner focus and listeners when scannerEnabled === true
   useEffect(() => {
+    if (!scannerEnabled) return
+
     focusScanner()
     const focusInterval = setInterval(() => {
       focusScanner()
@@ -123,7 +166,11 @@ export default function InventarioFisicoPage() {
         target !== descripcionInputRef.current &&
         target !== cantidadInputRef.current &&
         !target.closest('input[type="text"]') &&
-        !target.closest('input[type="number"]')
+        !target.closest('input[type="number"]') &&
+        !target.closest('select') &&
+        !target.closest('option') &&
+        !target.closest('button') &&
+        !target.closest('textarea')
       ) {
         handleInteraction()
       }
@@ -155,7 +202,7 @@ export default function InventarioFisicoPage() {
       document.removeEventListener("mousemove", handleInteraction)
       window.removeEventListener("focus", focusScanner)
     }
-  }, [focusScanner])
+  }, [focusScanner, scannerEnabled])
 
   useEffect(() => {
     if (!timerStarted || !startTime) return
@@ -489,10 +536,11 @@ const searchAndAddArticle = async (clave: string) => {
         // Eliminar el filtro que excluye productos con cantidad <= 0
         // .filter((x) => Number(x.CANTIDAD) > 0)
 
-      const payload = {
-
-    P_DESCRIPCION: descripcion,
+      const payload: any = {
+        P_DESCRIPCION: descripcion,
         P_USUARIO: usuario,
+        P_SUCURSAL_ID: selectedSucursal,
+        P_ALMACEN_ID: selectedAlmacen,
         detalles: detallesComp,
       }
 
@@ -619,6 +667,65 @@ const searchAndAddArticle = async (clave: string) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 font-sans overflow-x-hidden">
+      {/* Selection modal: require sucursal + almacen before starting conteo */}
+      {!selectedAlmacen && (
+        <div className="fixed inset-0 z-70 flex items-center justify-center bg-black/60">
+          <div className="glass rounded-2xl p-6 max-w-lg w-full border border-white/20">
+            <h3 className="text-xl font-semibold text-slate-900">Seleccione Sucursal y Almacén</h3>
+            <p className="text-sm text-slate-600">Antes de iniciar el conteo selecciona la sucursal y el almacén donde se realizará.</p>
+
+            <div className="mt-4 space-y-4">
+              <div>
+                <label className="block text-sm text-slate-700 mb-2">Sucursal</label>
+                <select
+                  className="w-full p-2 border rounded-md"
+                  value={selectedSucursal ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.value
+                    setSelectedSucursal(v ? Number(v) : null)
+                  }}
+                >
+                  <option value="">-- Seleccione --</option>
+                  {Array.from(new Map(sucursalesAlmacenes.map((r: any) => [r.SUCURSAL_ID, r.NOMBRE_SUCURSAL]))).map(([id, name]) => (
+                    <option key={id} value={id}>{name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm text-slate-700 mb-2">Almacén</label>
+                <select
+                  className="w-full p-2 border rounded-md"
+                  value={selectedAlmacen ?? ""}
+                  onChange={(e) => setSelectedAlmacen(e.target.value ? Number(e.target.value) : null)}
+                >
+                  <option value="">-- Seleccione --</option>
+                  {availableAlmacenes.map((a: any) => (
+                    <option key={a.id} value={a.id}>{a.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => {
+                    // if user wants to proceed without selection allow only when almacen selected
+                    if (selectedAlmacen) {
+                      // simply close modal by leaving selectedAlmacen set
+                      setTimeout(() => focusScanner(), 50)
+                    }
+                  }}
+                  disabled={!selectedAlmacen}
+                  className={`px-4 py-2 rounded-lg font-semibold text-white ${selectedAlmacen ? 'bg-teal-600 hover:bg-teal-700' : 'bg-slate-300 text-slate-600 cursor-not-allowed'}`}
+                >
+                  Iniciar conteo
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <input
         ref={scannerRef}
         type="text"
@@ -1107,3 +1214,5 @@ const searchAndAddArticle = async (clave: string) => {
     </div>
   )
 }
+
+  

@@ -192,8 +192,8 @@ export default function SeleccionTipoPremium() {
         if (nm) extractedReceptor = nm[1]
       }
 
-      // Extract products
-      const products: XmlProduct[] = []
+  // Extract products
+  let products: XmlProduct[] = []
       const conceptoRegex = /<cfdi:Concepto[^>]*>/g
       const matches = xmlText.match(conceptoRegex)
 
@@ -228,6 +228,36 @@ export default function SeleccionTipoPremium() {
         })
       }
 
+      // Special-case: if provider is "Grupo El Cachorro", only keep first 8 chars of NoIdentificacion
+      // and aggregate quantities by that truncated key (so scanner will start with that code)
+      const isCachorro = (selectedProvider || "").toString().toLowerCase().includes("cachorro")
+
+      if (isCachorro) {
+        const agg = new Map<string, XmlProduct>()
+        products.forEach((p) => {
+          const raw = (p.noIdentificacion || p.clave || "").toString().trim()
+          const key = raw ? raw.substring(0, 8) : ""
+          if (!key) return
+          const existing = agg.get(key)
+          if (existing) {
+            existing.cantidad = (existing.cantidad || 0) + (p.cantidad || 0)
+            existing.importe = (existing.importe || 0) + (p.importe || 0)
+          } else {
+            // create a new aggregated product; use the truncated key as clave and noIdentificacion
+            agg.set(key, {
+              clave: key,
+              descripcion: p.descripcion || "",
+              cantidad: p.cantidad || 0,
+              valorUnitario: p.valorUnitario || 0,
+              importe: p.importe || 0,
+              noIdentificacion: key,
+            })
+          }
+        })
+
+        products = Array.from(agg.values())
+      }
+
       if (products.length === 0) {
         throw new Error("No se encontraron conceptos válidos en el archivo XML")
       }
@@ -252,7 +282,6 @@ export default function SeleccionTipoPremium() {
         return { ...p, groupSize }
       })
 
-      // If provider is Panam, resolve NoIdentificacion -> CLAVE_ARTICULO (role 17)
       try {
         const isPanam = (selectedProvider || "").toString().toLowerCase().includes("panam")
         if (isPanam) {

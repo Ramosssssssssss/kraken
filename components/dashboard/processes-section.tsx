@@ -59,7 +59,7 @@ type ModuleDef = {
 
 export default function ProcessesSection() {
   const router = useRouter()
-  const { userData } = useCompany()
+  const { userData, companyData } = useCompany()
 
   // Módulos definidos con ID
   const modules: ModuleDef[] = [
@@ -114,8 +114,20 @@ export default function ProcessesSection() {
   // Permisos desde el login (normalizados)
   const allowed = new Set<number>(userData?.modulosKrknArr ?? [])
 
-  // Regla: si viene una lista no vacía, filtra; si no viene nada, muestra todo (para no bloquear)
-const effectiveModules = modules // << siempre muestra todos
+  // Regla especial: para el cliente GOUMAM mostramos únicamente el módulo snMicro (id 5).
+  // Para cualquier otro cliente mostramos todos los módulos.
+  const isGoumam = (() => {
+    try {
+      const code = (companyData?.codigo || "").toString().toLowerCase()
+      const name = (companyData?.nombre || "").toString().toLowerCase()
+      return code.includes("goumam") || name.includes("goumam")
+    } catch {
+      return false
+    }
+  })()
+
+  // For GOUMAM show modules with id 2 (ACOMODO) and 5 (SNMICRO)
+  const effectiveModules = isGoumam ? modules.filter((m) => [2, 5].includes(m.id)) : modules
 
   const principales = effectiveModules.filter((m) => m.group === "principal")
   const alternativos = effectiveModules.filter((m) => m.group === "alternativo")
@@ -128,9 +140,7 @@ const effectiveModules = modules // << siempre muestra todos
         <div className="space-y-1 pb-4 border-b border-white/10">
           <h2 className="text-2xl font-semibold text-white">Procesos y Módulos</h2>
           <p className="text-sm text-white/40">Gestiona tus operaciones de almacén</p>
-          {allowed.size > 0 && (
-            <p className="text-xs text-white/30">Módulos permitidos: {[...allowed].sort().join(", ")}</p>
-          )}
+          
         </div>
 
         <div className="space-y-8">
