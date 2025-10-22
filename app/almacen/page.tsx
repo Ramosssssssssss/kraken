@@ -94,7 +94,7 @@ export default function AlmacenesPage() {
         const data = await response.json()
         if (response.ok && data.almacenes) {
           // Simular que todos los almacenes vienen con estatus 'A' (Activo)
-          setAlmacenes(data.almacenes.map(a => ({ ...a, ESTATUS: 'A' })))
+          setAlmacenes((data.almacenes as Almacen[]).map(a => ({ ...a, ESTATUS: 'A' })))
         } else {
           setError(data.message || "Error al obtener los almacenes")
         }
