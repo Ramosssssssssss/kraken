@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Eye, Settings, Printer, Plus, Trash2, Save, BookOpen, Loader2, AlertCircle, Minus, ArrowLeft, RotateCcw } from "lucide-react"
+import { Eye, Settings, Printer, Plus, Trash2, Save, BookOpen, Loader2, AlertCircle, Minus, ArrowLeft, RotateCcw, Download } from "lucide-react"
 
 import Noty from "noty";
 import "noty/lib/noty.css";
@@ -502,8 +502,8 @@ function buildZplFromState(
   const barcodeWidthDots = (modules: number, moduleW: number) => modules * moduleW;
 
   const QR_CAP = [
-    14,26,42,62,84,106,122,152,180,213, 251,287,331,362,412,450,504,560,624,666,
-    711,779,857,911,997,1059,1125,1190,1264,1370, 1452,1538,1628,1722,1809,1911,1989,2099,2213,2331
+    14, 26, 42, 62, 84, 106, 122, 152, 180, 213, 251, 287, 331, 362, 412, 450, 504, 560, 624, 666,
+    711, 779, 857, 911, 997, 1059, 1125, 1190, 1264, 1370, 1452, 1538, 1628, 1722, 1809, 1911, 1989, 2099, 2213, 2331
   ];
 
   const wmm = parseFloat(cfg.width || "50");
@@ -1528,7 +1528,7 @@ ${bodyHtml}
                     <Label htmlFor="showDesc" className="text-gray-100 font-medium">Mostrar descripción</Label>
                     <div className="flex items-center gap-2 bg-gray-700 border border-gray-500 rounded-md px-3 py-2">
                       <input id="showDesc" type="checkbox" checked={!!labelConfig.showDesc} onChange={(e) => handleConfigChange("showDesc", e.target.checked)} className="h-4 w-4 accent-purple-600" />
-                      <span className="text-gray-200 text-sm">Imprimir texto debajo del código</span>
+                      <span className="text-gray-200 text-sm">Mostrar descripción</span>
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -1544,18 +1544,32 @@ ${bodyHtml}
 
                 <div className="flex gap-3 pt-2 sm:pt-4 flex-col sm:flex-row">
                   <Button onClick={handleSmartPrint} className="bg-gray-600 hover:bg-gray-700 text-white border-0 w-full sm:flex-1" disabled={articles.length === 0}>
-                    <Printer className="w-4 h-4 mr-2" /> Imprimir (Browser/Print)
+                    <Printer className="w-4 h-4 mr-2" /> Imprimir
                   </Button>
                 </div>
 
-                <div className="flex gap-3 pt-2 sm:pt-4 flex-col sm:flex-row">
-                  <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white border-0 w-full sm:w-auto" onClick={onPickExcelClick} title="Importar desde Excel/CSV">
+                <div className="grid grid-cols-2 gap-3 pt-2 sm:pt-4">
+                  <Button
+                    size="sm"
+                    className="w-full border border-purple-400/40 text-purple-400 bg-transparent  hover:bg-purple-700/50 hover:text-white"
+                    onClick={onPickExcelClick}
+                    title="Importar desde Excel/CSV"
+                  >
                     <Plus className="w-4 h-4 mr-2" /> Importar Excel
                   </Button>
-                  <Button size="sm" variant="ghost" className="text-gray-300 hover:text-white w-full sm:w-auto" onClick={downloadTemplate} title="Descargar plantilla CSV">
+
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="w-full text-gray-300 hover:text-white transition-colors border border-gray-400 hover:border-white hover:bg-gray-700"
+                    onClick={downloadTemplate}
+                    title="Descargar plantilla CSV"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
                     Descargar plantilla
                   </Button>
                 </div>
+
               </CardContent>
             </Card>
 

@@ -103,35 +103,153 @@ grid-area: 6 / 1 / 7 / 2;
       <div class="pm">${escapeHTML(money(a.precio))}</div>
       <div class="pl">Distribuidor: ${escapeHTML(money(a.distribuidor))}</div>
     </div></div></div>`,
-  preview: (a) => (
+  preview: (a) => {
+  // Conversión simple mm → px para el QR en la vista previa (~96 DPI)
+  const mmToPx = (mm: number) => Math.round((mm / 25.4) * 96)
+
+  const BStyle = {
+    fontWeight: 700 as const,
+    WebkitTextStroke: "0.2px #000",
+    textShadow:
+      "0 0 0.25px #000, 0.25px 0 0.25px #000, -0.25px 0 0.25px #000, 0 0.25px 0.25px #000, 0 -0.25px 0.25px #000",
+  }
+
+  return (
     <div
-      className="w-full h-full grid bg-[#d2c600]"
+      className="p"
       style={{
-        gridTemplateColumns: "repeat(4, 1fr)",
-        gridTemplateRows: "repeat(6, minmax(0, auto))",
-        gap: "3px 8px",
-        fontSize: 12,
-        lineHeight: 1.05,
+        margin: "0px",
+        width: "69.9mm",
+        height: "25.4mm",
+        pageBreakAfter: "always",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontFamily: "Arial, Helvetica, sans-serif",
       }}
     >
-      <div className="col-[1/4] row-[1/3] font-bold flex items-center">{a.nombre}</div>
-      <div className="col-[1/2] row-[3/4]"><span className="font-semibold">G - {Number.isFinite(a.inventarioMaximo) ? a.inventarioMaximo : 0}</span></div>
-      <div className="col-[1/2] row-[4/5]"><span className="font-semibold">{a.estatus ?? "-"}</span></div>
-      <div className="col-[1/2] row-[5/6]"><span className="font-semibold">{a.unidad}</span></div>
+      <div
+        className="l"
+        style={{
+          margin: "0px",
+          width: "69.9mm",
+          height: "25.4mm",
+          padding: "1mm", // puedes ajustar si usas 'pad' dinámico en runtime
+          display: "flex",
+        }}
+      >
+        <div
+          className="g"
+          style={{
+            margin: "0px",
+            width: "100%",
+            height: "100%",
+            display: "grid",
+            gridTemplateColumns: "repeat(4, 1fr)",
+            gridTemplateRows: "repeat(6, minmax(0, auto))",
+            fontSize: "11px",
+            lineHeight: 1.05,
+            fontWeight: 700,
+            overflow: "hidden",
+        
+          }}
+        >
+          {/* .desc (1/1/3/5) */}
+          <div
+            className="desc"
+            style={{
+              gridArea: "1 / 1 / 3 / 5",
+              fontWeight: 700,
+              textAlign: "left",
+              fontSize: "12px",
+              lineHeight: 1.2,
+              whiteSpace: "normal",
+              overflowWrap: "break-word",
+              display: "flex",
+              alignItems: "center",
+            }}
+            dangerouslySetInnerHTML={{ __html: escapeHTML(a?.nombre ?? "") }}
+          />
 
-      {/* Bloque código + QR en preview (mismo layout que impresión) */}
-      <div className="col-[1/3] row-[6/7] flex items-center gap-2">
-        <div style={{ width: 140, height: 140 }}>
-          {/* ~10px = 1mm a ojo en preview; ajusta si quieres */}
-          <QRPreview value={a.codigo} sizePx={140} />
+          {/* .im (3/1/4/2) */}
+          <div className="im" style={{ gridArea: "3 / 1 / 4 / 2" }}>
+            <span style={BStyle}>
+              G - {Number.isFinite(a?.inventarioMaximo as number) ? a?.inventarioMaximo : 0}
+            </span>
+          </div>
+
+          {/* .es (4/1/5/2) */}
+          <div className="es" style={{ gridArea: "4 / 1 / 5 / 2" }}>
+            <span style={BStyle} dangerouslySetInnerHTML={{ __html: escapeHTML(a?.estatus ?? "-") }} />
+          </div>
+
+          {/* .un (5/1/6/2) */}
+          <div className="un" style={{ gridArea: "5 / 1 / 6 / 2" }}>
+            <span style={BStyle} dangerouslySetInnerHTML={{ __html: escapeHTML(a?.unidad ?? "") }} />
+          </div>
+
+          {/* .co (4/2/6/3) → QR de 12mm */}
+          <div
+            className="co"
+            style={{
+              gridArea: "4 / 2 / 6 / 3",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-start",
+              gap: "6px",
+            }}
+          >
+            <div style={{ width: "12mm", height: "12mm", display: "block" }}>
+              <QRPreview value={String(a?.codigo ?? "")} sizePx={mmToPx(12)} />
+            </div>
+          </div>
+
+          {/* .fe (3/3/4/5) */}
+          <div className="fe" style={{ gridArea: "3 / 3 / 4 / 5", textAlign: "right" }}>
+            <span style={BStyle} dangerouslySetInnerHTML={{ __html: escapeHTML(a?.fecha ?? "") }} />
+          </div>
+
+          {/* .pm (4/3/6/5) */}
+          <div
+            className="pm"
+            style={{
+              gridArea: "4 / 3 / 6 / 5",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+              fontWeight: 700,
+              fontSize: "29px",
+            }}
+          >
+            <span dangerouslySetInnerHTML={{ __html: escapeHTML(money(a?.precio)) }} />
+          </div>
+
+          {/* .pl (6/3/7/5) */}
+          <div className="pl" style={{ gridArea: "6 / 3 / 7 / 5", textAlign: "right", fontWeight: 600 }}>
+            <span
+              dangerouslySetInnerHTML={{ __html: `Distribuidor: ${escapeHTML(money(a?.distribuidor))}` }}
+            />
+          </div>
+
+          {/* .co2 (6/1/7/2) → texto del código aparte */}
+          <div className="co2" style={{ gridArea: "6 / 1 / 7 / 2" }}>
+            <span
+              style={{
+                ...BStyle,
+                display: "inline-block",
+                maxWidth: "100%",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+              dangerouslySetInnerHTML={{ __html: escapeHTML(String(a?.codigo ?? "")) }}
+            />
+          </div>
         </div>
-        <span className="font-semibold">{a.codigo}</span>
       </div>
-
-      <div className="col-[2/4] row-[3/4] text-right"><span className="font-semibold">{a.fecha}</span></div>
-      <div className="col-[2/4] row-[4/6] flex items-center justify-end font-extrabold text-[35px]">{money(a.precio)}</div>
-      <div className="col-[3/4] row-[6/7] text-right font-semibold">Distribuidor: {money(a.distribuidor)}</div>
     </div>
   )
+},
+
 }
 export default Prueba

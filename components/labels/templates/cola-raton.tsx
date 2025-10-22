@@ -90,26 +90,168 @@ export const ColaRaton: LabelTemplate = {
       </div>
     </div>`,
   preview: (a) => (
-    <div className="w-full h-full grid grid-cols-2 grid-rows-2 text-[8px]">
-      <div className="flex flex-col items-center justify-center q1">
-        <div className="font-bold text-left truncate w-full">{a.nombre}</div>
-        <div className="text-left">{a.codigo}</div>
-        <div className="text-left">{a.unidad}</div>
-        <div className="text-left">{a.estatus ?? "-"}</div>
-        <div className="text-right">{a.fecha}</div>
-        <div className="font-extrabold text-center">{money(a.precio)}</div>
-        <div className="text-right">{money(a.distribuidor)}</div>
+    <div
+      className="p"
+      style={{
+        // Estructura general como en renderHTML/css
+        display: "grid",
+        gridTemplateColumns: "repeat(2, 1fr)",
+        gridTemplateRows: "repeat(2, 1fr)",
+        alignItems: "stretch",
+        justifyItems: "stretch",
+        fontSize: "8px",
+        width: "60mm",
+        height: "25.4mm",
+        paddingTop: "1mm",
+      }}
+    >
+      {/* Q1: arriba derecha */}
+      <div
+        className="q1"
+        style={{
+          gridArea: "1 / 2 / 2 / 3",
+          width: "30mm",
+          height: "10.7mm",
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: ".5mm",
+          padding: "1mm",
+        }}
+      >
+        {/* Descripción: ocupa 1/1/3/4 y 7px */}
+        <div
+          className="desc"
+          style={{
+            gridArea: "1 / 1 / 3 / 4",
+            textAlign: "left",
+            fontSize: "7px",
+            marginTop: "0mm",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+          title={a.nombre}
+          dangerouslySetInnerHTML={{ __html: escapeHTML(a.nombre) }}
+        />
+
+        {/* Código */}
+        <div
+          style={{
+            gridArea: "3 / 1 / 4 / 2",
+            fontWeight: 700,
+            textAlign: "left",
+            fontSize: "6px",
+            margin: 0,
+            padding: 0,
+            letterSpacing: ".5px",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+          dangerouslySetInnerHTML={{ __html: escapeHTML(a.codigo) }}
+        />
+
+        {/* Unidad */}
+        <div
+          style={{
+            gridArea: "4 / 1 / 5 / 2",
+            fontWeight: 700,
+            textAlign: "left",
+            fontSize: "6px",
+            margin: 0,
+            padding: 0,
+          }}
+          dangerouslySetInnerHTML={{ __html: escapeHTML(a.unidad) }}
+        />
+
+        {/* Estatus */}
+        <div
+          style={{
+            gridArea: "5 / 1 / 6 / 2",
+            fontWeight: 800,
+            textAlign: "left",
+            fontSize: "6px",
+            margin: 0,
+            padding: 0,
+          }}
+          dangerouslySetInnerHTML={{ __html: escapeHTML(a.estatus ?? "-") }}
+        />
+
+        {/* Fecha */}
+        <div
+          style={{
+            gridArea: "3 / 2 / 4 / 4",
+            textAlign: "right",
+            fontSize: "6px",
+            margin: 0,
+            padding: 0,
+          }}
+          dangerouslySetInnerHTML={{ __html: escapeHTML(a.fecha) }}
+        />
+
+        {/* Precio */}
+        <div
+          style={{
+            gridArea: "4 / 2 / 5 / 4",
+            fontWeight: 800,
+            textAlign: "center",
+            margin: 0,
+            padding: 0,
+          }}
+          dangerouslySetInnerHTML={{ __html: escapeHTML(money(a.precio)) }}
+        />
+
+        {/* Distribuidor */}
+        <div
+          style={{
+            gridArea: "5 / 2 / 6 / 4",
+            textAlign: "right",
+            fontSize: "6px",
+            margin: 0,
+            padding: 0,
+          }}
+          dangerouslySetInnerHTML={{
+            __html: `Distr: ${escapeHTML(money(a.distribuidor))}`,
+          }}
+        />
       </div>
-      <div></div>
-      <div className="flex items-center justify-center q3">
-        <div className="bc-fit w-full h-full flex items-center justify-center">
+
+      {/* Q3: abajo derecha (código de barras) */}
+      <div
+        className="q3"
+        style={{
+          gridArea: "2 / 2 / 3 / 3",
+          margin: "0 auto",
+          width: "26mm",
+          height: "10.7mm",
+          marginTop: "2mm",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          className="bc-fit"
+          style={{
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
           {/* SVG que JsBarcode llenará en preview */}
-          <svg className="bc jsb" data-code={a.codigo} />
+          <svg
+            className="bc jsb"
+            data-code={a.codigo}
+            style={{ width: "100%", height: "100%", display: "flex" }}
+          />
         </div>
       </div>
-      <div></div>
     </div>
-  )
+  ),
+
 }
 
 export default ColaRaton

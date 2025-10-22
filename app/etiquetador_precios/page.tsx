@@ -998,7 +998,7 @@ ${template.css(w, h, pad)}
 
               <CardContent className="p-4 sm:p-6 space-y-6">
                 <div className="grid sm:grid-cols-2 gap-4 items-end">
-                  <div className="space-y-2">
+                  <div className="space-y-2 sm:col-span-2">
                     <Label className="text-gray-100 font-medium flex items-center gap-2">
                       <LayoutTemplate className="w-4 h-4" />Tipo de etiqueta
                     </Label>
@@ -1093,20 +1093,23 @@ ${template.css(w, h, pad)}
                     Imprimir ({totalLabels})
                   </Button>
 
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-2 sm:gap-4">
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full justify-center h-10 sm:h-11 border-gray-600 text-white"
+                    className="w-full justify-center h-10 sm:h-11 border-gray-600 text-white bg-transparent hover:bg-gray-700 hover:border-white"
                     onClick={downloadTemplate}
                     title="Descargar plantilla con solo CODIGO y CANTIDAD"
                   >
-                    <Download className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                    <Download className="w-4 h-4 sm:w-5 sm:h-5 mr-2 " />
                     <span>Descargar plantilla</span>
                   </Button>
 
                   <Button
                     type="button"
-                    className="w-full justify-center h-10 sm:h-11 bg-purple-600 hover:bg-purple-700 text-white border-0"
+                    className="w-full justify-center h-10 sm:h-11 hover:bg-purple-600/20 bg-transparent text-purple-400/80 border border-purple-400/40 hover:text-white hover:border-purple-400"
                     disabled={!sucursalId || importing}
                     onClick={() => fileRef.current?.click()}
                     title="Importar desde Excel o CSV"
@@ -1123,15 +1126,18 @@ ${template.css(w, h, pad)}
                     </span>
                   </Button>
 
-                  <Button
+                </div>
+                
+                <div className="w-full">
+                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full justify-center h-10 sm:h-11 border-gray-600 text-white"
+                    className="w-full justify-center h-10 sm:h-11 text-gray-300 bg-transparent hover:bg-gray-700"
                     onClick={() => setUbicModalOpen(true)}
                     title="Buscar por ubicación"
                   >
                     <Search className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                    <span>Buscar por ubicación</span>
+                    <span>Por Ubicación</span>
                   </Button>
                 </div>
 
@@ -1250,7 +1256,7 @@ ${template.css(w, h, pad)}
                             maxWidth: naturalW,
                             height: "auto",
                             aspectRatio: `${naturalW} / ${naturalH}`,
-                            padding: 6,
+                            padding: 0,
                             overflow: "hidden",
                           }}
                         >

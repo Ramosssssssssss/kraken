@@ -1,0 +1,20 @@
+[2025-10-22 16:16:04] [INFO] [wzlvgedn] GET /api/tamano_etiqueta
+[2025-10-22 16:16:04] [DEBUG] [wzlvgedn] Listando todas las etiquetas
+[2025-10-22 16:16:04] [DEBUG] SQL: SELECT ek.ETIQUETA_ID, ek.NOMBRE, ek.WIDTH, ek.HEIGHT, ek.MARGEN, ek.ALTO_BARRA, ek.FONT_SIZE_CLAVE_ARTICULO FROM ETIQUETAS_KRKN ek ORDER BY ek.NOMBRE | params: []
+[2025-10-22 16:16:06] [ERROR] Error en consulta Firebird: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-10-22 16:16:06] [ERROR] Error GET /api/tamano_etiqueta: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+[2025-10-22 16:16:06] [DEBUG] Stack: Error: Dynamic SQL Error, SQL error code = -204, Table unknown, ETIQUETAS_KRKN, At line 10, column 12
+    at doCallback (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/callback.js:23:21)
+    at eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:172:21)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:229:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at loop (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:227:33)
+    at parseOpResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:515:29)
+    at decodeResponse (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:237:24)
+    at Socket.eval (webpack-internal:///(rsc)/./node_modules/.pnpm/node-firebird@1.1.9/node_modules/node-firebird/lib/wire/connection.js:149:13)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
