@@ -110,7 +110,6 @@ export default function LoginPage() {
         setError(data.message || "Credenciales inválidas")
       }
     } catch (err) {
-      console.error("Login error:", err)
       setError("Error de conexión. Intenta nuevamente.")
     } finally {
       setIsLoading(false)
