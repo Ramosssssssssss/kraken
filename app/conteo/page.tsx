@@ -835,57 +835,56 @@ export default function InventarioFisicoPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 font-sans overflow-x-hidden">
-      {/* ⚠️ MODAL COMENTADO TEMPORALMENTE PARA PRUEBAS */}
       {/* Selection modal: require sucursal + almacen before starting conteo */}
-      {/* {!selectedAlmacen && (
-        <div className="fixed inset-0 z-70 flex items-center justify-center bg-black/60">
-          <div className="glass rounded-2xl p-6 max-w-lg w-full border border-white/20">
-            <h3 className="text-xl font-semibold text-slate-900">Seleccione Sucursal y Almacén</h3>
-            <p className="text-sm text-slate-600">Antes de iniciar el conteo selecciona la sucursal y el almacén donde se realizará.</p>
+      {!selectedAlmacen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="rounded-2xl border border-white/20 bg-gradient-to-br from-gray-900/95 to-black/95 backdrop-blur-xl p-6 max-w-lg w-full shadow-2xl">
+            <h3 className="text-xl font-semibold text-white mb-2">Seleccione Sucursal y Almacén</h3>
+            <p className="text-sm text-gray-400 mb-6">Antes de iniciar el conteo selecciona la sucursal y el almacén donde se realizará.</p>
 
-            <div className="mt-4 space-y-4">
+            <div className="space-y-4">
               <div>
-                <label className="block text-sm text-slate-700 mb-2">Sucursal</label>
+                <label className="block text-sm text-white/70 mb-2">Sucursal</label>
                 <select
-                  className="w-full p-2 border rounded-md"
+                  className="w-full p-3 border border-white/10 rounded-lg bg-white/5 text-white focus:border-purple-500/50 focus:outline-none"
                   value={selectedSucursal ?? ""}
                   onChange={(e) => {
                     const v = e.target.value
                     setSelectedSucursal(v ? Number(v) : null)
                   }}
                 >
-                  <option value="">-- Seleccione --</option>
+                  <option value="" className="bg-gray-900">-- Seleccione --</option>
                   {Array.from(new Map(sucursalesAlmacenes.map((r: any) => [r.SUCURSAL_ID, r.NOMBRE_SUCURSAL]))).map(([id, name]) => (
-                    <option key={id} value={id}>{name}</option>
+                    <option key={id} value={id} className="bg-gray-900">{name}</option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm text-slate-700 mb-2">Almacén</label>
+                <label className="block text-sm text-white/70 mb-2">Almacén</label>
                 <select
-                  className="w-full p-2 border rounded-md"
+                  className="w-full p-3 border border-white/10 rounded-lg bg-white/5 text-white focus:border-purple-500/50 focus:outline-none"
                   value={selectedAlmacen ?? ""}
                   onChange={(e) => setSelectedAlmacen(e.target.value ? Number(e.target.value) : null)}
                 >
-                  <option value="">-- Seleccione --</option>
+                  <option value="" className="bg-gray-900">-- Seleccione --</option>
                   {availableAlmacenes.map((a: any) => (
-                    <option key={a.id} value={a.id}>{a.name}</option>
+                    <option key={a.id} value={a.id} className="bg-gray-900">{a.name}</option>
                   ))}
                 </select>
               </div>
 
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-2 pt-4">
                 <button
                   onClick={() => {
-                    // if user wants to proceed without selection allow only when almacen selected
                     if (selectedAlmacen) {
-                      // simply close modal by leaving selectedAlmacen set
+                      // Activar el scanner cuando se inicie el conteo
+                      setScannerEnabled(true)
                       setTimeout(() => focusScanner(), 50)
                     }
                   }}
                   disabled={!selectedAlmacen}
-                  className={`px-4 py-2 rounded-lg font-semibold text-white ${selectedAlmacen ? 'bg-teal-600 hover:bg-teal-700' : 'bg-slate-300 text-slate-600 cursor-not-allowed'}`}
+                  className={`px-6 py-3 rounded-lg font-semibold transition-all ${selectedAlmacen ? 'bg-gradient-to-r from-purple-500/30 to-blue-500/30 hover:from-purple-500/40 hover:to-blue-500/40 text-white' : 'bg-white/5 text-gray-500 cursor-not-allowed'}`}
                 >
                   Iniciar conteo
                 </button>
@@ -893,7 +892,7 @@ export default function InventarioFisicoPage() {
             </div>
           </div>
         </div>
-      )} */}
+      )}
 
       <input
         ref={scannerRef}
@@ -1812,8 +1811,23 @@ export default function InventarioFisicoPage() {
               </button>
               <button
                 onClick={() => {
+                  const continuar = confirm(
+                    "¿Deseas continuar con la misma sucursal y almacén?\n\n" +
+                    "✅ Aceptar = Continuar con la misma ubicación\n" +
+                    "❌ Cancelar = Seleccionar otra sucursal/almacén"
+                  );
+                  
                   setSuccessModal(null);
-                  setTimeout(() => focusScanner(), 50);
+                  
+                  if (continuar) {
+                    // Continuar con la misma sucursal/almacén
+                    setTimeout(() => focusScanner(), 50);
+                  } else {
+                    // Resetear selección para elegir nuevamente
+                    setSelectedSucursal(null);
+                    setSelectedAlmacen(null);
+                    setScannerEnabled(false);
+                  }
                 }}
                 className="px-4 py-2 rounded-lg border border-purple-500/20 bg-purple-500/10 hover:bg-purple-500/20 font-light text-sm tracking-wide text-purple-400"
               >
