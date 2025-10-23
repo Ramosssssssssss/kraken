@@ -1,35 +1,40 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useMemo, useState } from "react"
-import { Eye, EyeOff, User, Lock, Loader2 } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { useCompany } from "@/lib/company-context"
-import { parseModulesCSV } from "@/lib/parse-mods"
-import { fetchJsonWithRetry } from "@/lib/fetch-with-retry"
+import type React from "react";
+import { useMemo, useState } from "react";
+import { Eye, EyeOff, User, Lock, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useCompany } from "@/lib/company-context";
+import { parseModulesCSV } from "@/lib/parse-mods";
+import { fetchJsonWithRetry } from "@/lib/fetch-with-retry";
 
 function getTenantFromHost(hostname: string) {
-  const parts = hostname.split(".")
-  return parts.length >= 3 ? (parts[0] || "").toLowerCase() : null
+  const parts = hostname.split(".");
+  return parts.length >= 3 ? (parts[0] || "").toLowerCase() : null;
 }
 
 export default function LoginPage() {
-  const router = useRouter()
+  const router = useRouter();
 
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const { companyData, apiUrl: apiUrlFromCtx, isReady, setUserData } = useCompany()
+  const {
+    companyData,
+    apiUrl: apiUrlFromCtx,
+    isReady,
+    setUserData,
+  } = useCompany();
 
   const derivedApiUrl = useMemo(() => {
-    if (apiUrlFromCtx) return apiUrlFromCtx
-    if (typeof window === "undefined") return null
-    const tenant = getTenantFromHost(window.location.hostname)
-    return null
-  }, [apiUrlFromCtx])
+    if (apiUrlFromCtx) return apiUrlFromCtx;
+    if (typeof window === "undefined") return null;
+    const tenant = getTenantFromHost(window.location.hostname);
+    return null;
+  }, [apiUrlFromCtx]);
 
   const particles = useMemo(
     () =>
@@ -39,26 +44,26 @@ export default function LoginPage() {
         delay: `${Math.random() * 3}s`,
         duration: `${2 + Math.random() * 2}s`,
       })),
-    [],
-  )
+    []
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setIsLoading(true)
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
 
-    const apiUrl = derivedApiUrl
+    const apiUrl = derivedApiUrl;
 
     if (!apiUrl) {
-      setError("No se pudo obtener la URL de la API para este subdominio.")
-      setIsLoading(false)
-      return
+      setError("No se pudo obtener la URL de la API para este subdominio.");
+      setIsLoading(false);
+      return;
     }
 
     if (!email || !password) {
-      setError("Usuario y contraseña son requeridos")
-      setIsLoading(false)
-      return
+      setError("Usuario y contraseña son requeridos");
+      setIsLoading(false);
+      return;
     }
 
     try {
@@ -66,40 +71,40 @@ export default function LoginPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user: email, password }),
-      })
+      });
 
       if (data.message === "✅ Login exitoso") {
-        const modulosArr = parseModulesCSV(data.user?.MODULOS_KRKN)
+        const modulosArr = parseModulesCSV(data.user?.MODULOS_KRKN);
         const userDataToSave = {
           ...data.user,
           user: email,
           password: password,
           MODULOS_KRKN: data.user?.MODULOS_KRKN ?? null,
           modulosKrknArr: modulosArr,
-        }
-        setUserData(userDataToSave)
+        };
+        setUserData(userDataToSave);
 
-        router.replace("/dashboard")
+        router.replace("/dashboard");
       } else {
-        setError(data.message || "Credenciales inválidas")
+        setError(data.message || "Credenciales inválidas");
       }
     } catch (err) {
-      setError("Error de conexión. Intenta nuevamente.")
+      setError("Error de conexión. Intenta nuevamente.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   if (!isReady) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
       </div>
-    )
+    );
   }
 
-  // const customLogo = companyData?.branding?.logo
-  // const customBackground = companyData?.branding?.background
+  const customLogo = companyData?.branding?.logo;
+  const customBackground = companyData?.branding?.background;
 
   return (
     <>
@@ -124,12 +129,14 @@ export default function LoginPage() {
 
           <div className="absolute inset-0 flex items-center justify-center">
             <img
-      src={"/test.jpg"}
-              alt={  "3D Octopus"}
-              //     src={customBackground || "/test.jpg"}
-              // alt={customBackground ? "Custom Background" : "3D Octopus"}
+              src={customBackground || "/test.jpg"}
+              alt={customBackground ? "Custom Background" : "3D Octopus"}
               className="w-full h-full object-cover"
               style={{ filter: "drop-shadow(0 0 30px rgba(43, 21, 85, 0.74))" }}
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = "/test.jpg";
+              }}
             />
           </div>
         </div>
@@ -147,22 +154,26 @@ export default function LoginPage() {
               <div className="text-center space-y-4">
                 <div className="flex justify-center">
                   <img
-                    src={"/1D1.png"}
-                    alt={ "Kraken Logo"}
-                    className="w-[200px] h-[200px] object-contain"
-                  />
-                    {/* <img
                     src={customLogo || "/1D1.png"}
                     alt={customLogo ? "Company Logo" : "Kraken Logo"}
                     className="w-[200px] h-[200px] object-contain"
-                  /> */}
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = "/1D1.png";
+                    }}
+                  />
                 </div>
-                <p className="text-gray-500 text-3xl mt-2 font-bold">Inicia Sesión</p>
+                <p className="text-gray-500 text-3xl mt-2 font-bold">
+                  Inicia Sesión
+                </p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
-                  <label htmlFor="email" className="text-gray-300 text-sm font-medium">
+                  <label
+                    htmlFor="email"
+                    className="text-gray-300 text-sm font-medium"
+                  >
                     Usuario:
                   </label>
                   <div className="relative">
@@ -181,7 +192,10 @@ export default function LoginPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="password" className="text-gray-300 text-sm font-medium">
+                  <label
+                    htmlFor="password"
+                    className="text-gray-300 text-sm font-medium"
+                  >
                     Contraseña:
                   </label>
                   <div className="relative">
@@ -202,12 +216,20 @@ export default function LoginPage() {
                       className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-300"
                       disabled={isLoading}
                     >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      {showPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
                     </button>
                   </div>
                 </div>
 
-                {error && <div className="text-red-400 text-sm text-center">{error}</div>}
+                {error && (
+                  <div className="text-red-400 text-sm text-center">
+                    {error}
+                  </div>
+                )}
 
                 <button
                   type="submit"
@@ -227,7 +249,9 @@ export default function LoginPage() {
 
               {(apiUrlFromCtx || derivedApiUrl) && (
                 <div className="text-center">
-                  <p className="text-gray-600 text-xs">API: {apiUrlFromCtx || derivedApiUrl}</p>
+                  <p className="text-gray-600 text-xs">
+                    API: {apiUrlFromCtx || derivedApiUrl}
+                  </p>
                 </div>
               )}
             </div>
@@ -235,10 +259,14 @@ export default function LoginPage() {
 
           {/* Logo BS fijo abajo */}
           <div className="flex justify-center mt-auto">
-            <img src="/testbs.png" alt="BS Logo" className="w-[40px] h-[20px] object-contain" />
+            <img
+              src="/testbs.png"
+              alt="BS Logo"
+              className="w-[40px] h-[20px] object-contain"
+            />
           </div>
         </div>
       </div>
     </>
-  )
+  );
 }
