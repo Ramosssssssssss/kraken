@@ -12,7 +12,7 @@ interface Toast {
 }
 
 export default function BrandingConfig() {
-  const { companyData, apiUrl } = useCompany()
+  const { companyData, apiUrl, setCompanyData } = useCompany()
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [backgroundPreview, setBackgroundPreview] = useState<string | null>(null)
   const [logoFile, setLogoFile] = useState<File | null>(null)
@@ -32,34 +32,34 @@ export default function BrandingConfig() {
       return
     }
 
-    // const fetchBranding = async () => {
-    //   try {
-    //     const response = await fetch(`${apiUrl}/get-branding/${companyData.codigo}`)
+     const fetchBranding = async () => {
+       try {
+         const response = await fetch(`${apiUrl}/get-branding/${companyData.codigo}`)
 
-    //     if (!response.ok) {
-    //       throw new Error(`HTTP error! status: ${response.status}`)
-    //     }
+         if (!response.ok) {
+           throw new Error(`HTTP error! status: ${response.status}`)
+         }
 
-    //     const data = await response.json()
+         const data = await response.json()
 
-    //     if (data.ok && data.branding) {
-    //       if (data.branding.logo) {
-    //         setLogoPreview(data.branding.logo)
-    //       }
-    //       if (data.branding.background) {
-    //         setBackgroundPreview(data.branding.background)
-    //       }
-    //     }
-    //     setConnectionError(false)
-    //   } catch (error) {
-    //     console.error("Error fetching branding:", error)
-    //     setConnectionError(true)
-    //   } finally {
-    //     setIsFetching(false)
-    //   }
-    // }
+         if (data.ok && data.branding) {
+           if (data.branding.logo) {
+             setLogoPreview(data.branding.logo)
+           }
+           if (data.branding.background) {
+             setBackgroundPreview(data.branding.background)
+           }
+         }
+         setConnectionError(false)
+       } catch (error) {
+         console.error("Error fetching branding:", error)
+         setConnectionError(true)
+       } finally {
+         setIsFetching(false)
+       }
+     }
 
-    // fetchBranding()
+     fetchBranding()
   }, [apiUrl, companyData])
 
   const showToast = (type: "success" | "error", message: string) => {
@@ -139,6 +139,15 @@ export default function BrandingConfig() {
         setLogoFile(null)
         setBackgroundFile(null)
         setConnectionError(false)
+        
+        // Actualizar el contexto con el nuevo branding
+        if (companyData && data.branding) {
+          const updatedCompanyData = {
+            ...companyData,
+            branding: data.branding
+          }
+          setCompanyData(updatedCompanyData)
+        }
       } else {
         showToast("error", data.message || "Error al guardar")
       }
@@ -225,9 +234,14 @@ export default function BrandingConfig() {
             <div className="relative w-full h-48 bg-black/40 border border-white/10 rounded-xl flex items-center justify-center overflow-hidden">
               {logoPreview ? (
                 <img
-                  src={logoPreview || "/placeholder.svg"}
+                  src={logoPreview}
                   alt="Logo preview"
                   className="object-contain max-h-full max-w-full"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement
+                    target.style.display = 'none'
+                    setLogoPreview(null)
+                  }}
                 />
               ) : (
                 <div className="text-center text-gray-500">
@@ -274,9 +288,14 @@ export default function BrandingConfig() {
             <div className="relative w-full h-48 bg-black/40 border border-white/10 rounded-xl overflow-hidden">
               {backgroundPreview ? (
                 <img
-                  src={backgroundPreview || "/placeholder.svg"}
+                  src={backgroundPreview}
                   alt="Background preview"
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement
+                    target.style.display = 'none'
+                    setBackgroundPreview(null)
+                  }}
                 />
               ) : (
                 <div className="flex items-center justify-center h-full text-center text-gray-500">

@@ -17,6 +17,12 @@ import {
   Loader2,
   Clock,
   CheckCircle2,
+  Trash2,
+  Copy,
+  Menu,
+  FileText,
+  FileSpreadsheet,
+  Edit,
 } from "lucide-react";
 
 type InventarioDetalle = {
@@ -85,6 +91,9 @@ export default function InventarioFisicoPage() {
     doctoInvfisId?: number | null;
     inserted?: number;
   }>(null);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editCantidad, setEditCantidad] = useState("");
 
   const { apiUrl, userData } = useCompany();
   const usuario = userData?.nombre ?? userData?.user ?? "desconocido";
@@ -443,6 +452,42 @@ export default function InventarioFisicoPage() {
     focusScanner();
   };
 
+  const startEditItem = (idx: number) => {
+    const item = detalles[idx];
+    setEditingIndex(idx);
+    setEditCantidad(String(item.scanned));
+  };
+
+  const saveEditItem = (idx: number) => {
+    const newCantidad = Number(editCantidad);
+    if (isNaN(newCantidad) || newCantidad < 0) {
+      showToast("Cantidad inválida");
+      return;
+    }
+
+    setDetalles((prev) => {
+      const next = [...prev];
+      next[idx] = {
+        ...next[idx],
+        CANTIDAD: newCantidad,
+        scanned: newCantidad,
+        packed: newCantidad,
+      };
+      return next;
+    });
+
+    setEditingIndex(null);
+    setEditCantidad("");
+    showToast("Cantidad actualizada", "success");
+    focusScanner();
+  };
+
+  const cancelEdit = () => {
+    setEditingIndex(null);
+    setEditCantidad("");
+    focusScanner();
+  };
+
   const inc = (idx: number) => {
     setDetalles((prev) => {
       const next = [...prev];
@@ -742,7 +787,7 @@ export default function InventarioFisicoPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a0a0f] via-[#0a0a0f] to-[#151021] font-sans overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 font-sans overflow-x-hidden">
       {/* ⚠️ MODAL COMENTADO TEMPORALMENTE PARA PRUEBAS */}
       {/* Selection modal: require sucursal + almacen before starting conteo */}
       {/* {!selectedAlmacen && (
@@ -874,29 +919,29 @@ export default function InventarioFisicoPage() {
         ))}
       </div>
 
-      <div className="border-b border-white/10 bg-black/40 backdrop-blur-xl sticky top-0 z-50">
+      <div className="border-b border-white/5 bg-black/40 backdrop-blur-xl sticky top-0 z-50">
         <div className="max-w-full mx-auto px-8 py-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
               <button
-                className="rounded-xl border border-white/10 bg-white/5 p-2.5 text-white/60 transition-all hover:bg-white/10 hover:text-white/90"
+                className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/30 to-blue-500/30 flex items-center justify-center hover:scale-105 transition-transform"
                 onClick={() => {
                   router.replace("/dashboard");
                   setTimeout(focusScanner, 100);
                 }}
               >
-                <ArrowLeft className="w-5 h-5" />
+                <ArrowLeft className="w-6 h-6 text-white" />
               </button>
 
               <div className="flex items-center gap-3">
-                <div className="rounded-xl border border-teal-400/20 bg-teal-400/8 p-3">
-                  <Package className="w-6 h-6 text-teal-300" />
+                <div className="rounded-xl bg-gradient-to-br from-purple-500/30 to-blue-500/30 p-3">
+                  <Package className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="font-light text-3xl tracking-wide text-white/90">
+                  <h1 className="text-xl font-bold text-white">
                     Inventario Físico
                   </h1>
-                  <p className="mt-1 font-light text-sm tracking-wide text-white/50">
+                  <p className="text-gray-400">
                     Conteo de Inventario • Scanner Activo
                   </p>
                 </div>
@@ -905,8 +950,8 @@ export default function InventarioFisicoPage() {
 
             <div className="flex items-center gap-3">
               {timerStarted && (
-                <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-xl px-6 py-3 flex items-center gap-3 animate-fade-in">
-                  <Clock className="w-5 h-5 text-teal-300" />
+                <div className="rounded-xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl px-6 py-3 flex items-center gap-3 animate-fade-in">
+                  <Clock className="w-5 h-5 text-white" />
                   <div className="text-right">
                     <div className="font-light text-xs tracking-wide text-white/60 leading-none mb-1">
                       Tiempo
@@ -919,24 +964,25 @@ export default function InventarioFisicoPage() {
               )}
 
               <button
-                className={`w-10 h-10 rounded-xl border transition-all duration-200 flex items-center justify-center ${
+                className={`px-4 py-2 rounded-xl transition-all duration-200 flex items-center gap-2 ${
                   requireScan
-                    ? "bg-teal-400/10 border-teal-400/30 text-teal-300 shadow-lg shadow-teal-500/20"
-                    : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10"
+                    ? "bg-gradient-to-br from-purple-500/30 to-blue-500/30 text-white shadow-lg"
+                    : "bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10"
                 }`}
                 onClick={() => {
                   setRequireScan(!requireScan);
                   setTimeout(focusScanner, 50);
                 }}
               >
-                <Scan className="w-4 h-4" />
+                <Scan className="h-5 w-5" />
+                {requireScan ? "ON" : "OFF"}
               </button>
 
               <button
-                className="w-10 h-10 rounded-xl border border-purple-500/20 bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 transition-all duration-200 flex items-center justify-center"
+                className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/30 to-blue-500/30 text-white hover:scale-105 transition-transform flex items-center justify-center"
                 onClick={() => setShowAddForm(true)}
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-5 h-5" />
               </button>
             </div>
           </div>
@@ -944,8 +990,8 @@ export default function InventarioFisicoPage() {
       </div>
 
       {showAddForm && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[90] flex items-center justify-center p-4 animate-fade-in">
-          <div className="rounded-3xl border border-white/10 bg-black/90 backdrop-blur-xl p-8 max-w-lg w-full shadow-2xl animate-scale-in max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[90] flex items-center justify-center p-4 animate-fade-in">
+          <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl p-8 max-w-lg w-full shadow-2xl animate-scale-in max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-light text-2xl tracking-wide text-white/90">
                 Agregar Artículo
@@ -1091,7 +1137,7 @@ export default function InventarioFisicoPage() {
       <div className="flex h-[calc(100vh-80px)]">
         <div className="flex-1 w-3/4 overflow-y-auto">
           <div className="max-w-5xl mx-auto px-6 py-8">
-            <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-6 mb-8">
+            <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl p-6 mb-8">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="font-light text-xl tracking-wide text-white/90 mb-1">
@@ -1124,24 +1170,22 @@ export default function InventarioFisicoPage() {
                       id={`product-${index}`}
                       className={`rounded-xl border p-4 backdrop-blur-xl transition-all duration-300 ${
                         okLinea
-                          ? "border-green-500/20 bg-green-500/10"
+                          ? "border-white/30 bg-white/10"
                           : "border-white/10 bg-white/5"
-                      } ${
-                        isFlash ? "ring-2 ring-teal-400/50 bg-teal-400/10" : ""
-                      }`}
+                      } ${isFlash ? "ring-2 ring-white/50 bg-white/10" : ""}`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
                             <h4
                               className={`font-light text-sm tracking-wide ${
-                                okLinea ? "text-green-400" : "text-white/90"
+                                okLinea ? "text-white/90" : "text-white/70"
                               }`}
                             >
                               {item.CLAVE}
                             </h4>
                             {okLinea && (
-                              <div className="flex items-center gap-1 border border-green-500/30 bg-green-500/20 text-green-400 font-light text-xs tracking-wide px-2 py-1 rounded-md">
+                              <div className="flex items-center gap-1 border border-white/30 bg-black/60 text-white/90 font-light text-xs tracking-wide px-2 py-1 rounded-md">
                                 <CheckCircle className="w-3 h-3" />
                                 {req === 0 ? "Cantidad 0" : "Completo"}
                               </div>
@@ -1163,7 +1207,7 @@ export default function InventarioFisicoPage() {
                               </span>
                               <span
                                 className={`font-light tracking-wide ml-1 ${
-                                  okLinea ? "text-green-400" : "text-white/90"
+                                  okLinea ? "text-white/90" : "text-white/70"
                                 }`}
                               >
                                 {sc}
@@ -1173,21 +1217,63 @@ export default function InventarioFisicoPage() {
                         </div>
 
                         <div className="flex flex-col items-center gap-3 ml-6">
-                          <div className="text-center">
-                            <div className="font-light text-xl tracking-wide text-white/90">
-                              {sc}
+                          {editingIndex === index ? (
+                            <div className="flex flex-col gap-2">
+                              <Input
+                                type="number"
+                                value={editCantidad}
+                                onChange={(e) =>
+                                  setEditCantidad(e.target.value)
+                                }
+                                className="w-20 bg-black/40 border-white/10 text-white/90 text-center"
+                                autoFocus
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  className="p-2 rounded-lg border border-white/20 bg-black/60 text-white/90 hover:bg-black/80 transition-all"
+                                  onClick={() => saveEditItem(index)}
+                                  title="Guardar"
+                                >
+                                  <CheckCircle className="w-4 h-4" />
+                                </button>
+                                <button
+                                  className="p-2 rounded-lg border border-white/10 bg-black/40 text-white/60 hover:bg-black/60 transition-all"
+                                  onClick={cancelEdit}
+                                  title="Cancelar"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
                             </div>
-                            <div className="font-light text-xs tracking-wide text-white/50">
-                              Escaneado
-                            </div>
-                          </div>
+                          ) : (
+                            <>
+                              <div className="text-center">
+                                <div className="font-light text-xl tracking-wide text-white/90">
+                                  {sc}
+                                </div>
+                                <div className="font-light text-xs tracking-wide text-white/50">
+                                  Escaneado
+                                </div>
+                              </div>
 
-                          <button
-                            className="mt-2 font-light text-xs tracking-wide text-red-400 hover:text-red-300 hover:underline"
-                            onClick={() => removeItem(index)}
-                          >
-                            Eliminar artículo
-                          </button>
+                              <div className="flex gap-2">
+                                <button
+                                  className="p-2 rounded-lg border border-white/20 bg-black/60 text-white/90 hover:bg-black/80 hover:border-white/30 transition-all"
+                                  onClick={() => startEditItem(index)}
+                                  title="Editar cantidad"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                                <button
+                                  className="p-2 rounded-lg border border-white/20 bg-black/60 text-white/90 hover:bg-black/80 hover:border-white/30 transition-all"
+                                  onClick={() => removeItem(index)}
+                                  title="Eliminar artículo"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1196,13 +1282,13 @@ export default function InventarioFisicoPage() {
               </div>
             ) : (
               <div className="text-center py-16">
-                <div className="mx-auto w-fit rounded-2xl border border-white/10 bg-white/5 p-6 mb-4">
-                  <Scan className="w-12 h-12 text-white/40" />
+                <div className="mx-auto w-fit rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 p-6 mb-4">
+                  <Scan className="w-12 h-12 text-gray-400" />
                 </div>
-                <h3 className="font-light text-xl tracking-wide text-white/70 mb-2">
+                <h3 className="text-2xl font-bold text-white mb-2">
                   Escanea para comenzar
                 </h3>
-                <p className="font-light text-sm tracking-wide text-white/50">
+                <p className="text-gray-400">
                   El scanner está activo. Escanea cualquier código para
                   agregarlo
                 </p>
@@ -1210,13 +1296,13 @@ export default function InventarioFisicoPage() {
             )}
 
             {detalles.length > 0 && (
-              <div className="fixed bottom-6 left-0 right-80 bg-gradient-to-t from-white via-white to-transparent pt-4 pb-6 px-6">
+              <div className="fixed bottom-6 left-0 right-80 bg-gradient-to-t from-gray-950 via-black/80 to-transparent pt-4 pb-6 px-6">
                 <div className="flex justify-center">
                   <button
-                    className={`max-w-[420px] w-full sm:w-auto flex items-center gap-3 px-6 py-3 rounded-2xl font-light tracking-wide border transition-all duration-200 shadow-lg hover:shadow-xl ${
+                    className={`max-w-[420px] w-full sm:w-auto flex items-center gap-3 px-6 py-4 rounded-xl font-bold transition-all duration-200 shadow-lg hover:shadow-xl ${
                       !isSubmitting
-                        ? "border-purple-500/20 bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 hover:shadow-[0_0_15px_rgba(168,85,247,0.3)]"
-                        : "border-white/10 bg-white/5 text-white/40 cursor-not-allowed"
+                        ? "bg-gradient-to-r from-purple-500/30 to-blue-500/30 hover:from-purple-500/40 hover:to-blue-500/40 text-white"
+                        : "bg-white/5 border border-white/10 text-gray-400 cursor-not-allowed opacity-50"
                     }`}
                     onClick={() => {
                       if (!isSubmitting) aplicarInventario();
@@ -1262,9 +1348,9 @@ export default function InventarioFisicoPage() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-xl p-4 shadow-sm">
+            <div className="rounded-xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl p-4 shadow-sm">
               <div className="flex items-center gap-3">
-                <div className="w-14 h-14 rounded-lg border border-teal-400/30 bg-teal-400/10 flex items-center justify-center font-light tracking-wide text-teal-300">
+                <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-purple-500/30 to-blue-500/30 flex items-center justify-center font-semibold text-white">
                   {Math.round(progreso * 100)}%
                 </div>
                 <div>
@@ -1279,7 +1365,7 @@ export default function InventarioFisicoPage() {
 
               <div className="mt-3 h-2 bg-white/10 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-teal-400 to-cyan-400 rounded-full transition-all duration-500"
+                  className="h-full bg-gradient-to-r from-purple-500 to-blue-500 rounded-full transition-all duration-500"
                   style={{ width: `${progreso * 100}%` }}
                 />
               </div>
@@ -1352,12 +1438,69 @@ export default function InventarioFisicoPage() {
                   Se registró correctamente en el sistema.
                 </p>
               </div>
-              <button
-                className="w-8 h-8 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 flex items-center justify-center"
-                onClick={() => setSuccessModal(null)}
-              >
-                <X className="w-4 h-4 text-white/60" />
-              </button>
+              <div className="flex gap-2">
+                <div className="relative">
+                  <button
+                    className="w-8 h-8 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all"
+                    onClick={() => setShowExportMenu(!showExportMenu)}
+                    title="Exportar"
+                  >
+                    <Menu className="w-4 h-4 text-white/60" />
+                  </button>
+
+                  {showExportMenu && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-50"
+                        onClick={() => setShowExportMenu(false)}
+                      />
+                      <div className="absolute right-0 top-10 z-50 w-44 rounded-xl border border-white/10 bg-gradient-to-br from-teal-800/95 to-cyan-900/95 backdrop-blur-xl shadow-2xl overflow-hidden">
+                        <button
+                          className="w-full flex items-center gap-3 px-4 py-3 border-b border-white/10 hover:bg-white/10 text-white/90 transition-all"
+                          onClick={() => {
+                            showToast(
+                              "Exportar a PDF (próximamente)",
+                              "success"
+                            );
+                            setShowExportMenu(false);
+                          }}
+                        >
+                          <FileText className="w-4 h-4" />
+                          <span className="font-light text-sm tracking-wide">
+                            PDF
+                          </span>
+                        </button>
+                        <button
+                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/10 text-white/90 transition-all"
+                          onClick={() => {
+                            showToast(
+                              "Exportar a Excel (próximamente)",
+                              "success"
+                            );
+                            setShowExportMenu(false);
+                          }}
+                        >
+                          <FileSpreadsheet className="w-4 h-4" />
+                          <span className="font-light text-sm tracking-wide">
+                            Excel
+                          </span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <button
+                  className="w-8 h-8 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all"
+                  onClick={() => {
+                    setSuccessModal(null);
+                    setShowExportMenu(false);
+                  }}
+                  title="Cerrar"
+                >
+                  <X className="w-4 h-4 text-white/60" />
+                </button>
+              </div>
             </div>
 
             <div className="mt-4 rounded-lg border border-white/10 bg-white/5 p-4">
@@ -1370,16 +1513,15 @@ export default function InventarioFisicoPage() {
                     {successModal.folio ?? "N/A"}
                   </p>
                 </div>
-                <div>
-                  <button
-                    onClick={() =>
-                      copyToClipboard(String(successModal.folio ?? ""))
-                    }
-                    className="px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 font-light text-sm tracking-wide text-white/90"
-                  >
-                    Copiar
-                  </button>
-                </div>
+                <button
+                  onClick={() =>
+                    copyToClipboard(String(successModal.folio ?? ""))
+                  }
+                  className="p-2 rounded-lg border border-teal-500/20 bg-teal-500/10 text-teal-400 hover:bg-teal-500/20 hover:border-teal-500/30 transition-all"
+                  title="Copiar folio"
+                >
+                  <Copy className="w-4 h-4" />
+                </button>
               </div>
 
               <div className="mt-3 grid grid-cols-2 gap-3">

@@ -99,7 +99,7 @@ export default function AplicarInvPage() {
     const aplicados = doctos.filter((d) => d.APLICADO === "S").length;
     const noAplicados = doctos.filter((d) => d.APLICADO === "N").length;
 
-    return { total, aplicados, noAplicados };
+    return { l, aplicados, noAplicados };
   }, [doctos]);
 
   const handleAplicarInventario = async (folio: string) => {
@@ -198,20 +198,20 @@ export default function AplicarInvPage() {
             <div className="flex items-center gap-6">
               <button
                 onClick={() => router.push("/dashboard")}
-                className="rounded-xl border border-white/10 bg-white/5 p-2.5 text-white/60 transition-all hover:bg-white/10 hover:text-white/90"
+                className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/30 to-blue-500/30 flex items-center justify-center hover:scale-105 transition-transform"
               >
-                <ArrowLeft className="h-5 w-5" />
+                <ArrowLeft className="w-6 h-6 text-white" />
               </button>
 
               <div className="flex items-center gap-3">
-                <div className="rounded-xl border border-teal-400/20 bg-teal-400/8 p-3">
-                  <Package className="h-6 w-6 text-teal-300" />
+                <div className="rounded-xl bg-gradient-to-br from-purple-500/30 to-blue-500/30 p-3">
+                  <Package className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="font-light text-3xl tracking-wide text-white/90">
+                  <h1 className="text-xl font-bold text-white">
                     Aplicar Inventario Físico
                   </h1>
-                  <p className="mt-1 font-light text-sm tracking-wide text-white/50">
+                  <p className="text-gray-400">
                     Gestión de documentos de inventario • Semana actual
                   </p>
                 </div>
@@ -225,15 +225,15 @@ export default function AplicarInvPage() {
       <div className="mx-auto max-w-[1920px] px-8 py-6">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl">
-              <Loader2 className="mx-auto h-12 w-12 animate-spin text-teal-300" />
-              <p className="mt-4 font-light text-sm tracking-wide text-white/70">
+            <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] p-8 backdrop-blur-xl">
+              <Loader2 className="mx-auto h-12 w-12 animate-spin text-purple-400" />
+              <p className="mt-4 text-sm text-gray-400">
                 Cargando documentos...
               </p>
             </div>
           </div>
         ) : error ? (
-          <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-8 backdrop-blur-xl">
+          <div className="rounded-2xl border border-red-500/20 bg-gradient-to-br from-red-500/10 to-red-500/5 p-8 backdrop-blur-xl">
             <div className="flex items-center gap-3">
               <AlertCircle className="h-6 w-6 text-red-400" />
               <div>
@@ -250,7 +250,14 @@ export default function AplicarInvPage() {
           <div className="space-y-6">
             {/* Stats Dashboard */}
             <div className="grid grid-cols-3 gap-4">
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl transition-all hover:bg-white/10">
+              <button
+                onClick={() => setFilter("todos")}
+                className={`rounded-2xl border p-6 backdrop-blur-xl transition-all text-left ${
+                  filter === "todos"
+                    ? "border-purple-500/30 bg-gradient-to-br from-purple-500/20 to-blue-500/20 hover:from-purple-500/30 hover:to-blue-500/30 scale-105 shadow-lg"
+                    : "border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] hover:bg-white/10 hover:scale-105"
+                }`}
+              >
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="font-light text-sm tracking-wide text-white/60">
@@ -260,13 +267,30 @@ export default function AplicarInvPage() {
                       {stats.total}
                     </div>
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                    <FileText className="h-6 w-6 text-white/60" />
+                  <div
+                    className={`rounded-xl p-3 ${
+                      filter === "todos"
+                        ? "bg-gradient-to-br from-purple-500/30 to-blue-500/30"
+                        : "border border-white/10 bg-white/5"
+                    }`}
+                  >
+                    <FileText
+                      className={`h-6 w-6 ${
+                        filter === "todos" ? "text-white" : "text-white/60"
+                      }`}
+                    />
                   </div>
                 </div>
-              </div>
+              </button>
 
-              <div className="rounded-2xl border border-green-500/20 bg-green-500/10 p-6 backdrop-blur-xl transition-all hover:bg-green-500/20">
+              <button
+                onClick={() => setFilter("aplicados")}
+                className={`rounded-2xl border p-6 backdrop-blur-xl transition-all text-left ${
+                  filter === "aplicados"
+                    ? "border-green-500/40 bg-gradient-to-br from-green-500/20 to-emerald-500/20 hover:from-green-500/30 hover:to-emerald-500/30 scale-105 shadow-lg"
+                    : "border-green-500/20 bg-gradient-to-br from-green-500/10 to-green-500/5 hover:bg-green-500/20 hover:scale-105"
+                }`}
+              >
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="font-light text-sm tracking-wide text-green-400/80">
@@ -276,13 +300,26 @@ export default function AplicarInvPage() {
                       {stats.aplicados}
                     </div>
                   </div>
-                  <div className="rounded-xl border border-green-500/20 bg-green-500/10 p-3">
+                  <div
+                    className={`rounded-xl p-3 ${
+                      filter === "aplicados"
+                        ? "bg-gradient-to-br from-green-500/30 to-emerald-500/30"
+                        : "border border-green-500/20 bg-green-500/10"
+                    }`}
+                  >
                     <CheckCircle2 className="h-6 w-6 text-green-400" />
                   </div>
                 </div>
-              </div>
+              </button>
 
-              <div className="rounded-2xl border border-orange-500/20 bg-orange-500/10 p-6 backdrop-blur-xl transition-all hover:bg-orange-500/20">
+              <button
+                onClick={() => setFilter("no-aplicados")}
+                className={`rounded-2xl border p-6 backdrop-blur-xl transition-all text-left ${
+                  filter === "no-aplicados"
+                    ? "border-orange-500/40 bg-gradient-to-br from-orange-500/20 to-red-500/20 hover:from-orange-500/30 hover:to-red-500/30 scale-105 shadow-lg"
+                    : "border-orange-500/20 bg-gradient-to-br from-orange-500/10 to-orange-500/5 hover:bg-orange-500/20 hover:scale-105"
+                }`}
+              >
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="font-light text-sm tracking-wide text-orange-400/80">
@@ -292,15 +329,21 @@ export default function AplicarInvPage() {
                       {stats.noAplicados}
                     </div>
                   </div>
-                  <div className="rounded-xl border border-orange-500/20 bg-orange-500/10 p-3">
+                  <div
+                    className={`rounded-xl p-3 ${
+                      filter === "no-aplicados"
+                        ? "bg-gradient-to-br from-orange-500/30 to-red-500/30"
+                        : "border border-orange-500/20 bg-orange-500/10"
+                    }`}
+                  >
                     <Clock className="h-6 w-6 text-orange-400" />
                   </div>
                 </div>
-              </div>
+              </button>
             </div>
 
             {/* Filtros */}
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl">
+            <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] p-4 backdrop-blur-xl">
               <div className="flex items-center gap-2 mb-3">
                 <Filter className="h-4 w-4 text-white/60" />
                 <span className="font-light text-sm tracking-wide text-white/60">
@@ -399,10 +442,10 @@ export default function AplicarInvPage() {
                     variant={filter === "todos" ? "default" : "outline"}
                     size="sm"
                     onClick={() => setFilter("todos")}
-                    className={`font-light text-xs tracking-wide ${
+                    className={`text-xs font-semibold ${
                       filter === "todos"
-                        ? "bg-teal-400/12 border-teal-300/30 text-teal-300"
-                        : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white/90"
+                        ? "bg-gradient-to-br from-purple-500/30 to-blue-500/30 text-white border-0"
+                        : "bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10"
                     }`}
                   >
                     Todos ({stats.total})
@@ -411,10 +454,10 @@ export default function AplicarInvPage() {
                     variant={filter === "aplicados" ? "default" : "outline"}
                     size="sm"
                     onClick={() => setFilter("aplicados")}
-                    className={`font-light text-xs tracking-wide ${
+                    className={`text-xs font-semibold ${
                       filter === "aplicados"
-                        ? "bg-green-500/20 border-green-500/40 text-green-400"
-                        : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white/90"
+                        ? "bg-gradient-to-br from-green-500/30 to-emerald-500/30 text-white border-0"
+                        : "bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10"
                     }`}
                   >
                     Aplicados ({stats.aplicados})
@@ -423,10 +466,10 @@ export default function AplicarInvPage() {
                     variant={filter === "no-aplicados" ? "default" : "outline"}
                     size="sm"
                     onClick={() => setFilter("no-aplicados")}
-                    className={`font-light text-xs tracking-wide ${
+                    className={`text-xs font-semibold ${
                       filter === "no-aplicados"
-                        ? "bg-orange-500/20 border-orange-500/40 text-orange-400"
-                        : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white/90"
+                        ? "bg-gradient-to-br from-orange-500/30 to-red-500/30 text-white border-0"
+                        : "bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10"
                     }`}
                   >
                     No Aplicados ({stats.noAplicados})
@@ -437,19 +480,19 @@ export default function AplicarInvPage() {
 
             {/* Documents Table */}
             {filteredDoctos.length === 0 ? (
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-16 text-center backdrop-blur-xl">
-                <div className="mx-auto w-fit rounded-2xl border border-white/10 bg-white/5 p-6">
-                  <BarChart3 className="h-12 w-12 text-white/40" />
+              <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] p-16 text-center backdrop-blur-xl">
+                <div className="mx-auto w-fit rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 p-6">
+                  <BarChart3 className="h-12 w-12 text-gray-400" />
                 </div>
-                <h3 className="mt-6 font-light text-xl tracking-wide text-white/70">
+                <h3 className="mt-6 text-2xl font-bold text-white">
                   No hay documentos
                 </h3>
-                <p className="mt-2 font-light text-sm tracking-wide text-white/50">
+                <p className="mt-2 text-gray-400">
                   No se encontraron documentos de inventario para este filtro
                 </p>
               </div>
             ) : (
-              <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl overflow-hidden">
+              <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
@@ -548,7 +591,7 @@ export default function AplicarInvPage() {
                                   }
                                   disabled={applyingFolio === docto.FOLIO}
                                   size="sm"
-                                  className="rounded-lg border border-purple-500/20 bg-purple-500/10 font-light text-xs tracking-wide text-purple-400 transition-all hover:bg-purple-500/20 hover:shadow-[0_0_15px_rgba(168,85,247,0.3)] disabled:opacity-50"
+                                  className="rounded-lg bg-gradient-to-r from-purple-500/30 to-blue-500/30 hover:from-purple-500/40 hover:to-blue-500/40 text-white font-semibold text-xs transition-all disabled:opacity-50"
                                 >
                                   {applyingFolio === docto.FOLIO ? (
                                     <>
