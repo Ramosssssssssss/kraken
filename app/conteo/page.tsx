@@ -51,10 +51,10 @@ export default function InventarioFisicoPage() {
 
   const [detalles, setDetalles] = useState<InventarioDetalle[]>([]);
   const [sucursalesAlmacenes, setSucursalesAlmacenes] = useState<any[]>([]);
-  // ⚠️ VALORES TEMPORALES PARA PRUEBAS - Cambiar en producción
-  const [selectedSucursal, setSelectedSucursal] = useState<number | null>(1);
+  // Valores iniciales en null - el usuario debe seleccionar
+  const [selectedSucursal, setSelectedSucursal] = useState<number | null>(null);
   const [availableAlmacenes, setAvailableAlmacenes] = useState<any[]>([]);
-  const [selectedAlmacen, setSelectedAlmacen] = useState<number | null>(19);
+  const [selectedAlmacen, setSelectedAlmacen] = useState<number | null>(null);
   const [scannerEnabled, setScannerEnabled] = useState(false);
   const [requireScan, setRequireScan] = useState(true);
   const [autoFill, setAutoFill] = useState(false);
@@ -94,6 +94,7 @@ export default function InventarioFisicoPage() {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editCantidad, setEditCantidad] = useState("");
+  const [showSucursalesDropdown, setShowSucursalesDropdown] = useState(false);
 
   const { apiUrl, userData } = useCompany();
   const usuario = userData?.nombre ?? userData?.user ?? "desconocido";
@@ -120,22 +121,44 @@ export default function InventarioFisicoPage() {
 
   // Fetch sucursales+almacenes on mount
   useEffect(() => {
+    if (!baseURL) return;
+
     let mounted = true;
     (async () => {
       try {
         const j = await fetchJsonWithRetry(`${baseURL}/sucursales-almacenes`);
         if (!mounted) return;
-        if (j?.ok && Array.isArray(j.data)) {
-          setSucursalesAlmacenes(j.data);
+
+        // El endpoint devuelve { sucursalesAlmacenes: [...] }
+        if (j?.sucursalesAlmacenes && Array.isArray(j.sucursalesAlmacenes)) {
+          setSucursalesAlmacenes(j.sucursalesAlmacenes);
           // set defaults if only one sucursal
           const sucursales = Array.from(
-            new Map(j.data.map((r: any) => [r.SUCURSAL_ID, r.NOMBRE_SUCURSAL]))
+            new Map(
+              j.sucursalesAlmacenes.map((r: any) => [
+                r.SUCURSAL_ID,
+                r.NOMBRE_SUCURSAL,
+              ])
+            )
           ).map(([id, name]) => ({ id, name }));
           if (sucursales.length === 1)
             setSelectedSucursal(Number(sucursales[0].id));
         }
-      } catch (e) {
-        console.warn("Error fetching sucursales-almacenes", e);
+      } catch (e: any) {
+        if (!mounted) return;
+
+        // Si es 404, el endpoint no existe - usar valores por defecto
+        if (e?.message?.includes("404")) {
+          console.warn(
+            "⚠️ Endpoint /sucursales-almacenes no disponible. Usando valores por defecto."
+          );
+          // Mantener los valores hardcodeados que ya tienes
+        } else {
+          console.warn(
+            "⚠️ Error fetching sucursales-almacenes:",
+            e?.message || e
+          );
+        }
       }
     })();
     return () => {
@@ -385,6 +408,15 @@ export default function InventarioFisicoPage() {
   };
 
   const addManualItem = () => {
+    // Validar que haya una sucursal seleccionada
+    if (!selectedSucursal) {
+      showToast(
+        "⚠️ Selecciona una sucursal antes de agregar productos",
+        "error"
+      );
+      return;
+    }
+
     if (!newClave.trim() || !newDescripcion.trim() || !newCantidad.trim()) {
       showToast("Completa todos los campos");
       return;
@@ -525,6 +557,12 @@ export default function InventarioFisicoPage() {
   };
 
   const processScan = (raw: string) => {
+    // Validar que haya una sucursal seleccionada
+    if (!selectedSucursal) {
+      showToast("⚠️ Selecciona una sucursal antes de escanear", "error");
+      return;
+    }
+
     const sanitized = (raw || "")
       .trim()
       .replace(/'/g, "-")
@@ -600,6 +638,15 @@ export default function InventarioFisicoPage() {
 
   const aplicarInventario = useCallback(async () => {
     if (isSubmitting) return;
+
+    // Validar que haya una sucursal seleccionada
+    if (!selectedSucursal) {
+      showToast(
+        "⚠️ Selecciona una sucursal antes de aplicar el inventario",
+        "error"
+      );
+      return;
+    }
 
     // Modificación: Eliminar la validación que comprueba si el inventario está completo
     // if (!listo) {
@@ -965,22 +1012,48 @@ export default function InventarioFisicoPage() {
 
               <button
                 className={`px-4 py-2 rounded-xl transition-all duration-200 flex items-center gap-2 ${
-                  requireScan
+                  !selectedSucursal
+                    ? "bg-white/5 border border-white/10 text-gray-400 opacity-50 cursor-not-allowed"
+                    : requireScan
                     ? "bg-gradient-to-br from-purple-500/30 to-blue-500/30 text-white shadow-lg"
                     : "bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10"
                 }`}
                 onClick={() => {
+                  if (!selectedSucursal) {
+                    showToast("⚠️ Selecciona una sucursal primero", "error");
+                    return;
+                  }
                   setRequireScan(!requireScan);
                   setTimeout(focusScanner, 50);
                 }}
+                title={
+                  selectedSucursal
+                    ? "Toggle scanner"
+                    : "Selecciona una sucursal primero"
+                }
               >
                 <Scan className="h-5 w-5" />
                 {requireScan ? "ON" : "OFF"}
               </button>
 
               <button
-                className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/30 to-blue-500/30 text-white hover:scale-105 transition-transform flex items-center justify-center"
-                onClick={() => setShowAddForm(true)}
+                className={`w-10 h-10 rounded-xl text-white transition-all flex items-center justify-center ${
+                  selectedSucursal
+                    ? "bg-gradient-to-br from-purple-500/30 to-blue-500/30 hover:scale-105"
+                    : "bg-white/5 border border-white/10 opacity-50 cursor-not-allowed"
+                }`}
+                onClick={() => {
+                  if (!selectedSucursal) {
+                    showToast("⚠️ Selecciona una sucursal primero", "error");
+                    return;
+                  }
+                  setShowAddForm(true);
+                }}
+                title={
+                  selectedSucursal
+                    ? "Agregar producto"
+                    : "Selecciona una sucursal primero"
+                }
               >
                 <Plus className="w-5 h-5" />
               </button>
@@ -1144,13 +1217,48 @@ export default function InventarioFisicoPage() {
                     Folio: {folioGenerado || "Pendiente"}
                   </h2>
                   <p className="font-light text-sm tracking-wide text-white/60">
-                    Inventario Físico • Almacén 19
+                    Inventario Físico
+                    {selectedSucursal && selectedAlmacen && (
+                      <> • Almacén {selectedAlmacen}</>
+                    )}
+                    {!selectedSucursal && (
+                      <span className="text-orange-400">
+                        {" "}
+                        • Sin sucursal seleccionada
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>
             </div>
 
-            {detalles.length > 0 ? (
+            {!selectedSucursal ? (
+              <div className="text-center py-16">
+                <div className="mx-auto w-fit rounded-2xl bg-gradient-to-br from-orange-500/10 to-red-500/10 border border-orange-500/20 p-6 mb-4">
+                  <AlertCircle className="w-12 h-12 text-orange-400 mx-auto" />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">
+                  Selecciona una sucursal
+                </h3>
+                <p className="text-gray-400 mb-4">
+                  Debes seleccionar una sucursal antes de comenzar el conteo
+                </p>
+                <button
+                  onClick={() => {
+                    const sucursalesCard = document.querySelector(
+                      '[class*="Sucursal"]'
+                    );
+                    sucursalesCard?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "center",
+                    });
+                  }}
+                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-orange-500/30 to-red-500/30 hover:from-orange-500/40 hover:to-red-500/40 text-white font-semibold transition-all"
+                >
+                  Ver sucursales disponibles →
+                </button>
+              </div>
+            ) : detalles.length > 0 ? (
               <div ref={listRef} className="space-y-3">
                 <h3 className="font-light text-lg tracking-wide text-white/90 mb-4">
                   Productos
@@ -1230,7 +1338,7 @@ export default function InventarioFisicoPage() {
                               />
                               <div className="flex gap-2">
                                 <button
-                                  className="p-2 rounded-lg border border-white/20 bg-black/60 text-white/90 hover:bg-black/80 transition-all"
+                                  className="p-2 rounded-lg border border-blue-500/30 bg-gradient-to-br from-blue-500/20 to-blue-600/20 text-blue-400 hover:from-blue-500/30 hover:to-blue-600/30 transition-all"
                                   onClick={() => saveEditItem(index)}
                                   title="Guardar"
                                 >
@@ -1258,14 +1366,14 @@ export default function InventarioFisicoPage() {
 
                               <div className="flex gap-2">
                                 <button
-                                  className="p-2 rounded-lg border border-white/20 bg-black/60 text-white/90 hover:bg-black/80 hover:border-white/30 transition-all"
+                                  className="p-2 rounded-lg border border-blue-500/30 bg-gradient-to-br from-blue-500/20 to-blue-600/20 text-blue-400 hover:from-blue-500/30 hover:to-blue-600/30 transition-all"
                                   onClick={() => startEditItem(index)}
                                   title="Editar cantidad"
                                 >
                                   <Edit className="w-4 h-4" />
                                 </button>
                                 <button
-                                  className="p-2 rounded-lg border border-white/20 bg-black/60 text-white/90 hover:bg-black/80 hover:border-white/30 transition-all"
+                                  className="p-2 rounded-lg border border-red-500/30 bg-gradient-to-br from-red-500/20 to-red-600/20 text-red-400 hover:from-red-500/30 hover:to-red-600/30 transition-all"
                                   onClick={() => removeItem(index)}
                                   title="Eliminar artículo"
                                 >
@@ -1370,6 +1478,163 @@ export default function InventarioFisicoPage() {
                 />
               </div>
             </div>
+
+            {/* Dropdown de Sucursales */}
+            {sucursalesAlmacenes.length > 0 && (
+              <div className="rounded-xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl p-4 shadow-sm relative">
+                <h5 className="text-sm font-semibold text-white mb-3">
+                  Sucursal
+                </h5>
+
+                {/* Botón principal del dropdown */}
+                <button
+                  onClick={() =>
+                    setShowSucursalesDropdown(!showSucursalesDropdown)
+                  }
+                  className="w-full rounded-xl p-3 bg-gradient-to-br from-white/5 to-white/[0.02] hover:from-white/10 hover:to-white/5 border border-white/10 flex items-center justify-between transition-all duration-200"
+                >
+                  {selectedSucursal ? (
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-purple-500/30 to-blue-500/30 flex items-center justify-center text-xs font-bold text-white">
+                        {(() => {
+                          const sucursal = Array.from(
+                            new Map(
+                              sucursalesAlmacenes.map((r: any) => [
+                                r.SUCURSAL_ID,
+                                r.NOMBRE_SUCURSAL,
+                              ])
+                            )
+                          ).find(([id]) => Number(id) === selectedSucursal);
+                          const name = sucursal ? sucursal[1] : "";
+                          return String(name)
+                            .split(" ")
+                            .map((word: string) => word[0])
+                            .join("")
+                            .substring(0, 2)
+                            .toUpperCase();
+                        })()}
+                      </div>
+                      <div className="text-left">
+                        <div className="font-semibold text-sm text-white">
+                          {(() => {
+                            const sucursal = Array.from(
+                              new Map(
+                                sucursalesAlmacenes.map((r: any) => [
+                                  r.SUCURSAL_ID,
+                                  r.NOMBRE_SUCURSAL,
+                                ])
+                              )
+                            ).find(([id]) => Number(id) === selectedSucursal);
+                            return sucursal ? sucursal[1] : "Seleccionar";
+                          })()}
+                        </div>
+                        <div className="text-xs text-purple-400">
+                          Seleccionada
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-lg bg-white/5 flex items-center justify-center text-xs font-bold text-gray-400">
+                        ?
+                      </div>
+                      <div className="text-left">
+                        <div className="font-semibold text-sm text-gray-400">
+                          Selecciona una sucursal
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Click para ver opciones
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <div
+                    className={`text-sm transition-transform ${
+                      showSucursalesDropdown ? "rotate-180" : ""
+                    }`}
+                  >
+                    ▼
+                  </div>
+                </button>
+
+                {/* Dropdown desplegable */}
+                {showSucursalesDropdown && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setShowSucursalesDropdown(false)}
+                    />
+                    <div className="absolute left-0 right-0 top-full mt-2 z-50 rounded-xl border border-white/10 bg-gradient-to-br from-black/95 to-black/90 backdrop-blur-xl shadow-2xl max-h-80 overflow-y-auto">
+                      <div className="p-2 space-y-1">
+                        {Array.from(
+                          new Map(
+                            sucursalesAlmacenes.map((r: any) => [
+                              r.SUCURSAL_ID,
+                              r.NOMBRE_SUCURSAL,
+                            ])
+                          )
+                        ).map(([id, name]) => {
+                          const isSelected = selectedSucursal === Number(id);
+                          const initials = String(name)
+                            .split(" ")
+                            .map((word: string) => word[0])
+                            .join("")
+                            .substring(0, 2)
+                            .toUpperCase();
+
+                          return (
+                            <button
+                              key={id}
+                              onClick={() => {
+                                setSelectedSucursal(Number(id));
+                                setShowSucursalesDropdown(false);
+                              }}
+                              className={`group w-full rounded-lg p-3 flex items-center justify-between transition-all duration-200 ${
+                                isSelected
+                                  ? "bg-gradient-to-br from-purple-500/20 to-blue-500/20 border border-purple-500/30"
+                                  : "hover:bg-white/5 border border-transparent"
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className={`h-10 w-10 rounded-lg flex items-center justify-center text-xs font-bold ${
+                                    isSelected
+                                      ? "bg-gradient-to-br from-purple-500/30 to-blue-500/30 text-white"
+                                      : "bg-white/5 text-gray-400 group-hover:bg-white/10"
+                                  }`}
+                                >
+                                  {initials}
+                                </div>
+                                <div className="text-left">
+                                  <div
+                                    className={`font-semibold text-sm ${
+                                      isSelected
+                                        ? "text-white"
+                                        : "text-gray-300"
+                                    }`}
+                                  >
+                                    {name}
+                                  </div>
+                                </div>
+                              </div>
+                              <div
+                                className={`text-xs ${
+                                  isSelected
+                                    ? "text-purple-400"
+                                    : "text-gray-400 group-hover:text-gray-300"
+                                }`}
+                              >
+                                {isSelected ? "✓" : "→"}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
 
             {lastScannedProduct && (
               <div className="rounded-xl border border-teal-400/20 bg-teal-400/10 backdrop-blur-xl p-3">

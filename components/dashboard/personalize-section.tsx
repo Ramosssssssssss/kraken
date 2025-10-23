@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Palette, Users, ArrowRight, Sparkles } from "lucide-react"
-import UploadAvatares from "./upload-avatares"
-import BrandingConfig from "./branding-config"
-type Section = "menu" | "branding" | "avatares"
+import { useState } from "react";
+import { Palette, Users, ArrowRight, Sparkles } from "lucide-react";
+import UploadAvatares from "./upload-avatares";
+import BrandingConfig from "./branding-config";
+type Section = "menu" | "branding" | "avatares";
 
 export default function PersonalizePage() {
-  const [activeSection, setActiveSection] = useState<Section>("menu")
+  const [activeSection, setActiveSection] = useState<Section>("menu");
 
   if (activeSection === "branding") {
     return (
@@ -22,7 +22,7 @@ export default function PersonalizePage() {
           <BrandingConfig />
         </div>
       </div>
-    )
+    );
   }
 
   if (activeSection === "avatares") {
@@ -38,7 +38,7 @@ export default function PersonalizePage() {
           <UploadAvatares />
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -48,7 +48,9 @@ export default function PersonalizePage() {
         <div className="text-center mb-12 space-y-4">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full mb-4">
             <Sparkles className="w-4 h-4 text-purple-400" />
-            <span className="text-sm text-white/80">Centro de Personalización</span>
+            <span className="text-sm text-white/80">
+              Centro de Personalización
+            </span>
           </div>
           <h1 className="text-5xl font-bold text-white tracking-tight">
             ¿Qué deseas
@@ -59,7 +61,8 @@ export default function PersonalizePage() {
             ?
           </h1>
           <p className="text-lg text-white/60 max-w-2xl mx-auto">
-            Configura la identidad visual de tu aplicación y gestiona los avatares de tu equipo
+            Configura la identidad visual de tu aplicación y gestiona los
+            avatares de tu equipo
           </p>
         </div>
 
@@ -85,7 +88,8 @@ export default function PersonalizePage() {
               <div className="space-y-3">
                 <h2 className="text-2xl font-bold text-white">Branding</h2>
                 <p className="text-white/60 leading-relaxed">
-                  Personaliza el logo y fondo de la pantalla de login. Define la identidad visual de tu aplicación.
+                  Personaliza el logo y fondo de la pantalla de login. Define la
+                  identidad visual de tu aplicación.
                 </p>
               </div>
 
@@ -106,17 +110,17 @@ export default function PersonalizePage() {
             className="group relative overflow-hidden bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-white/10 rounded-3xl p-8 text-left transition-all hover:scale-[1.02] hover:border-white/20 hover:shadow-2xl hover:shadow-purple-500/20"
           >
             {/* Animated Background */}
-            {/* <div className="absolute inset-0 bg-gradient-to-br from-purple-500/0 to-pink-500/0 group-hover:from-purple-500/5 group-hover:to-pink-500/5 transition-all duration-500" /> */}
+          {/* <div className="absolute inset-0 bg-gradient-to-br from-purple-500/0 to-pink-500/0 group-hover:from-purple-500/5 group-hover:to-pink-500/5 transition-all duration-500" /> */}
 
-            {/* Content */}
-            {/* <div className="relative z-10 space-y-6">
+          {/* Content */}
+          {/* <div className="relative z-10 space-y-6">
               <div className="flex items-start justify-between">
                 <div className="p-4 bg-purple-500/10 border border-purple-500/20 rounded-2xl group-hover:bg-purple-500/20 transition-colors">
                   <Users className="w-8 h-8 text-purple-400" />
                 </div>
                 <ArrowRight className="w-6 h-6 text-white/40 group-hover:text-white group-hover:translate-x-1 transition-all" />
               </div> */}
-{/* 
+          {/* 
               <div className="space-y-3">
                 <h2 className="text-2xl font-bold text-white">Avatares</h2>
                 <p className="text-white/60 leading-relaxed">
@@ -131,16 +135,18 @@ export default function PersonalizePage() {
             </div>
 
             {/* Decorative Elements */}
-            {/* <div className="absolute -top-12 -right-12 w-32 h-32 bg-purple-500/20 rounded-full blur-3xl group-hover:bg-purple-500/30 transition-all" />
+          {/* <div className="absolute -top-12 -right-12 w-32 h-32 bg-purple-500/20 rounded-full blur-3xl group-hover:bg-purple-500/30 transition-all" />
             <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-pink-500/20 rounded-full blur-3xl group-hover:bg-pink-500/30 transition-all" />
           </button>  */}
         </div>
 
         {/* Footer Info */}
         <div className="mt-12 text-center">
-          <p className="text-sm text-white/40">Los cambios se aplicarán inmediatamente en toda la aplicación</p>
+          <p className="text-sm text-white/40">
+            Los cambios se aplicarán inmediatamente en toda la aplicación
+          </p>
         </div>
       </div>
     </div>
-  )
+  );
 }

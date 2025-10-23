@@ -32,34 +32,18 @@ export default function BrandingConfig() {
       return
     }
 
-     const fetchBranding = async () => {
-       try {
-         const response = await fetch(`${apiUrl}/get-branding/${companyData.codigo}`)
-
-         if (!response.ok) {
-           throw new Error(`HTTP error! status: ${response.status}`)
-         }
-
-         const data = await response.json()
-
-         if (data.ok && data.branding) {
-           if (data.branding.logo) {
-             setLogoPreview(data.branding.logo)
-           }
-           if (data.branding.background) {
-             setBackgroundPreview(data.branding.background)
-           }
-         }
-         setConnectionError(false)
-       } catch (error) {
-         console.error("Error fetching branding:", error)
-         setConnectionError(true)
-       } finally {
-         setIsFetching(false)
-       }
-     }
-
-     fetchBranding()
+    // Usar el branding que ya viene del contexto (evita llamada duplicada)
+    if (companyData.branding) {
+      if (companyData.branding.logo) {
+        setLogoPreview(companyData.branding.logo)
+      }
+      if (companyData.branding.background) {
+        setBackgroundPreview(companyData.branding.background)
+      }
+      setConnectionError(false)
+    }
+    
+    setIsFetching(false)
   }, [apiUrl, companyData])
 
   const showToast = (type: "success" | "error", message: string) => {
