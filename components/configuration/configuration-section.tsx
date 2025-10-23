@@ -9,6 +9,7 @@ import { AdminsContent } from "./admins-content"
 import { GeneralContent } from "./general-content"
 import { PermissionsContent } from "./permissions-content"
 import { ModulesContent } from "./modules-content"
+import { ConfigContent } from "./config-content"
 
 export default function ConfigurationSection() {
   const [activeMainSection, setActiveMainSection] = useState<MainSectionId>("usuarios")
@@ -34,7 +35,7 @@ export default function ConfigurationSection() {
       case "modulos":
         return <ModulesContent activeSubSection={activeSubSection} />
       case "configuracion":
-        return <AdminsContent searchQuery={searchQuery} activeSubSection={activeSubSection} />
+        return <ConfigContent activeSubSection={activeSubSection} />
       default:
         return null
     }

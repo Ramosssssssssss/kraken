@@ -14,6 +14,14 @@ export const fetchWithRetry = async (
     try {
       const response = await fetch(url, options);
 
+      // Si es 404 o error de cliente (4xx), NO reintentar
+      if (!response.ok && response.status >= 400 && response.status < 500) {
+        console.warn(
+          `⚠️ Error ${response.status} en ${url} - No se reintentará`
+        );
+        return response; // Devolver la respuesta para que se maneje en fetchJsonWithRetry
+      }
+
       // Si es error de servidor (5xx), reintenta
       if (!response.ok && response.status >= 500) {
         throw new Error(`Error del servidor: ${response.status}`);
@@ -55,8 +63,28 @@ export const fetchJsonWithRetry = async <T = any>(
 ): Promise<T> => {
   const response = await fetchWithRetry(url, options, retries);
 
+  // Si la respuesta no es OK (404, 500, etc.), lanzar error antes de parsear
+  if (!response.ok) {
+    const text = await response.text();
+    console.error(
+      `❌ Error HTTP ${response.status} en ${url}:`,
+      text.substring(0, 200)
+    );
+    throw new Error(
+      `Error HTTP ${response.status}: ${
+        response.statusText || "Error en la petición"
+      }`
+    );
+  }
+
   // Primero obtenemos el texto para poder usarlo en caso de error
   const text = await response.text();
+
+  // Verificar si la respuesta está vacía
+  if (!text || text.trim().length === 0) {
+    console.warn(`⚠️ Respuesta vacía de ${url}`);
+    return {} as T;
+  }
 
   // Intenta parsear JSON
   try {
@@ -67,6 +95,8 @@ export const fetchJsonWithRetry = async <T = any>(
       "❌ Error parseando JSON. Respuesta recibida:",
       text.substring(0, 200)
     );
-    throw new Error(`Respuesta inválida del servidor (no es JSON válido)`);
+    throw new Error(
+      `Respuesta inválida del servidor (no es JSON válido). Status: ${response.status}`
+    );
   }
 };

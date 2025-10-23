@@ -99,7 +99,7 @@ export default function AplicarInvPage() {
     const aplicados = doctos.filter((d) => d.APLICADO === "S").length;
     const noAplicados = doctos.filter((d) => d.APLICADO === "N").length;
 
-    return { l, aplicados, noAplicados };
+    return { total, aplicados, noAplicados };
   }, [doctos]);
 
   const handleAplicarInventario = async (folio: string) => {
