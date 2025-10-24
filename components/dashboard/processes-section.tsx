@@ -66,7 +66,7 @@ export default function ProcessesSection() {
     {
       id: 1,
       title: "RECIBO",
-      description: "Registra la entrada de mercancía, valida contra órdenes de compra y asegura cantidades correctas.",
+      description: "Registra la entrada de mercancía, valida contra órdenes de compra y asegura cantidades correctas, ORDEN DE COMPRA",
       icon: Inbox,
       version: "v2.1.0",
       path: "/recibo",
@@ -75,7 +75,7 @@ export default function ProcessesSection() {
        {
       id: 5,
       title: "RECIBO",
-      description: "Registra la entrada de mercancía sin integrar con Microsip.",
+      description: "Registra la entrada de mercancía sin Microsip.",
       icon: Inbox,
       version: "v2.1.0",
       path: "/snMicro",

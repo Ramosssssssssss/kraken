@@ -83,7 +83,7 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
   { key: "nombre", label: "Nombre", filterable: true },
   { key: "clave", label: "Clave", filterable: true },
   { key: "unidad", label: "Unidad", filterable: true },
-  { key: "precio", label: "Precio", filterable: true },
+  { key: "precio", label: "Costo", filterable: true },
   { key: "acciones", label: "Acciones", filterable: false },
 ]
 
@@ -1201,7 +1201,7 @@ export default function ArticulosPage() {
                       )}
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                        <InfoRow label="Precio lista" value={fmtMoney(detalle.PRECIO_LISTA)} />
+                        <InfoRow label="Costo:" value={fmtMoney(detalle.PRECIO_LISTA)} />
                         {detalle.PRECIO_DISTRIBUIDOR != null && (
                           <InfoRow label="Precio distribuidor" value={fmtMoney(detalle.PRECIO_DISTRIBUIDOR || 0)} />
                         )}

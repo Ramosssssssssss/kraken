@@ -51,7 +51,6 @@ export default function InventarioFisicoPage() {
 
   const [detalles, setDetalles] = useState<InventarioDetalle[]>([]);
   const [sucursalesAlmacenes, setSucursalesAlmacenes] = useState<any[]>([]);
-  // Valores iniciales en null - el usuario debe seleccionar
   const [selectedSucursal, setSelectedSucursal] = useState<number | null>(null);
   const [availableAlmacenes, setAvailableAlmacenes] = useState<any[]>([]);
   const [selectedAlmacen, setSelectedAlmacen] = useState<number | null>(null);
@@ -108,7 +107,6 @@ export default function InventarioFisicoPage() {
     }
   };
 
-  // Formato de fecha DD/MM/YYYY (zona horaria de México)
   const fechaActual = new Date().toLocaleDateString("es-MX", {
     timeZone: "America/Mexico_City",
   });
@@ -129,10 +127,8 @@ export default function InventarioFisicoPage() {
         const j = await fetchJsonWithRetry(`${baseURL}/sucursales-almacenes`);
         if (!mounted) return;
 
-        // El endpoint devuelve { sucursalesAlmacenes: [...] }
         if (j?.sucursalesAlmacenes && Array.isArray(j.sucursalesAlmacenes)) {
           setSucursalesAlmacenes(j.sucursalesAlmacenes);
-          // set defaults if only one sucursal
           const sucursales = Array.from(
             new Map(
               j.sucursalesAlmacenes.map((r: any) => [
@@ -146,13 +142,10 @@ export default function InventarioFisicoPage() {
         }
       } catch (e: any) {
         if (!mounted) return;
-
-        // Si es 404, el endpoint no existe - usar valores por defecto
         if (e?.message?.includes("404")) {
           console.warn(
             "⚠️ Endpoint /sucursales-almacenes no disponible. Usando valores por defecto."
           );
-          // Mantener los valores hardcodeados que ya tienes
         } else {
           console.warn(
             "⚠️ Error fetching sucursales-almacenes:",
@@ -183,11 +176,39 @@ export default function InventarioFisicoPage() {
     if (unique.length === 1) setSelectedAlmacen(Number(unique[0].id));
   }, [selectedSucursal, sucursalesAlmacenes]);
 
+  // ACTIVAR SCANNER AUTOMÁTICAMENTE cuando se selecciona el almacén
+  useEffect(() => {
+    if (selectedAlmacen && !scannerEnabled) {
+      console.log("✅ Activando scanner automáticamente...");
+      setScannerEnabled(true);
+      // Forzar focus múltiples veces para asegurar que funcione
+      setTimeout(() => {
+        if (scannerRef.current) {
+          scannerRef.current.focus();
+          console.log("🎯 Focus aplicado al scanner");
+        }
+      }, 100);
+      setTimeout(() => {
+        if (scannerRef.current) {
+          scannerRef.current.focus();
+        }
+      }, 300);
+      setTimeout(() => {
+        if (scannerRef.current) {
+          scannerRef.current.focus();
+        }
+      }, 500);
+    }
+  }, [selectedAlmacen, scannerEnabled]);
+
+  // IMPLEMENTACIÓN EXACTA DEL FOCUS SCANNER COMO EN TU EJEMPLO
   const focusScanner = useCallback(() => {
+    // Solo enfocar si el scanner está habilitado (después de seleccionar sucursal y almacén)
+    if (!scannerEnabled) return;
+    
     requestAnimationFrame(() => {
       if (
         scannerRef.current &&
-        scannerEnabled &&
         document.activeElement !== claveInputRef.current &&
         document.activeElement !== descripcionInputRef.current &&
         document.activeElement !== cantidadInputRef.current
@@ -195,17 +216,23 @@ export default function InventarioFisicoPage() {
         scannerRef.current.focus();
       }
     });
-  }, []);
+  }, [scannerEnabled]);
 
-  // Only enable scanner focus and listeners when scannerEnabled === true
   useEffect(() => {
+    // Solo activar el modo agresivo si el scanner está habilitado
     if (!scannerEnabled) return;
 
+    console.log("🔥 MODO AGRESIVO ACTIVADO - Scanner enabled");
+
+    // Initial focus
     focusScanner();
+
+    // Very aggressive focus check every 50ms
     const focusInterval = setInterval(() => {
       focusScanner();
     }, 50);
 
+    // Event listeners for all possible interactions
     const handleInteraction = () => {
       setTimeout(focusScanner, 5);
     };
@@ -217,11 +244,7 @@ export default function InventarioFisicoPage() {
         target !== descripcionInputRef.current &&
         target !== cantidadInputRef.current &&
         !target.closest('input[type="text"]') &&
-        !target.closest('input[type="number"]') &&
-        !target.closest("select") &&
-        !target.closest("option") &&
-        !target.closest("button") &&
-        !target.closest("textarea")
+        !target.closest('input[type="number"]')
       ) {
         handleInteraction();
       }
@@ -328,7 +351,6 @@ export default function InventarioFisicoPage() {
   }, 0);
   const progreso =
     totalRequeridas > 0 ? Math.min(1, totalHechas / totalRequeridas) : 0;
-  // Modificación: El botón siempre estará activo, independientemente de si el inventario está completo
   const listo = true;
 
   const formatTime = (seconds: number) => {
@@ -408,7 +430,6 @@ export default function InventarioFisicoPage() {
   };
 
   const addManualItem = () => {
-    // Validar que haya una sucursal seleccionada
     if (!selectedSucursal) {
       showToast(
         "⚠️ Selecciona una sucursal antes de agregar productos",
@@ -423,7 +444,6 @@ export default function InventarioFisicoPage() {
     }
 
     const cantidad = Number(newCantidad);
-    // Modificación: Permitir cantidad 0
     if (cantidad < 0) {
       showToast("La cantidad no puede ser negativa");
       return;
@@ -443,7 +463,6 @@ export default function InventarioFisicoPage() {
       UMED: null,
       CANTIDAD: cantidad,
       _key: `inv-${Date.now()}`,
-      // Nuevo comportamiento: al agregar manualmente, marcamos packed y scanned igual a la cantidad
       packed: cantidad,
       scanned: cantidad,
     };
@@ -557,12 +576,12 @@ export default function InventarioFisicoPage() {
   };
 
   const processScan = (raw: string) => {
-    // Validar que haya una sucursal seleccionada
     if (!selectedSucursal) {
       showToast("⚠️ Selecciona una sucursal antes de escanear", "error");
       return;
     }
 
+    // Replace apostrophes with dashes (scanner issue) and any other special characters
     const sanitized = (raw || "")
       .trim()
       .replace(/'/g, "-")
@@ -629,9 +648,7 @@ export default function InventarioFisicoPage() {
   };
 
   const resetInventario = useCallback(() => {
-    // Al resetear después de aplicar, borramos completamente las líneas
     setDetalles([]);
-    // conservamos folioGenerado temporalmente para mostrar en la alerta; el caller puede limpiarlo si desea
     setDoctoInvfisId(null);
     focusScanner();
   }, [focusScanner]);
@@ -639,7 +656,6 @@ export default function InventarioFisicoPage() {
   const aplicarInventario = useCallback(async () => {
     if (isSubmitting) return;
 
-    // Validar que haya una sucursal seleccionada
     if (!selectedSucursal) {
       showToast(
         "⚠️ Selecciona una sucursal antes de aplicar el inventario",
@@ -647,17 +663,6 @@ export default function InventarioFisicoPage() {
       );
       return;
     }
-
-    // Modificación: Eliminar la validación que comprueba si el inventario está completo
-    // if (!listo) {
-    //   showToast(
-    //     requireScan
-    //       ? "Debes escanear todas las piezas requeridas para aplicar el inventario."
-    //       : "Aún no completas todas las líneas.",
-    //   )
-    //   focusScanner()
-    //   return
-    // }
 
     if (!baseURL) {
       showToast("No se encontró la URL de tu empresa");
@@ -671,13 +676,10 @@ export default function InventarioFisicoPage() {
 
     setIsSubmitting(true);
     try {
-      // Modificación: Incluir productos con cantidad 0
       const detallesComp = detalles.map((d) => ({
         CLAVE: d.CLAVE,
         CANTIDAD: requireScan ? d.scanned : d.packed,
       }));
-      // Eliminar el filtro que excluye productos con cantidad <= 0
-      // .filter((x) => Number(x.CANTIDAD) > 0)
 
       const payload: any = {
         P_DESCRIPCION: descripcion,
@@ -704,14 +706,12 @@ export default function InventarioFisicoPage() {
       setFolioGenerado(data.folio);
       setDoctoInvfisId(data.doctoInvfisId);
 
-      // Mostrar modal bonito y formateado con la info del folio
       setSuccessModal({
         folio: data.folio,
         doctoInvfisId: data.doctoInvfisId,
         inserted: data.inserted,
       });
 
-      // Borrar todas las líneas para comenzar limpio
       setDetalles([]);
     } catch (error) {
       console.error("❌ Error en aplicarInventario:", error);
@@ -729,6 +729,36 @@ export default function InventarioFisicoPage() {
     focusScanner,
     resetInventario,
   ]);
+
+  // ATAJOS DE TECLADO: Alt + A para agregar, Alt + C para completar
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Alt + A para abrir modal de agregar artículo
+      if (e.altKey && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        if (!selectedSucursal) {
+          showToast("⚠️ Selecciona una sucursal primero", "error");
+          return;
+        }
+        if (!showAddForm) {
+          console.log("🎹 Atajo Alt+A activado - Abriendo modal");
+          setShowAddForm(true);
+        }
+      }
+      
+      // Alt + C para completar inventario
+      if (e.altKey && e.key.toLowerCase() === 'c') {
+        e.preventDefault();
+        if (detalles.length > 0 && !isSubmitting) {
+          console.log("🎹 Atajo Alt+C activado - Completando inventario");
+          aplicarInventario();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedSucursal, showAddForm, showToast, detalles.length, isSubmitting, aplicarInventario]);
 
   const searchArticleByClave = async (clave: string) => {
     if (!clave.trim()) return;
@@ -878,9 +908,8 @@ export default function InventarioFisicoPage() {
                 <button
                   onClick={() => {
                     if (selectedAlmacen) {
-                      // Activar el scanner cuando se inicie el conteo
-                      setScannerEnabled(true)
-                      setTimeout(() => focusScanner(), 50)
+                      setScannerEnabled(true);
+                      setTimeout(() => focusScanner(), 50);
                     }
                   }}
                   disabled={!selectedAlmacen}
@@ -894,6 +923,7 @@ export default function InventarioFisicoPage() {
         </div>
       )}
 
+      {/* INPUT INVISIBLE EXACTAMENTE COMO EN TU EJEMPLO */}
       <input
         ref={scannerRef}
         type="text"
@@ -907,17 +937,19 @@ export default function InventarioFisicoPage() {
           }
         }}
         onBlur={() => {
-          setTimeout(focusScanner, 5);
+          if (scannerEnabled) {
+            setTimeout(focusScanner, 5);
+          }
         }}
         autoComplete="off"
-        autoFocus
-        tabIndex={0}
+        autoFocus={scannerEnabled}
+        tabIndex={scannerEnabled ? 0 : -1}
         style={{
           position: "absolute",
           width: "1px",
           height: "1px",
           opacity: 0,
-          zIndex: -1,
+          zIndex: scannerEnabled ? -1 : -9999,
           left: "0px",
           top: "0px",
         }}
@@ -988,7 +1020,7 @@ export default function InventarioFisicoPage() {
                     Inventario Físico
                   </h1>
                   <p className="text-gray-400">
-                    Conteo de Inventario • Scanner Activo
+                    Conteo de Inventario • {scannerEnabled ? "Scanner Activo" : "Scanner Inactivo"}
                   </p>
                 </div>
               </div>
@@ -1050,7 +1082,7 @@ export default function InventarioFisicoPage() {
                 }}
                 title={
                   selectedSucursal
-                    ? "Agregar producto"
+                    ? "Agregar producto (Alt + A)"
                     : "Selecciona una sucursal primero"
                 }
               >
@@ -1218,7 +1250,10 @@ export default function InventarioFisicoPage() {
                   <p className="font-light text-sm tracking-wide text-white/60">
                     Inventario Físico
                     {selectedSucursal && selectedAlmacen && (
-                      <> • Almacén {selectedAlmacen}</>
+                      <> • Almacén {(() => {
+                        const almacen = availableAlmacenes.find((a: any) => Number(a.id) === selectedAlmacen);
+                        return almacen ? almacen.name : selectedAlmacen;
+                      })()}</>
                     )}
                     {!selectedSucursal && (
                       <span className="text-orange-400">
@@ -1266,7 +1301,6 @@ export default function InventarioFisicoPage() {
                   const req = item.CANTIDAD;
                   const pk = item.packed;
                   const sc = item.scanned;
-                  // Modificación: Considerar completas las líneas con cantidad 0
                   const okLinea =
                     req === 0 || (requireScan ? sc >= req : pk >= req);
                   const isFlash = flashIndex === index;
@@ -1396,8 +1430,7 @@ export default function InventarioFisicoPage() {
                   Escanea para comenzar
                 </h3>
                 <p className="text-gray-400">
-                  El scanner está activo. Escanea cualquier código para
-                  agregarlo
+                  {scannerEnabled ? "El scanner está activo. Escanea cualquier código para agregarlo" : "Selecciona una sucursal para activar el scanner"}
                 </p>
               </div>
             )}
@@ -1415,6 +1448,7 @@ export default function InventarioFisicoPage() {
                       if (!isSubmitting) aplicarInventario();
                     }}
                     disabled={isSubmitting}
+                    title={isSubmitting ? "Aplicando..." : "Completar inventario (Alt + C)"}
                   >
                     {isSubmitting ? (
                       <>
@@ -1820,10 +1854,8 @@ export default function InventarioFisicoPage() {
                   setSuccessModal(null);
                   
                   if (continuar) {
-                    // Continuar con la misma sucursal/almacén
                     setTimeout(() => focusScanner(), 50);
                   } else {
-                    // Resetear selección para elegir nuevamente
                     setSelectedSucursal(null);
                     setSelectedAlmacen(null);
                     setScannerEnabled(false);
