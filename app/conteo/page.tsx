@@ -205,7 +205,7 @@ export default function InventarioFisicoPage() {
   const focusScanner = useCallback(() => {
     // Solo enfocar si el scanner está habilitado (después de seleccionar sucursal y almacén)
     if (!scannerEnabled) return;
-    
+
     requestAnimationFrame(() => {
       if (
         scannerRef.current &&
@@ -746,7 +746,7 @@ export default function InventarioFisicoPage() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Alt + A para abrir modal de agregar artículo
-      if (e.altKey && e.key.toLowerCase() === 'a') {
+      if (e.altKey && e.key.toLowerCase() === "a") {
         e.preventDefault();
         if (!selectedSucursal) {
           showToast("⚠️ Selecciona una sucursal primero", "error");
@@ -757,9 +757,9 @@ export default function InventarioFisicoPage() {
           setShowAddForm(true);
         }
       }
-      
+
       // Alt + C para completar inventario
-      if (e.altKey && e.key.toLowerCase() === 'c') {
+      if (e.altKey && e.key.toLowerCase() === "c") {
         e.preventDefault();
         if (detalles.length > 0 && !isSubmitting) {
           console.log("🎹 Atajo Alt+C activado - Completando inventario");
@@ -768,9 +768,16 @@ export default function InventarioFisicoPage() {
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedSucursal, showAddForm, showToast, detalles.length, isSubmitting, aplicarInventario]);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    selectedSucursal,
+    showAddForm,
+    showToast,
+    detalles.length,
+    isSubmitting,
+    aplicarInventario,
+  ]);
 
   const searchArticleByClave = async (clave: string) => {
     if (!clave.trim()) return;
@@ -881,37 +888,65 @@ export default function InventarioFisicoPage() {
       {!selectedAlmacen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="rounded-2xl border border-white/20 bg-gradient-to-br from-gray-900/95 to-black/95 backdrop-blur-xl p-6 max-w-lg w-full shadow-2xl">
-            <h3 className="text-xl font-semibold text-white mb-2">Seleccione Sucursal y Almacén</h3>
-            <p className="text-sm text-gray-400 mb-6">Antes de iniciar el conteo selecciona la sucursal y el almacén donde se realizará.</p>
+            <h3 className="text-xl font-semibold text-white mb-2">
+              Seleccione Sucursal y Almacén
+            </h3>
+            <p className="text-sm text-gray-400 mb-6">
+              Antes de iniciar el conteo selecciona la sucursal y el almacén
+              donde se realizará.
+            </p>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-white/70 mb-2">Sucursal</label>
+                <label className="block text-sm text-white/70 mb-2">
+                  Sucursal
+                </label>
                 <select
                   className="w-full p-3 border border-white/10 rounded-lg bg-white/5 text-white focus:border-purple-500/50 focus:outline-none"
                   value={selectedSucursal ?? ""}
                   onChange={(e) => {
-                    const v = e.target.value
-                    setSelectedSucursal(v ? Number(v) : null)
+                    const v = e.target.value;
+                    setSelectedSucursal(v ? Number(v) : null);
                   }}
                 >
-                  <option value="" className="bg-gray-900">-- Seleccione --</option>
-                  {Array.from(new Map(sucursalesAlmacenes.map((r: any) => [r.SUCURSAL_ID, r.NOMBRE_SUCURSAL]))).map(([id, name]) => (
-                    <option key={id} value={id} className="bg-gray-900">{name}</option>
+                  <option value="" className="bg-gray-900">
+                    -- Seleccione --
+                  </option>
+                  {Array.from(
+                    new Map(
+                      sucursalesAlmacenes.map((r: any) => [
+                        r.SUCURSAL_ID,
+                        r.NOMBRE_SUCURSAL,
+                      ])
+                    )
+                  ).map(([id, name]) => (
+                    <option key={id} value={id} className="bg-gray-900">
+                      {name}
+                    </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm text-white/70 mb-2">Almacén</label>
+                <label className="block text-sm text-white/70 mb-2">
+                  Almacén
+                </label>
                 <select
                   className="w-full p-3 border border-white/10 rounded-lg bg-white/5 text-white focus:border-purple-500/50 focus:outline-none"
                   value={selectedAlmacen ?? ""}
-                  onChange={(e) => setSelectedAlmacen(e.target.value ? Number(e.target.value) : null)}
+                  onChange={(e) =>
+                    setSelectedAlmacen(
+                      e.target.value ? Number(e.target.value) : null
+                    )
+                  }
                 >
-                  <option value="" className="bg-gray-900">-- Seleccione --</option>
+                  <option value="" className="bg-gray-900">
+                    -- Seleccione --
+                  </option>
                   {availableAlmacenes.map((a: any) => (
-                    <option key={a.id} value={a.id} className="bg-gray-900">{a.name}</option>
+                    <option key={a.id} value={a.id} className="bg-gray-900">
+                      {a.name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -925,7 +960,11 @@ export default function InventarioFisicoPage() {
                     }
                   }}
                   disabled={!selectedAlmacen}
-                  className={`px-6 py-3 rounded-lg font-semibold transition-all ${selectedAlmacen ? 'bg-gradient-to-r from-purple-500/30 to-blue-500/30 hover:from-purple-500/40 hover:to-blue-500/40 text-white' : 'bg-white/5 text-gray-500 cursor-not-allowed'}`}
+                  className={`px-6 py-3 rounded-lg font-semibold transition-all ${
+                    selectedAlmacen
+                      ? "bg-gradient-to-r from-purple-500/30 to-blue-500/30 hover:from-purple-500/40 hover:to-blue-500/40 text-white"
+                      : "bg-white/5 text-gray-500 cursor-not-allowed"
+                  }`}
                 >
                   Iniciar conteo
                 </button>
@@ -1032,7 +1071,8 @@ export default function InventarioFisicoPage() {
                     Inventario Físico
                   </h1>
                   <p className="text-gray-400">
-                    Conteo de Inventario • {scannerEnabled ? "Scanner Activo" : "Scanner Inactivo"}
+                    Conteo de Inventario •{" "}
+                    {scannerEnabled ? "Scanner Activo" : "Scanner Inactivo"}
                   </p>
                 </div>
               </div>
@@ -1143,6 +1183,18 @@ export default function InventarioFisicoPage() {
                   ref={claveInputRef}
                   value={newClave}
                   onChange={(e) => handleClaveChange(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      // Si hay descripción (encontró el artículo), saltar a cantidad
+                      if (newDescripcion.trim()) {
+                        cantidadInputRef.current?.focus();
+                      } else {
+                        // Si no hay descripción, ir a descripción para buscar manualmente
+                        descripcionInputRef.current?.focus();
+                      }
+                    }
+                  }}
                   placeholder="Escribe la clave..."
                   className={`bg-white/5 border-white/10 text-white/90 placeholder-white/40 ${
                     searchingArticle ? "border-teal-400/30 bg-teal-400/10" : ""
@@ -1166,6 +1218,13 @@ export default function InventarioFisicoPage() {
                   ref={descripcionInputRef}
                   value={newDescripcion}
                   onChange={(e) => handleDescripcionChange(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      // Saltar a cantidad al presionar Enter
+                      cantidadInputRef.current?.focus();
+                    }
+                  }}
                   placeholder="Escribe para buscar..."
                   disabled={searchingArticle}
                   className={`bg-white/5 border-white/10 text-white/90 placeholder-white/40 ${
@@ -1214,6 +1273,13 @@ export default function InventarioFisicoPage() {
                   ref={cantidadInputRef}
                   value={newCantidad}
                   onChange={(e) => setNewCantidad(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      // Agregar el artículo al presionar Enter
+                      addManualItem();
+                    }
+                  }}
                   placeholder="Cantidad (puede ser 0)"
                   type="number"
                   className="bg-white/5 border-white/10 text-white/90 placeholder-white/40"
@@ -1262,10 +1328,16 @@ export default function InventarioFisicoPage() {
                   <p className="font-light text-sm tracking-wide text-white/60">
                     Inventario Físico
                     {selectedSucursal && selectedAlmacen && (
-                      <> • Almacén {(() => {
-                        const almacen = availableAlmacenes.find((a: any) => Number(a.id) === selectedAlmacen);
-                        return almacen ? almacen.name : selectedAlmacen;
-                      })()}</>
+                      <>
+                        {" "}
+                        • Almacén{" "}
+                        {(() => {
+                          const almacen = availableAlmacenes.find(
+                            (a: any) => Number(a.id) === selectedAlmacen
+                          );
+                          return almacen ? almacen.name : selectedAlmacen;
+                        })()}
+                      </>
                     )}
                     {!selectedSucursal && (
                       <span className="text-orange-400">
@@ -1442,7 +1514,9 @@ export default function InventarioFisicoPage() {
                   Escanea para comenzar
                 </h3>
                 <p className="text-gray-400">
-                  {scannerEnabled ? "El scanner está activo. Escanea cualquier código para agregarlo" : "Selecciona una sucursal para activar el scanner"}
+                  {scannerEnabled
+                    ? "El scanner está activo. Escanea cualquier código para agregarlo"
+                    : "Selecciona una sucursal para activar el scanner"}
                 </p>
               </div>
             )}
@@ -1460,7 +1534,11 @@ export default function InventarioFisicoPage() {
                       if (!isSubmitting) aplicarInventario();
                     }}
                     disabled={isSubmitting}
-                    title={isSubmitting ? "Aplicando..." : "Completar inventario (Alt + C)"}
+                    title={
+                      isSubmitting
+                        ? "Aplicando..."
+                        : "Completar inventario (Alt + C)"
+                    }
                   >
                     {isSubmitting ? (
                       <>
@@ -1857,14 +1935,29 @@ export default function InventarioFisicoPage() {
               </button>
               <button
                 onClick={() => {
+                  // Redirigir a aplicar-inv con el folio como query param
+                  const folio = successModal.folio || "";
+                  console.log("🚀 Redirigiendo con folio:", folio);
+                  // Usar window.location para forzar recarga completa
+                  window.location.href = `/aplicar-inv?highlight=${encodeURIComponent(
+                    folio
+                  )}`;
+                }}
+                className="px-4 py-2 rounded-lg border border-teal-500/20 bg-teal-500/10 hover:bg-teal-500/20 font-light text-sm tracking-wide text-teal-400 flex items-center gap-2"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                Ir a aplicar
+              </button>
+              <button
+                onClick={() => {
                   const continuar = confirm(
                     "¿Deseas continuar con la misma sucursal y almacén?\n\n" +
-                    "✅ Aceptar = Continuar con la misma ubicación\n" +
-                    "❌ Cancelar = Seleccionar otra sucursal/almacén"
+                      "✅ Aceptar = Continuar con la misma ubicación\n" +
+                      "❌ Cancelar = Seleccionar otra sucursal/almacén"
                   );
-                  
+
                   setSuccessModal(null);
-                  
+
                   if (continuar) {
                     setTimeout(() => focusScanner(), 50);
                   } else {

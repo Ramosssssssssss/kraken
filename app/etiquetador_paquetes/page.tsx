@@ -264,231 +264,35 @@ const baseTemplate: Template = {
     </div></div></div>
   `,
     preview: (a: PaqItem, partIndex = 1, partTotal = 1) => (
-        <div className="p" style={{ width: "101mm", height: "101mm" }}>
-            <div className="l" style={{ width: "101mm", height: "101mm", padding: "0mm", display: "flex" }}>
-                <div
-                    className="g"
-                    style={{
-                        width: "100%",
-                        height: "100%",
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr 1fr",
-                        gridTemplateRows: "14mm 14mm 14mm 14mm 30mm",
-                        gap: "2px 6px",
-                        fontSize: "4mm",
-                        lineHeight: 1.15,
-                        position: "relative",
-                        alignContent: "start",
-                        border: "1px solid #000",
-                        marginTop: "0mm",
-                        padding: "2mm",
-                    }}
-                >
-                    {/* ===== Cabecera ===== */}
-                    <div
-                        className="cabecera"
-                        style={{
-                            gridArea: "1 / 1 / 2 / 4",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            gap: "4mm",
-                            borderBottom: "1px dashed #000",
-                            paddingBottom: "1mm",
-                        }}
-                    >
-                        <img
-                            src="/Fyttsa/FYTTSA APLICACIONES LOGO (2)-06.png"
-                            alt="Logo derecha"
-                            style={{ height: "10mm", maxWidth: "48%", objectFit: "contain", display: "block" }}
-                        />
-                        <span style={{ fontSize: "3mm" /* ~10px */, textAlign: "right" }}>
-                            CARRETERA (CARR.) FEDERAL MÉXICO TEPEXPAN KM 32.5 INT:1, LOS ÁNGELES TOTOLCINGO, ACOLMAN, 55885
-                        </span>
-                    </div>
-
-                    {/* ===== Cliente ===== */}
-                    <div
-                        className="cliente"
-                        style={{
-                            gridArea: "2 / 1 / 3 / 4",
-                            fontWeight: 700,
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            padding: "1mm",
-                        }}
-                    >
-                        {a.cliente}
-                    </div>
-
-                    {/* ===== Dirección ===== */}
-                    <div
-                        className="dir"
-                        style={{
-                            gridArea: "3 / 1 / 4 / 4",
-                            whiteSpace: "normal",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            lineHeight: 1.15,
-                            padding: "1mm",
-                        }}
-                    >
-                        {a.direccion} {`${a.ciudad}${a.cp ? " CP " + a.cp : ""}`}
-                    </div>
-
-                    {/* ===== Peso (col 3, fila 4) ===== */}
-                    <div
-                        className="peso"
-                        style={{
-                            gridArea: "4 / 3 / 5 / 4",
-                            alignSelf: "center",
-                            justifySelf: "end",
-                            display: "flex",
-                            flexDirection: "column",
-                            justifyContent: "end",
-                            fontWeight: 700,
-                            paddingRight: "2mm",
-                            textAlign: "right",
-                        }}
-                    >
-                        <span style={{ fontSize: "13px" }}>Peso</span>
-                        <span style={{ fontSize: "13px" }}>{a.peso ? `${a.peso} kg` : ""}</span>
-                    </div>
-
-                    {/* ===== SD (grid-area 4 / 2 / 5 / 3) ===== */}
-                    <div
-                        className="SD"
-                        style={{
-                            gridArea: "4 / 2 / 5 / 3",
-                            fontSize: "30px",
-                            textAlign: "center",
-                            display: "flex",
-                            justifyContent: "center",
-                            alignItems: "center",
-                        }}
-                    >
-                        SD
-                    </div>
-
-                    {/* ===== Paquetes (grid-area 4 / 1 / 5 / 3) ===== */}
-                    <div
-                        className="paq"
-                        style={{
-                            gridArea: "4 / 1 / 5 / 3",
-                            justifySelf: "start",
-                            alignSelf: "center",
-                            fontSize: "3mm",
-                            fontWeight: 700,
-                            padding: "1mm 2mm",
-                            display: "flex",
-                            flexDirection: "column",
-                            justifyContent: "center",
-                            lineHeight: 1,
-                        }}
-                    >
-                        <span style={{ textAlign: "center", fontSize: "3mm" }}>PAQ:</span>
-                        <span style={{ textAlign: "center", fontSize: "25px" }}>
-                            {partIndex}/{partTotal}
-                        </span>
-                    </div>
-
-                    {/* ===== Zona Folio + Código de barras ===== */}
-                    <div
-                        className="FolioQR"
-                        style={{
-                            gridArea: "5 / 1 / 6 / 4",
-                            paddingTop: "1mm",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "2mm",
-                            justifyContent: "center",
-                            width: "90mm",
-                            margin: "0 auto",
-                            position: "relative",
-                        }}
-                    >
-                        {/* Folio con ruta/andén */}
-                        <div
-                            className="folio"
-                            style={{
-                                width: "100%",
-                                fontWeight: "bold",
-                                fontSize: "4mm",
-                                textAlign: "center",
-                                display: "flex",
-                                flexDirection: "row",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                            }}
-                        >
-                            <div
-                                className="anden"
-                                style={{
-                                    border: "1px solid #000",
-                                    width: "10mm",
-                                    height: "10mm",
-                                    fontSize: "4mm",
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                }}
-                            >
-                                <span></span>
-                                <strong style={{ fontSize: "2.2mm" }}></strong>
-                            </div>
-
-                            <span style={{ fontSize: "35px" }}>{a.folio}</span>
-
-                            <div
-                                className="ruta"
-                                style={{
-                                    border: "1px solid #000",
-                                    width: "10mm",
-                                    height: "10mm",
-                                    fontSize: "4mm",
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                }}
-                            >
-                                <span></span>
-                                <strong style={{ fontSize: "2.2mm" }}></strong>
-                            </div>
-                        </div>
-
-                        {/* Barcode */}
-                        <svg
-                            className="bc jsb"
-                            data-code={a.folio}
-                            style={{ width: "100%", height: "18mm", display: "block" }}
-                        />
-
-                        {/* Footer con powered by + fecha (absoluto al fondo del área FolioQR) */}
-                        <div
-                            className="footer"
-                            style={{
-                                width: "95%",
-                                display: "flex",
-                                flexDirection: "row",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                position: "absolute",
-                                bottom: "1mm",
-                                left: "50%",
-                                transform: "translateX(-50%)",
-                            }}
-                        >
-                            <img src="/powered by.png" alt="Logo izquierda" style={{ height: "15px" }} />
-                            <div className="fecha" style={{ fontSize: "3mm" }}>
-                                {a.fecha}
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <div
+            className="w-full h-full grid relative"
+            style={{
+                gridTemplateColumns: "repeat(3, 1fr)",
+                gridTemplateRows: "12mm repeat(6, minmax(0, auto))",
+                gap: "2px 6px",
+                fontSize: 10,
+                lineHeight: 1.05,
+            }}
+        >
+            {/* Badge */}
+            <div className="absolute top-1 left-1 border border-black rounded px-2 py-1 text-[9px] font-bold bg-white">
+                <span>Paquetes</span>
+                <span>{partIndex}/{partTotal}</span>
             </div>
+
+            {/* Cabecera preview */}
+            <div className="col-[1/4] row-[1/2] flex items-center justify-between gap-3">
+                <img src="/logos/izq.png" alt="Logo izquierda" style={{ height: "10mm", maxWidth: "48%", objectFit: "contain" }} />
+                <img src="/logos/der.png" alt="Logo derecha" style={{ height: "10mm", maxWidth: "48%", objectFit: "contain" }} />
+            </div>
+
+            <div className="col-[1/4] row-[2/3] font-bold truncate">{a.cliente}</div>
+            <div className="col-[1/4] row-[3/4] truncate">{a.direccion}</div>
+            <div className="col-[1/3] row-[4/5] truncate">{a.ciudad}{a.cp ? ` CP ${a.cp}` : ""}</div>
+            <div className="col-[3/4] row-[4/5] text-right font-bold">{a.peso ? `${a.peso} kg` : ""}</div>
+            <div className="col-[1/2] row-[5/6] font-bold">{a.folio}</div>
+            <div className="col-[2/4] row-[5/6] text-right">{a.fecha}</div>
+            <svg className="col-[1/4] row-[6/8] jsb" data-code={a.folio} />
         </div>
     ),
 }
@@ -643,233 +447,39 @@ const baseTemplate2: Template = {
     </div></div></div>
   `,
     preview: (a: PaqItem, partIndex = 1, partTotal = 1) => (
-        <div className="p" style={{ width: "101mm", height: "101mm" }}>
-            <div className="l" style={{ width: "101mm", height: "101mm", padding: "2mm", display: "flex" }}>
-                <div
-                    className="g"
-                    style={{
-                        width: "100%",
-                        height: "100%",
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr 1fr",
-                        gridTemplateRows: "14mm 14mm 14mm 14mm 30mm",
-                        gap: "2px 6px",
-                        fontSize: "4mm",
-                        lineHeight: 1.15,
-                        position: "relative",
-                        alignContent: "start",
-                        border: "1px solid #000",
-                        marginTop: "2mm",
-                    }}
-                >
-                    {/* ===== Cabecera ===== */}
-                    <div
-                        className="cabecera"
-                        style={{
-                            gridArea: "1 / 1 / 2 / 4",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            gap: "4mm",
-                            borderBottom: "1px dashed #000",
-                            paddingBottom: "1mm",
-                        }}
-                    >
-                        <img
-                            src="/Fyttsa/FYTTSA APLICACIONES LOGO (2)-06.png"
-                            alt="Logo derecha"
-                            style={{ height: "10mm", maxWidth: "48%", objectFit: "contain", display: "block" }}
-                        />
-                        <span style={{ fontSize: "3mm", textAlign: "right" }}>
-                            CARRETERA (CARR.) FEDERAL MÉXICO TEPEXPAN KM 32.5 INT:1, LOS ÁNGELES TOTOLCINGO, ACOLMAN, 55885
-                        </span>
-                    </div>
-
-                    {/* ===== Sucursal (cliente en traspaso) ===== */}
-                    <div
-                        className="cliente"
-                        style={{
-                            gridArea: "2 / 1 / 3 / 4",
-                            fontWeight: 700,
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            padding: "1mm",
-                        }}
-                    >
-                        {a.sucursal}
-                    </div>
-
-                    {/* ===== Dirección ===== */}
-                    <div
-                        className="dir"
-                        style={{
-                            gridArea: "3 / 1 / 4 / 4",
-                            whiteSpace: "normal",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            lineHeight: 1.15,
-                            padding: "1mm",
-                        }}
-                    >
-                        {a.direccion} {`${a.ciudad}${a.cp ? " CP " + a.cp : ""}`}
-                    </div>
-
-                    {/* ===== Peso (col 3, fila 4) ===== */}
-                    <div
-                        className="peso"
-                        style={{
-                            gridArea: "4 / 3 / 5 / 4",
-                            alignSelf: "center",
-                            justifySelf: "end",
-                            display: "flex",
-                            flexDirection: "column",
-                            justifyContent: "end",
-                            fontWeight: 700,
-                            paddingRight: "2mm",
-                            textAlign: "right",
-                        }}
-                    >
-                        <span style={{ fontSize: "13px" }}>Peso</span>
-                        <span style={{ fontSize: "13px" }}>{a.peso ? `${a.peso} kg` : ""}</span>
-                    </div>
-
-                    {/* ===== SD (centro fila 4) ===== */}
-                    <div
-                        className="SD"
-                        style={{
-                            gridArea: "4 / 2 / 5 / 3",
-                            fontSize: "30px",
-                            textAlign: "center",
-                            display: "flex",
-                            justifyContent: "center",
-                            alignItems: "center",
-                        }}
-                    >
-                        SD
-                    </div>
-
-                    {/* ===== Paquetes (fila 4, col 1-2) ===== */}
-                    <div
-                        className="paq"
-                        style={{
-                            gridArea: "4 / 1 / 5 / 3",
-                            justifySelf: "start",
-                            alignSelf: "center",
-                            fontSize: "3mm",
-                            fontWeight: 700,
-                            padding: "1mm 2mm",
-                            display: "flex",
-                            flexDirection: "column",
-                            justifyContent: "center",
-                            lineHeight: 1,
-                        }}
-                    >
-                        <span style={{ textAlign: "center", fontSize: "3mm" }}>PAQ:</span>
-                        <span style={{ textAlign: "center", fontSize: "25px" }}>
-                            {partIndex}/{partTotal}
-                        </span>
-                    </div>
-
-                    {/* ===== Zona Folio + Código de barras ===== */}
-                    <div
-                        className="FolioQR"
-                        style={{
-                            gridArea: "5 / 1 / 6 / 4",
-                            paddingTop: "1mm",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "2mm",
-                            justifyContent: "center",
-                            width: "90mm",
-                            margin: "0 auto",
-                            position: "relative",
-                        }}
-                    >
-                        <div
-                            className="folio"
-                            style={{
-                                width: "100%",
-                                fontWeight: "bold",
-                                fontSize: "4mm",
-                                textAlign: "center",
-                                display: "flex",
-                                flexDirection: "row",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                            }}
-                        >
-                            <div
-                                className="anden"
-                                style={{
-                                    border: "1px solid #000",
-                                    width: "10mm",
-                                    height: "10mm",
-                                    fontSize: "4mm",
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                }}
-                            >
-                                <span></span>
-                                <strong style={{ fontSize: "2.2mm" }}></strong>
-                            </div>
-
-                            <span style={{ fontSize: "35px" }}>{a.folio}</span>
-
-                            <div
-                                className="ruta"
-                                style={{
-                                    border: "1px solid #000",
-                                    width: "10mm",
-                                    height: "10mm",
-                                    fontSize: "4mm",
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                }}
-                            >
-                                <span></span>
-                                <strong style={{ fontSize: "2.2mm" }}></strong>
-                            </div>
-                        </div>
-
-                        {/* Barcode */}
-                        <svg
-                            className="bc jsb"
-                            data-code={a.folio}
-                            style={{ width: "100%", height: "18mm", display: "block" }}
-                        />
-
-                        {/* Footer (powered by + fecha) */}
-                        <div
-                            className="footer"
-                            style={{
-                                width: "95%",
-                                display: "flex",
-                                flexDirection: "row",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                position: "absolute",
-                                bottom: "1mm",
-                                left: "50%",
-                                transform: "translateX(-50%)",
-                            }}
-                        >
-                            <img src="/powered by.png" alt="Logo izquierda" style={{ height: "15px" }} />
-                            <div className="fecha" style={{ fontSize: "3mm" }}>
-                                {a.fecha}
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <div
+            className="w-full h-full grid relative"
+            style={{
+                gridTemplateColumns: "repeat(3, 1fr)",
+                gridTemplateRows: "12mm repeat(6, minmax(0, auto))",
+                gap: "2px 6px",
+                fontSize: 10,
+                lineHeight: 1.05,
+            }}
+        >
+            {/* Badge */}
+            <div className="absolute top-1 left-1 border border-black rounded px-2 py-1 text-[9px] font-bold bg-white">
+                <span>Paquetes</span>
+                <span>{partIndex}/{partTotal}</span>
             </div>
+
+            {/* Cabecera preview */}
+            <div className="col-[1/4] row-[1/2] flex items-center justify-between gap-3">
+                <img src="/logos/izq.png" alt="Logo izquierda" style={{ height: "10mm", maxWidth: "48%", objectFit: "contain" }} />
+                <img src="/logos/der.png" alt="Logo derecha" style={{ height: "10mm", maxWidth: "48%", objectFit: "contain" }} />
+            </div>
+
+            <div className="col-[1/4] row-[2/3] font-bold truncate">{a.cliente}</div>
+            <div className="col-[1/4] row-[3/4] truncate">{a.direccion}</div>
+            <div className="col-[1/3] row-[4/5] truncate">{a.ciudad}{a.cp ? ` CP ${a.cp}` : ""}</div>
+            <div className="col-[3/4] row-[4/5] text-right font-bold">{a.peso ? `${a.peso} kg` : ""}</div>
+            <div className="col-[1/2] row-[5/6] font-bold">{a.folio}</div>
+            <div className="col-[2/4] row-[5/6] text-right">{a.fecha}</div>
+            <svg className="col-[1/4] row-[6/8] jsb" data-code={a.folio} />
         </div>
     ),
-
 }
+
 
 const baseTemplate3: Template = {
     id: "etiqueta_puntoVenta",
@@ -1002,237 +612,37 @@ const baseTemplate3: Template = {
     </div></div></div>
   `,
     preview: (a: PaqItem, partIndex = 1, partTotal = 1) => (
-        <div className="p" style={{ width: "101mm", height: "101mm" }}>
-            <div className="l" style={{ width: "101mm", height: "101mm", padding: "2mm", display: "flex" }}>
-                <div
-                    className="g"
-                    style={{
-                        width: "100%",
-                        height: "100%",
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr 1fr",
-                        gridTemplateRows: "14mm 14mm 14mm 14mm 30mm",
-                        gap: "2px 6px",
-                        fontSize: "4mm",
-                        lineHeight: 1.15,
-                        position: "relative",
-                        alignContent: "start",
-                        border: "1px solid #000",
-                        marginTop: "2mm",
-                    }}
-                >
-                    {/* ===== Cabecera ===== */}
-                    <div
-                        className="cabecera"
-                        style={{
-                            gridArea: "1 / 1 / 2 / 4",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            gap: "4mm",
-                            borderBottom: "1px dashed #000",
-                            paddingBottom: "1mm",
-                        }}
-                    >
-                        <img
-                            src="/Fyttsa/FYTTSA APLICACIONES LOGO (2)-06.png"
-                            alt="Logo derecha"
-                            style={{ height: "10mm", maxWidth: "48%", objectFit: "contain", display: "block" }}
-                        />
-                        <span style={{ fontSize: "3mm", textAlign: "right" }}>
-                            CARRETERA (CARR.) FEDERAL MÉXICO TEPEXPAN KM 32.5 INT:1, LOS ÁNGELES TOTOLCINGO, ACOLMAN, 55885
-                        </span>
-                    </div>
-
-                    {/* ===== Cliente ===== */}
-                    <div
-                        className="cliente"
-                        style={{
-                            gridArea: "2 / 1 / 3 / 4",
-                            fontWeight: 700,
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            padding: "1mm",
-                        }}
-                    >
-                        {a.cliente}
-                    </div>
-
-                    {/* ===== Dirección (con coma, como en renderHTML) ===== */}
-                    <div
-                        className="dir"
-                        style={{
-                            gridArea: "3 / 1 / 4 / 4",
-                            width: "100%",
-                            padding: "1mm",
-                            lineHeight: 1.15,
-                            display: "-webkit-box",
-                            WebkitBoxOrient: "vertical",
-                            WebkitLineClamp: 3,
-                            overflow: "hidden",
-                            whiteSpace: "normal",
-                            wordBreak: "break-word",
-                            hyphens: "auto",
-                        }}
-                    >
-                        {a.direccion}, {`${a.ciudad}${a.cp ? " CP " + a.cp : ""}`}
-                    </div>
-
-                    {/* ===== Peso (col 3, fila 4) ===== */}
-                    <div
-                        className="peso"
-                        style={{
-                            gridArea: "4 / 3 / 5 / 4",
-                            alignSelf: "center",
-                            justifySelf: "end",
-                            display: "flex",
-                            flexDirection: "column",
-                            justifyContent: "end",
-                            fontWeight: 700,
-                            paddingRight: "2mm",
-                            textAlign: "right",
-                        }}
-                    >
-                        <span style={{ fontSize: "13px" }}>Peso</span>
-                        <span style={{ fontSize: "13px" }}>{a.peso ? `${a.peso} kg` : ""}</span>
-                    </div>
-
-                    {/* ===== SD (centro fila 4) ===== */}
-                    <div
-                        className="SD"
-                        style={{
-                            gridArea: "4 / 2 / 5 / 3",
-                            fontSize: "30px",
-                            textAlign: "center",
-                            display: "flex",
-                            justifyContent: "center",
-                            alignItems: "center",
-                        }}
-                    >
-                        SD
-                    </div>
-
-                    {/* ===== Paquetes (fila 4, col 1-2) ===== */}
-                    <div
-                        className="paq"
-                        style={{
-                            gridArea: "4 / 1 / 5 / 3",
-                            justifySelf: "start",
-                            alignSelf: "center",
-                            fontSize: "3mm",
-                            fontWeight: 700,
-                            padding: "1mm 2mm",
-                            display: "flex",
-                            flexDirection: "column",
-                            justifyContent: "center",
-                            lineHeight: 1,
-                        }}
-                    >
-                        <span style={{ textAlign: "center", fontSize: "3mm" }}>PAQ:</span>
-                        <span style={{ textAlign: "center", fontSize: "25px" }}>
-                            {partIndex}/{partTotal}
-                        </span>
-                    </div>
-
-                    {/* ===== Zona Folio + Código de barras ===== */}
-                    <div
-                        className="FolioQR"
-                        style={{
-                            gridArea: "5 / 1 / 6 / 4",
-                            paddingTop: "1mm",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "2mm",
-                            justifyContent: "center",
-                            width: "90mm",
-                            margin: "0 auto",
-                            position: "relative",
-                        }}
-                    >
-                        <div
-                            className="folio"
-                            style={{
-                                width: "100%",
-                                fontWeight: "bold",
-                                fontSize: "4mm",
-                                textAlign: "center",
-                                display: "flex",
-                                flexDirection: "row",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                            }}
-                        >
-                            <div
-                                className="anden"
-                                style={{
-                                    border: "1px solid #000",
-                                    width: "10mm",
-                                    height: "10mm",
-                                    fontSize: "4mm",
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                }}
-                            >
-                                <span></span>
-                                <strong style={{ fontSize: "2.2mm" }}></strong>
-                            </div>
-
-                            <span style={{ fontSize: "35px" }}>{a.folio}</span>
-
-                            <div
-                                className="ruta"
-                                style={{
-                                    border: "1px solid #000",
-                                    width: "10mm",
-                                    height: "10mm",
-                                    fontSize: "4mm",
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                }}
-                            >
-                                <span></span>
-                                <strong style={{ fontSize: "2.2mm" }}></strong>
-                            </div>
-                        </div>
-
-                        {/* Barcode */}
-                        <svg
-                            className="bc jsb"
-                            data-code={a.folio}
-                            style={{ width: "100%", height: "18mm", display: "block" }}
-                        />
-
-                        {/* Footer (powered by + fecha) */}
-                        <div
-                            className="footer"
-                            style={{
-                                width: "95%",
-                                display: "flex",
-                                flexDirection: "row",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                position: "absolute",
-                                bottom: "1mm",
-                                left: "50%",
-                                transform: "translateX(-50%)",
-                            }}
-                        >
-                            <img src="/powered by.png" alt="Logo izquierda" style={{ height: "15px" }} />
-                            <div className="fecha" style={{ fontSize: "3mm" }}>
-                                {a.fecha}
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <div
+            className="w-full h-full grid relative"
+            style={{
+                gridTemplateColumns: "repeat(3, 1fr)",
+                gridTemplateRows: "12mm repeat(6, minmax(0, auto))",
+                gap: "2px 6px",
+                fontSize: 10,
+                lineHeight: 1.05,
+            }}
+        >
+            {/* Badge */}
+            <div className="absolute top-1 left-1 border border-black rounded px-2 py-1 text-[9px] font-bold bg-white">
+                <span>Paquetes</span>
+                <span>{partIndex}/{partTotal}</span>
             </div>
+
+            {/* Cabecera preview */}
+            <div className="col-[1/4] row-[1/2] flex items-center justify-between gap-3">
+                <img src="/logos/izq.png" alt="Logo izquierda" style={{ height: "10mm", maxWidth: "48%", objectFit: "contain" }} />
+                <img src="/logos/der.png" alt="Logo derecha" style={{ height: "10mm", maxWidth: "48%", objectFit: "contain" }} />
+            </div>
+
+            <div className="col-[1/4] row-[2/3] font-bold truncate">{a.cliente}</div>
+            <div className="col-[1/4] row-[3/4] truncate">{a.direccion}</div>
+            <div className="col-[1/3] row-[4/5] truncate">{a.ciudad}{a.cp ? ` CP ${a.cp}` : ""}</div>
+            <div className="col-[3/4] row-[4/5] text-right font-bold">{a.peso ? `${a.peso} kg` : ""}</div>
+            <div className="col-[1/2] row-[5/6] font-bold">{a.folio}</div>
+            <div className="col-[2/4] row-[5/6] text-right">{a.fecha}</div>
+            <svg className="col-[1/4] row-[6/8] jsb" data-code={a.folio} />
         </div>
     ),
-
 }
 // Clones para otros tipos (mismo layout por ahora)
 const LABEL_TEMPLATES: Template[] = [
@@ -1612,7 +1022,7 @@ export default function EtiquetadorPaquetes() {
     useEffect(() => { (async () => { try { await ensureJsBarcodeLoaded(); renderAllBarcodes() } catch { } })() }, [items, tplId])
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-purple-900">
+        <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900">
             <div className="min-h-screen p-6">
                 <div className="max-w-7xl mx-auto">
                     {/* <div className="flex items-center justify-between mb-6">
@@ -1627,16 +1037,17 @@ export default function EtiquetadorPaquetes() {
 
                     <div className="grid lg:grid-cols-2 gap-8 items-stretch min-h-0">
                         {/* Izquierda */}
-                        <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm h-full flex flex-col w-full">
-                            <CardHeader className="border-b border-gray-600 flex w-full justify-between">
+                        <Card className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 shadow-2xl h-full flex flex-col w-full">
+                            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
+                            <CardHeader className="relative border-b border-white/5 flex w-full justify-between">
                                 <CardTitle className="flex items-center gap-2 text-white">
                                     <Settings className="w-5 h-5 text-purple-300" /> Configuración
                                 </CardTitle>
-                                <span className="text-xs text-gray-300">v2.3.1</span>
+                                <span className="text-xs text-gray-400">v2.3.1</span>
                             </CardHeader>
                             <CardContent className="p-6 space-y-6">
                                 <div className="grid sm:grid-cols-2 gap-3">
-                                    <div className="space-y-1 sm:col-span-2">
+                                    <div className="space-y-1 sm:col-span-1">
                                         <Label className="text-gray-100 font-medium">Folio</Label>
                                         <Input
                                             type="text"
@@ -1649,14 +1060,11 @@ export default function EtiquetadorPaquetes() {
                                                     addByFolio(folio.trim())
                                                 }
                                             }}
-                                            className="bg-gray-700 border-gray-600 text-white placeholder-gray-300 w-full"
+                                            className="bg-white/5 border-white/10 text-white placeholder-gray-400 focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 rounded-xl"
                                         />
                                     </div>
-                                </div>
 
-                                <div className="flex items-end gap-2">
-                                    {/* Campo de número */}
-                                    <div className="flex flex-col flex-1">
+                                    <div className="space-y-1 sm:col-span-1">
                                         <Label className="text-gray-100 font-medium">Paquetes</Label>
                                         <NumberField
                                             value={paquetes}
@@ -1664,36 +1072,48 @@ export default function EtiquetadorPaquetes() {
                                             min={1}
                                             step={1}
                                             ariaLabel="Número de paquetes (etiquetas)"
-                                            className="appearance-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                         />
                                     </div>
 
-                                    {/* Botón alineado al input */}
+                                    {/* Selector manual de plantilla (puede cambiar al vuelo) */}
+                                    {/* <div className="space-y-1 sm:col-span-2">
+                                        <Label className="text-gray-100 font-medium">Plantilla</Label>
+                                        <Select value={tplId} onValueChange={(v) => setTplId(v as any)}>
+                                            <SelectTrigger className="bg-white/5 border-white/10 text-white hover:bg-white/10 transition-colors">
+                                                <SelectValue placeholder="Selecciona plantilla" />
+                                            </SelectTrigger>
+                                            <SelectContent className="bg-black/80 backdrop-blur-xl border-white/10 text-white">
+                                                {LABEL_TEMPLATES.map(t => (
+                                                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <p className="text-xs text-gray-400 mt-1">
+                                            Al agregar un folio, se selecciona automáticamente la plantilla según el tipo detectado por el backend.
+                                        </p>
+                                    </div> */}
+                                </div>
+
+                                <div className="flex gap-2">
                                     <Button
-                                        onClick={() => {
-                                            if (folio.trim()) addByFolio(folio.trim());
-                                        }}
-                                        className="h-[42px] bg-purple-600 hover:bg-purple-700 text-white border-0 flex items-center justify-center px-3"
+                                        onClick={() => { if (folio.trim()) addByFolio(folio.trim()) }}
+                                        className="bg-gradient-to-br from-purple-500/30 to-blue-500/30 hover:from-purple-500/40 hover:to-blue-500/40 text-white border-0 shadow-lg shadow-purple-500/20 rounded-xl transition-all duration-200"
                                         disabled={loading || !folio.trim()}
                                         title="Agregar etiqueta(s) por folio"
                                     >
-                                        {loading ? (
-                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                        ) : (
-                                            <Plus className="w-4 h-4" />
-                                        )}
+                                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                                        <span className="ml-2">Agregar</span>
                                     </Button>
-                                </div>
 
-                                <div className="w-full grid sm:grid-cols-1 gap-3">
                                     <Button
                                         onClick={() => setShowConfirm(true)}
-                                        className="bg-gray-600 hover:bg-gray-700 text-white border-0"
+                                        className="bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-colors"
                                         disabled={items.length === 0}
                                     >
-                                        <Printer className="w-full h-4 mr-2" />
+                                        <Printer className="w-4 h-4 mr-2" />
                                         Imprimir ({totalLabels})
                                     </Button>
+
                                 </div>
 
                                 {error && (
@@ -1713,7 +1133,7 @@ export default function EtiquetadorPaquetes() {
                                     />
                                     <Button
                                         type="button"
-                                        className="bg-purple-600 hover:bg-purple-700 text-white border-0"
+                                        className="bg-gradient-to-br from-purple-500/30 to-blue-500/30 hover:from-purple-500/40 hover:to-blue-500/40 text-white border-0 shadow-lg shadow-purple-500/20 rounded-xl transition-all duration-200"
                                         disabled={importing}
                                         onClick={() => fileRef.current?.click()}
                                         title="Importar FOLIO y PAQUETES desde Excel (2 columnas)"
@@ -1726,7 +1146,7 @@ export default function EtiquetadorPaquetes() {
 
                                     {(importing || importErrors.length > 0) && (
                                         <div className="mt-3 space-y-2">
-                                            {importing && (<div className="px-3 py-2 rounded bg-gray-700/60 text-white text-sm">Procesando… {importProgress.done}/{importProgress.total}</div>)}
+                                            {importing && (<div className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm">Procesando… {importProgress.done}/{importProgress.total}</div>)}
                                             {importErrors.length > 0 && (
                                                 <div className="px-3 py-2 rounded bg-red-900/30 border border-red-700 text-red-200 text-sm max-h-40 overflow-y-auto">
                                                     <div className="flex items-center gap-2 font-medium mb-1">
@@ -1746,8 +1166,9 @@ export default function EtiquetadorPaquetes() {
 
                         {/* Derecha */}
                         <div className="flex flex-col gap-6 h-full min-h-0">
-                            <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm flex-1 flex min-h-0">
-                                <CardHeader className="border-b border-gray-600 shrink-0">
+                            <Card className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 shadow-2xl flex-1 flex min-h-0">
+                                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-blue-500/5 pointer-events-none" />
+                                <CardHeader className="relative border-b border-white/5 shrink-0">
                                     <div className="flex items-center justify-between gap-3">
                                         <CardTitle className="text-white">Folios agregados ({items.length})</CardTitle>
                                         <CardTitle className="flex items-center">
@@ -1775,7 +1196,7 @@ export default function EtiquetadorPaquetes() {
                                     ) : (
                                         <div className="space-y-2 flex-1 overflow-y-auto">
                                             {items.map((a) => (
-                                                <div key={a.id} className="flex items-center justify-between bg-gray-700/50 p-3 rounded-lg">
+                                                <div key={a.id} className="flex items-center justify-between bg-white/5 hover:bg-white/10 transition-colors p-3 rounded-lg border border-white/5">
                                                     <div className="flex-1 min-w-0">
                                                         <p className="text-white font-medium truncate">{a.cliente}</p>
                                                         <p className="text-gray-300 text-sm">
@@ -1803,20 +1224,21 @@ export default function EtiquetadorPaquetes() {
                                 </CardContent>
                             </Card>
 
-                            <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm flex-1 flex min-h-auto">
-                                <CardHeader className="border-b border-gray-600 shrink-0">
+                            <Card className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 shadow-2xl flex-1 flex min-h-0">
+                                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-blue-500/5 pointer-events-none" />
+                                <CardHeader className="relative border-b border-white/5 shrink-0">
                                     <CardTitle className="flex items-center gap-2 text-white">
                                         <Eye className="w-5 h-5 text-purple-300" /> Vista Previa
                                     </CardTitle>
                                     <p className="text-gray-300 text-sm">Dimensiones: {template.width} × {template.height} mm</p>
                                 </CardHeader>
-                                <CardContent className="p-2 flex-auto flex flex-col min-h-auto">
-                                    <div className="bg-gray-900/60 rounded-lg p-2 min-h-full flex-1 flex items-center justify-center relative overflow-auto">
+                                <CardContent className="p-6 flex-1 flex flex-col min-h-0">
+                                    <div className="bg-black/40 backdrop-blur-sm rounded-lg p-8 min-h-[100%] flex-1 flex items-center justify-center relative overflow-auto border border-white/5">
                                         {items.length === 0 ? (
                                             <div className="text-center text-gray-400">Agrega folios para ver la vista previa</div>
                                         ) : (
                                             <div className="flex items-center justify-center" style={{ width: `${naturalW}px`, height: `${naturalH}px` }}>
-                                                <div className="bg-white rounded-md shadow-lg border-2 border-gray-300 text-black" style={{ width: naturalW, height: naturalH, padding: 0, overflow: "hidden" }}>
+                                                <div className="bg-white rounded-md shadow-lg border-2 border-gray-300 text-black" style={{ width: naturalW, height: naturalH, padding: 6, overflow: "hidden" }}>
                                                     {template.preview(items[0], 1, items[0].quantity)}
                                                 </div>
                                             </div>
@@ -1850,16 +1272,16 @@ function NumberField({
     const parseVal = (v: string | number) => (typeof v === "number" ? v : parseFloat(v || "0")) || 0
     const bump = (d: 1 | -1) => onChange(String(clamp(parseVal(value) + d * step)))
     return (
-        <div className={`flex items-stretch overflow-hidden rounded-md border border-gray-500 bg-gray-700 ${className}`}>
-            <Button type="button" variant="ghost" className="px-3 border-r border-gray-600 rounded-none text-white hover:bg-gray-600" aria-label="disminuir" onClick={() => bump(-1)}>
+        <div className={`flex items-stretch overflow-hidden rounded-xl border border-white/10 bg-white/5 ${className}`}>
+            <Button type="button" variant="ghost" className="px-3 border-r border-white/10 rounded-none text-white hover:bg-white/10 transition-colors" aria-label="disminuir" onClick={() => bump(-1)}>
                 <Minus className="w-4 h-4" />
             </Button>
             <Input id={id} type="number" inputMode="decimal" value={value}
                 onChange={(e) => onChange(e.target.value)}
-                className={`no-spin bg-gray-700 border-0 text-white text-center focus-visible:ring-0 ${inputClassName}`}
+                className={`no-spin bg-transparent border-0 text-white text-center focus-visible:ring-0 ${inputClassName}`}
                 min={min} max={max} step={step} aria-label={ariaLabel}
             />
-            <Button type="button" variant="ghost" className="px-3 border-l border-gray-600 rounded-none text-white hover:bg-gray-600" aria-label="aumentar" onClick={() => bump(1)}>
+            <Button type="button" variant="ghost" className="px-3 border-l border-white/10 rounded-none text-white hover:bg-white/10 transition-colors" aria-label="aumentar" onClick={() => bump(1)}>
                 <Plus className="w-4 h-4" />
             </Button>
         </div>

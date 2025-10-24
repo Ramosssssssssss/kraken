@@ -55,6 +55,56 @@ export default function AplicarInvPage() {
     const d = new Date();
     return d.toISOString().slice(0, 10);
   });
+  const [highlightFolio, setHighlightFolio] = useState<string | null>(null);
+
+  // Capturar el query param "highlight" al montar
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const highlight = params.get("highlight");
+      if (highlight) {
+        console.log("🎯 Folio a destacar:", highlight);
+        setHighlightFolio(highlight);
+        
+        // Cambiar filtro a "no-aplicados" para asegurar que se vea
+        setFilter("no-aplicados");
+        
+        // Remover el highlight después de 10 segundos
+        setTimeout(() => {
+          console.log("⏰ Removiendo highlight");
+          setHighlightFolio(null);
+        }, 10000);
+      }
+    }
+  }, []);
+
+  // Scroll al elemento DESPUÉS de que los datos se carguen
+  useEffect(() => {
+    if (highlightFolio && !loading && doctos.length > 0) {
+      console.log("📊 Datos cargados, buscando folio:", highlightFolio);
+      console.log("📋 Total documentos:", doctos.length);
+      
+      // Esperar a que el DOM se actualice completamente
+      setTimeout(() => {
+        const row = document.querySelector(`[data-folio="${highlightFolio}"]`);
+        console.log("🔍 Elemento encontrado:", row ? "SÍ" : "NO");
+        
+        if (row) {
+          row.scrollIntoView({ behavior: "smooth", block: "center" });
+          console.log("✅ Scroll ejecutado al folio:", highlightFolio);
+          
+          // Segundo intento después de 1 segundo por si acaso
+          setTimeout(() => {
+            row.scrollIntoView({ behavior: "smooth", block: "center" });
+            console.log("✅ Segundo scroll ejecutado");
+          }, 1000);
+        } else {
+          console.warn("⚠️ No se encontró el elemento con folio:", highlightFolio);
+          console.log("📝 Folios disponibles:", doctos.map(d => d.FOLIO));
+        }
+      }, 500);
+    }
+  }, [highlightFolio, loading, doctos]);
 
   // Fetch documents optionally by start/end date. On mount fetch today's documents.
   useEffect(() => {
@@ -192,7 +242,7 @@ export default function AplicarInvPage() {
 
   function deconstructFolio(folio: string): string {
     if (!folio || folio.length !== 9) return folio;
-    
+
     // Encuentra la última letra
     let lastLetterIndex = -1;
     for (let i = 0; i < folio.length; i++) {
@@ -200,18 +250,16 @@ export default function AplicarInvPage() {
         lastLetterIndex = i;
       }
     }
-    
-    if (lastLetterIndex === -1) return folio; 
-    
-    
+
+    if (lastLetterIndex === -1) return folio;
+
     const letterPart = folio.substring(0, lastLetterIndex + 1);
-    
-    
+
     const numberPart = folio.substring(lastLetterIndex + 1);
-    
+
     // Eliminar ceros iniciales de la parte numérica
-    const numberWithoutZeros = numberPart.replace(/^0+/, '') || '0';
-    
+    const numberWithoutZeros = numberPart.replace(/^0+/, "") || "0";
+
     return letterPart + numberWithoutZeros;
   }
   return (
@@ -563,10 +611,12 @@ export default function AplicarInvPage() {
                         const isApplied = docto.APLICADO === "S";
                         const usuarioDescripcion =
                           extractUsuarioFromDescripcion(docto.DESCRIPCION);
+                        const isHighlighted = highlightFolio === docto.FOLIO;
 
                         return (
                           <tr
                             key={`${docto.FOLIO}-${index}`}
+                            data-folio={docto.FOLIO}
                             className="group border-b border-white/5 transition-all hover:bg-white/[0.02]"
                           >
                             <td className="px-6 py-4">
@@ -610,26 +660,43 @@ export default function AplicarInvPage() {
                                   ✓ Ya aplicado
                                 </span>
                               ) : (
-                                <Button
-                                  onClick={() =>
-                                    handleAplicarInventario(docto.FOLIO)
-                                  }
-                                  disabled={applyingFolio === docto.FOLIO}
-                                  size="sm"
-                                  className="rounded-lg bg-gradient-to-r from-purple-500/30 to-blue-500/30 hover:from-purple-500/40 hover:to-blue-500/40 text-white font-semibold text-xs transition-all disabled:opacity-50"
-                                >
-                                  {applyingFolio === docto.FOLIO ? (
+                                <div className="relative">
+                                  <Button
+                                    onClick={() =>
+                                      handleAplicarInventario(docto.FOLIO)
+                                    }
+                                    disabled={applyingFolio === docto.FOLIO}
+                                    size="sm"
+                                    className={`rounded-lg font-semibold text-xs transition-all disabled:opacity-50 relative z-10 ${
+                                      isHighlighted
+                                        ? "bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500 text-white shadow-2xl shadow-teal-500/60 ring-4 ring-teal-300/50 scale-125 animate-bounce"
+                                        : "bg-gradient-to-r from-purple-500/30 to-blue-500/30 hover:from-purple-500/40 hover:to-blue-500/40 text-white"
+                                    }`}
+                                  >
+                                    {applyingFolio === docto.FOLIO ? (
+                                      <>
+                                        <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                                        Aplicando...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <PlayCircle className="mr-2 h-3.5 w-3.5" />
+                                        Aplicar
+                                      </>
+                                    )}
+                                  </Button>
+                                  {isHighlighted && (
                                     <>
-                                      <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                                      Aplicando...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <PlayCircle className="mr-2 h-3.5 w-3.5" />
-                                      Aplicar
+                                      {/* Anillo pulsante alrededor del botón */}
+                                      <div className="absolute inset-0 -m-2 rounded-lg border-4 border-teal-400 animate-ping opacity-75 pointer-events-none" />
+                                      {/* Flecha indicadora */}
+                                      <div className="absolute -left-12 top-1/2 -translate-y-1/2 flex items-center gap-2 animate-pulse">
+                                        <span className="text-teal-400 text-2xl">👉</span>
+                                        <span className="text-teal-400 font-bold text-xs whitespace-nowrap">¡AQUÍ!</span>
+                                      </div>
                                     </>
                                   )}
-                                </Button>
+                                </div>
                               )}
                             </td>
 
@@ -718,7 +785,7 @@ function SuccessModalInline(props: {
     if (lastLetterIndex === -1) return f;
     const letterPart = f.substring(0, lastLetterIndex + 1);
     const numberPart = f.substring(lastLetterIndex + 1);
-    const numberWithoutZeros = numberPart.replace(/^0+/, '') || '0';
+    const numberWithoutZeros = numberPart.replace(/^0+/, "") || "0";
     return letterPart + numberWithoutZeros;
   }
 
@@ -763,7 +830,8 @@ function SuccessModalInline(props: {
             <div className="mt-5 flex gap-3">
               <button
                 onClick={() => {
-                  if (folio && onCopy) onCopy(folio ? deconstructFolio(folio) : folio);
+                  if (folio && onCopy)
+                    onCopy(folio ? deconstructFolio(folio) : folio);
                 }}
                 className="rounded-md bg-white/8 px-4 py-2 text-sm text-white/90 hover:bg-white/12"
               >
