@@ -4,7 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Printer, Eye } from "lucide-react";
 
 // ====== Constantes ======
@@ -21,12 +27,15 @@ function ensureJsBarcodeLoaded(): Promise<void> {
   // @ts-ignore
   if (window.JsBarcode) return Promise.resolve();
   return new Promise((resolve, reject) => {
-    const existing = document.getElementById("jsbarcode-cdn") as HTMLScriptElement | null;
+    const existing = document.getElementById(
+      "jsbarcode-cdn"
+    ) as HTMLScriptElement | null;
     // @ts-ignore
     if (existing && window.JsBarcode) return resolve();
     const s = document.createElement("script");
     s.id = "jsbarcode-cdn";
-    s.src = "https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js";
+    s.src =
+      "https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js";
     s.async = true;
     s.onload = () => resolve();
     s.onerror = () => reject(new Error("No se pudo cargar JsBarcode"));
@@ -39,7 +48,9 @@ function ensureQrLoaded(): Promise<void> {
   // @ts-ignore
   if ((window as any).QRCode) return Promise.resolve();
   return new Promise((resolve, reject) => {
-    const existing = document.getElementById("qrcode-cdn") as HTMLScriptElement | null;
+    const existing = document.getElementById(
+      "qrcode-cdn"
+    ) as HTMLScriptElement | null;
     // @ts-ignore
     if (existing && (window as any).QRCode) return resolve();
     const s = document.createElement("script");
@@ -62,7 +73,12 @@ function renderAllBarcodes(root: Document | HTMLElement = document) {
     const code = el.getAttribute("data-code") || "";
     if (!code) continue;
     try {
-      JB(el, code, { format: "CODE128", displayValue: false, margin: 0, height: 50 });
+      JB(el, code, {
+        format: "CODE128",
+        displayValue: false,
+        margin: 0,
+        height: 50,
+      });
     } catch {}
     el.removeAttribute("width");
     el.removeAttribute("height");
@@ -73,7 +89,7 @@ function renderAllBarcodes(root: Document | HTMLElement = document) {
 
 function renderAllQRs(root: Document | HTMLElement = document) {
   // @ts-ignore
-  if (!((window as any).QRCode)) return;
+  if (!(window as any).QRCode) return;
   const els = Array.from(root.querySelectorAll<HTMLCanvasElement>(".qr"));
   // @ts-ignore
   const QR = (window as any).QRCode;
@@ -81,7 +97,11 @@ function renderAllQRs(root: Document | HTMLElement = document) {
     const val = cv.getAttribute("data-value") || "";
     if (!val) continue;
     try {
-      QR.toCanvas(cv, val, { errorCorrectionLevel: "M", margin: 0, width: px(14) });
+      QR.toCanvas(cv, val, {
+        errorCorrectionLevel: "M",
+        margin: 0,
+        width: px(14),
+      });
     } catch {}
   }
 }
@@ -126,7 +146,13 @@ function px(mm: number) {
 }
 
 function escapeHtml(s: string) {
-  return s.replace(/[&<>\"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
+  return s.replace(
+    /[&<>\"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[
+        c
+      ] as string)
+  );
 }
 
 export default function EtiquetadorConPlantillas() {
@@ -141,7 +167,11 @@ export default function EtiquetadorConPlantillas() {
 
   const barcodeValue = texto;
   const lastTwo = useMemo(() => {
-    const lastToken = (texto || "").split(/[^A-Za-z0-9]+/).filter(Boolean).pop() || "";
+    const lastToken =
+      (texto || "")
+        .split(/[^A-Za-z0-9]+/)
+        .filter(Boolean)
+        .pop() || "";
     return lastToken.slice(-2);
   }, [texto]);
 
@@ -167,7 +197,11 @@ export default function EtiquetadorConPlantillas() {
           <div class="grid2">
             <div class="left">
               <div class="barcodeBox">
-                ${code ? `<svg class="bc" data-code="${code}"></svg>` : `<div class="bc placeholder"></div>`}
+                ${
+                  code
+                    ? `<svg class="bc" data-code="${code}"></svg>`
+                    : `<div class="bc placeholder"></div>`
+                }
               </div>
               <div class="ubicacion">${escText}</div>
             </div>
@@ -180,7 +214,11 @@ export default function EtiquetadorConPlantillas() {
           <div class="grid2">
             <div class="left2">
               <div class="barcodeBox">
-                ${code ? `<canvas class="qr" data-value="${code}"></canvas>` : `<div class="bc placeholder"></div>`}
+                ${
+                  code
+                    ? `<canvas class="qr" data-value="${code}"></canvas>`
+                    : `<div class="bc placeholder"></div>`
+                }
               </div>
               <div class="ubicacion" style="font-size:12px">${escText}</div>
             </div>
@@ -195,7 +233,9 @@ export default function EtiquetadorConPlantillas() {
     if (!texto.trim()) return;
     const inner = renderTemplateHTML(texto);
     const page = `<div class="page"><div class="label">${inner}</div></div>`;
-    const pages = Array.from({ length: Math.max(1, copias) }, () => page).join("");
+    const pages = Array.from({ length: Math.max(1, copias) }, () => page).join(
+      ""
+    );
 
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8" />
       <title>Etiqueta</title>
@@ -227,7 +267,15 @@ export default function EtiquetadorConPlantillas() {
     </head><body>${pages}</body></html>`;
 
     const iframe = document.createElement("iframe");
-    Object.assign(iframe.style, { position: "fixed", right: "0", bottom: "0", width: "0", height: "0", border: "0", opacity: "0" });
+    Object.assign(iframe.style, {
+      position: "fixed",
+      right: "0",
+      bottom: "0",
+      width: "0",
+      height: "0",
+      border: "0",
+      opacity: "0",
+    });
     document.body.appendChild(iframe);
     const doc = iframe.contentDocument!;
     doc.open();
@@ -241,23 +289,33 @@ export default function EtiquetadorConPlantillas() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-purple-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900">
       <div className="min-h-screen p-6">
         <div className="max-w-5xl mx-auto grid lg:grid-cols-2 gap-8 items-stretch">
-          <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm">
-            <CardHeader className="border-b border-gray-600">
-              <CardTitle className="text-white">Etiquetador</CardTitle>
+          <Card className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 shadow-2xl">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
+            <CardHeader className="relative border-b border-white/5">
+              <CardTitle className="text-white">
+                Etiquetador de Ubicaciones
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
-              <div className="space-y-1">
-                <Label className="text-gray-100">Plantilla</Label>
-                <Select value={template} onValueChange={(v) => setTemplate(v as TemplateKey)}>
-                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+              <div className="space-y-2">
+                <Label className="text-gray-100 font-medium">Plantilla</Label>
+                <Select
+                  value={template}
+                  onValueChange={(v) => setTemplate(v as TemplateKey)}
+                >
+                  <SelectTrigger className="bg-white/5 border-white/10 text-white hover:bg-white/10 transition-colors rounded-xl">
                     <SelectValue placeholder="Elige la plantilla" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-black/80 backdrop-blur-xl border-white/10">
                     {Object.entries(TEMPLATES).map(([k, v]) => (
-                      <SelectItem key={k} value={k}>
+                      <SelectItem
+                        key={k}
+                        value={k}
+                        className="text-white hover:bg-white/10"
+                      >
                         {v.label}
                       </SelectItem>
                     ))}
@@ -265,55 +323,72 @@ export default function EtiquetadorConPlantillas() {
                 </Select>
               </div>
 
-              <div className="space-y-1">
-                <Label className="text-gray-100">Texto</Label>
+              <div className="space-y-2">
+                <Label className="text-gray-100 font-medium">Texto</Label>
                 <Input
                   value={texto}
                   onChange={(e) => setTexto(e.target.value)}
                   placeholder="Escribe el código o ubicación"
-                  className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                  className="bg-white/5 border-white/10 text-white placeholder-gray-400 focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 rounded-xl"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handlePrint();
                   }}
                 />
               </div>
 
-              <div className="space-y-1">
-                <Label className="text-gray-100">Copias</Label>
+              <div className="space-y-2">
+                <Label className="text-gray-100 font-medium">Copias</Label>
                 <Input
                   type="number"
                   min={1}
                   value={copias}
-                  onChange={(e) => setCopias(Math.max(1, Number(e.target.value || 1)))}
-                  className="bg-gray-700 border-gray-600 text-white"
+                  onChange={(e) =>
+                    setCopias(Math.max(1, Number(e.target.value || 1)))
+                  }
+                  className="bg-white/5 border-white/10 text-white rounded-xl"
                 />
               </div>
 
               <div className="flex gap-2">
-                <Button onClick={handlePrint} className="bg-purple-600 hover:bg-purple-700 text-white border-0" disabled={!texto.trim()}>
+                <Button
+                  onClick={handlePrint}
+                  className="bg-gradient-to-br from-purple-500/30 to-blue-500/30 hover:from-purple-500/40 hover:to-blue-500/40 text-white border-0 shadow-lg shadow-purple-500/20 rounded-xl transition-all duration-200"
+                  disabled={!texto.trim()}
+                >
                   <Printer className="w-4 h-4 mr-2" />
                   Imprimir
                 </Button>
               </div>
 
-              <p className="text-xs text-gray-300/80">
-                Tamaño etiqueta: {W}×{H} mm. Plantilla: <em>{TEMPLATES[template].label}</em>.
+              <p className="text-xs text-gray-400">
+                Tamaño etiqueta: {W}×{H} mm. Plantilla:{" "}
+                <em className="text-purple-300">{TEMPLATES[template].label}</em>
+                .
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm min-h-[320px]">
-            <CardHeader className="border-b border-gray-600">
+          <Card className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 shadow-2xl min-h-[320px]">
+            <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-blue-500/5 pointer-events-none" />
+            <CardHeader className="relative border-b border-white/5">
               <CardTitle className="flex items-center gap-2 text-white">
                 <Eye className="w-5 h-5 text-purple-300" /> Vista previa
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
-              <div className="flex items-center justify-center mx-auto" style={{ width: boxW, height: boxH }}>
+              <div
+                className="flex items-center justify-center mx-auto"
+                style={{ width: boxW, height: boxH }}
+              >
                 <div ref={previewRef} style={{ width: "100%", height: "100%" }}>
                   <style>{cssForPrint(W, H)}</style>
                   <div className="page">
-                    <div className="label" dangerouslySetInnerHTML={{ __html: renderTemplateHTML(texto) }} />
+                    <div
+                      className="label"
+                      dangerouslySetInnerHTML={{
+                        __html: renderTemplateHTML(texto),
+                      }}
+                    />
                   </div>
                 </div>
               </div>

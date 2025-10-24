@@ -1022,7 +1022,7 @@ export default function EtiquetadorPaquetes() {
     useEffect(() => { (async () => { try { await ensureJsBarcodeLoaded(); renderAllBarcodes() } catch { } })() }, [items, tplId])
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-purple-900">
+        <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900">
             <div className="min-h-screen p-6">
                 <div className="max-w-7xl mx-auto">
                     {/* <div className="flex items-center justify-between mb-6">
@@ -1037,12 +1037,13 @@ export default function EtiquetadorPaquetes() {
 
                     <div className="grid lg:grid-cols-2 gap-8 items-stretch min-h-0">
                         {/* Izquierda */}
-                        <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm h-full flex flex-col w-full">
-                            <CardHeader className="border-b border-gray-600 flex w-full justify-between">
+                        <Card className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 shadow-2xl h-full flex flex-col w-full">
+                            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
+                            <CardHeader className="relative border-b border-white/5 flex w-full justify-between">
                                 <CardTitle className="flex items-center gap-2 text-white">
                                     <Settings className="w-5 h-5 text-purple-300" /> Configuración
                                 </CardTitle>
-                                <span className="text-xs text-gray-300">v2.3.1</span>
+                                <span className="text-xs text-gray-400">v2.3.1</span>
                             </CardHeader>
                             <CardContent className="p-6 space-y-6">
                                 <div className="grid sm:grid-cols-2 gap-3">
@@ -1059,7 +1060,7 @@ export default function EtiquetadorPaquetes() {
                                                     addByFolio(folio.trim())
                                                 }
                                             }}
-                                            className="bg-gray-700 border-gray-600 text-white placeholder-gray-300"
+                                            className="bg-white/5 border-white/10 text-white placeholder-gray-400 focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 rounded-xl"
                                         />
                                     </div>
 
@@ -1078,10 +1079,10 @@ export default function EtiquetadorPaquetes() {
                                     {/* <div className="space-y-1 sm:col-span-2">
                                         <Label className="text-gray-100 font-medium">Plantilla</Label>
                                         <Select value={tplId} onValueChange={(v) => setTplId(v as any)}>
-                                            <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                                            <SelectTrigger className="bg-white/5 border-white/10 text-white hover:bg-white/10 transition-colors">
                                                 <SelectValue placeholder="Selecciona plantilla" />
                                             </SelectTrigger>
-                                            <SelectContent className="bg-gray-800 text-white">
+                                            <SelectContent className="bg-black/80 backdrop-blur-xl border-white/10 text-white">
                                                 {LABEL_TEMPLATES.map(t => (
                                                     <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
                                                 ))}
@@ -1096,7 +1097,7 @@ export default function EtiquetadorPaquetes() {
                                 <div className="flex gap-2">
                                     <Button
                                         onClick={() => { if (folio.trim()) addByFolio(folio.trim()) }}
-                                        className="bg-purple-600 hover:bg-purple-700 text-white border-0"
+                                        className="bg-gradient-to-br from-purple-500/30 to-blue-500/30 hover:from-purple-500/40 hover:to-blue-500/40 text-white border-0 shadow-lg shadow-purple-500/20 rounded-xl transition-all duration-200"
                                         disabled={loading || !folio.trim()}
                                         title="Agregar etiqueta(s) por folio"
                                     >
@@ -1106,7 +1107,7 @@ export default function EtiquetadorPaquetes() {
 
                                     <Button
                                         onClick={() => setShowConfirm(true)}
-                                        className="bg-gray-600 hover:bg-gray-700 text-white border-0"
+                                        className="bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-colors"
                                         disabled={items.length === 0}
                                     >
                                         <Printer className="w-4 h-4 mr-2" />
@@ -1132,7 +1133,7 @@ export default function EtiquetadorPaquetes() {
                                     />
                                     <Button
                                         type="button"
-                                        className="bg-purple-600 hover:bg-purple-700 text-white border-0"
+                                        className="bg-gradient-to-br from-purple-500/30 to-blue-500/30 hover:from-purple-500/40 hover:to-blue-500/40 text-white border-0 shadow-lg shadow-purple-500/20 rounded-xl transition-all duration-200"
                                         disabled={importing}
                                         onClick={() => fileRef.current?.click()}
                                         title="Importar FOLIO y PAQUETES desde Excel (2 columnas)"
@@ -1145,7 +1146,7 @@ export default function EtiquetadorPaquetes() {
 
                                     {(importing || importErrors.length > 0) && (
                                         <div className="mt-3 space-y-2">
-                                            {importing && (<div className="px-3 py-2 rounded bg-gray-700/60 text-white text-sm">Procesando… {importProgress.done}/{importProgress.total}</div>)}
+                                            {importing && (<div className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm">Procesando… {importProgress.done}/{importProgress.total}</div>)}
                                             {importErrors.length > 0 && (
                                                 <div className="px-3 py-2 rounded bg-red-900/30 border border-red-700 text-red-200 text-sm max-h-40 overflow-y-auto">
                                                     <div className="flex items-center gap-2 font-medium mb-1">
@@ -1165,8 +1166,9 @@ export default function EtiquetadorPaquetes() {
 
                         {/* Derecha */}
                         <div className="flex flex-col gap-6 h-full min-h-0">
-                            <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm flex-1 flex min-h-0">
-                                <CardHeader className="border-b border-gray-600 shrink-0">
+                            <Card className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 shadow-2xl flex-1 flex min-h-0">
+                                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-blue-500/5 pointer-events-none" />
+                                <CardHeader className="relative border-b border-white/5 shrink-0">
                                     <div className="flex items-center justify-between gap-3">
                                         <CardTitle className="text-white">Folios agregados ({items.length})</CardTitle>
                                         <CardTitle className="flex items-center">
@@ -1194,7 +1196,7 @@ export default function EtiquetadorPaquetes() {
                                     ) : (
                                         <div className="space-y-2 flex-1 overflow-y-auto">
                                             {items.map((a) => (
-                                                <div key={a.id} className="flex items-center justify-between bg-gray-700/50 p-3 rounded-lg">
+                                                <div key={a.id} className="flex items-center justify-between bg-white/5 hover:bg-white/10 transition-colors p-3 rounded-lg border border-white/5">
                                                     <div className="flex-1 min-w-0">
                                                         <p className="text-white font-medium truncate">{a.cliente}</p>
                                                         <p className="text-gray-300 text-sm">
@@ -1222,15 +1224,16 @@ export default function EtiquetadorPaquetes() {
                                 </CardContent>
                             </Card>
 
-                            <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm flex-1 flex min-h-0">
-                                <CardHeader className="border-b border-gray-600 shrink-0">
+                            <Card className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 shadow-2xl flex-1 flex min-h-0">
+                                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-blue-500/5 pointer-events-none" />
+                                <CardHeader className="relative border-b border-white/5 shrink-0">
                                     <CardTitle className="flex items-center gap-2 text-white">
                                         <Eye className="w-5 h-5 text-purple-300" /> Vista Previa
                                     </CardTitle>
                                     <p className="text-gray-300 text-sm">Dimensiones: {template.width} × {template.height} mm</p>
                                 </CardHeader>
                                 <CardContent className="p-6 flex-1 flex flex-col min-h-0">
-                                    <div className="bg-gray-900/60 rounded-lg p-8 min-h-[100%] flex-1 flex items-center justify-center relative overflow-auto">
+                                    <div className="bg-black/40 backdrop-blur-sm rounded-lg p-8 min-h-[100%] flex-1 flex items-center justify-center relative overflow-auto border border-white/5">
                                         {items.length === 0 ? (
                                             <div className="text-center text-gray-400">Agrega folios para ver la vista previa</div>
                                         ) : (
@@ -1269,16 +1272,16 @@ function NumberField({
     const parseVal = (v: string | number) => (typeof v === "number" ? v : parseFloat(v || "0")) || 0
     const bump = (d: 1 | -1) => onChange(String(clamp(parseVal(value) + d * step)))
     return (
-        <div className={`flex items-stretch overflow-hidden rounded-md border border-gray-500 bg-gray-700 ${className}`}>
-            <Button type="button" variant="ghost" className="px-3 border-r border-gray-600 rounded-none text-white hover:bg-gray-600" aria-label="disminuir" onClick={() => bump(-1)}>
+        <div className={`flex items-stretch overflow-hidden rounded-xl border border-white/10 bg-white/5 ${className}`}>
+            <Button type="button" variant="ghost" className="px-3 border-r border-white/10 rounded-none text-white hover:bg-white/10 transition-colors" aria-label="disminuir" onClick={() => bump(-1)}>
                 <Minus className="w-4 h-4" />
             </Button>
             <Input id={id} type="number" inputMode="decimal" value={value}
                 onChange={(e) => onChange(e.target.value)}
-                className={`no-spin bg-gray-700 border-0 text-white text-center focus-visible:ring-0 ${inputClassName}`}
+                className={`no-spin bg-transparent border-0 text-white text-center focus-visible:ring-0 ${inputClassName}`}
                 min={min} max={max} step={step} aria-label={ariaLabel}
             />
-            <Button type="button" variant="ghost" className="px-3 border-l border-gray-600 rounded-none text-white hover:bg-gray-600" aria-label="aumentar" onClick={() => bump(1)}>
+            <Button type="button" variant="ghost" className="px-3 border-l border-white/10 rounded-none text-white hover:bg-white/10 transition-colors" aria-label="aumentar" onClick={() => bump(1)}>
                 <Plus className="w-4 h-4" />
             </Button>
         </div>

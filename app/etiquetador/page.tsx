@@ -1,105 +1,151 @@
 // app/page.tsx
-"use client"
-import Link from "next/link"
-import { Info } from "lucide-react"
-import React, { useState, useEffect, useMemo, useRef } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Eye, Settings, Printer, Plus, Trash2, Save, BookOpen, Loader2, AlertCircle, Minus, ArrowLeft, RotateCcw } from "lucide-react"
+"use client";
+import Link from "next/link";
+import { Info } from "lucide-react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Eye,
+  Settings,
+  Printer,
+  Plus,
+  Trash2,
+  Save,
+  BookOpen,
+  Loader2,
+  AlertCircle,
+  Minus,
+  ArrowLeft,
+  RotateCcw,
+} from "lucide-react";
 
 import Noty from "noty";
 import "noty/lib/noty.css";
 import "noty/lib/themes/mint.css";
 
 // ==== BrowserPrint helpers (SDK Zebra) ====
-type BPDevice = any
+type BPDevice = any;
 /* ==================================================================== */
 // ====== BrowserPrint (Android/Zebra) ======
 declare global {
   interface Window {
-    BrowserPrint?: any
-    Zebra?: any
+    BrowserPrint?: any;
+    Zebra?: any;
   }
 }
 
 async function ensureBrowserPrintLoaded(): Promise<void> {
-  if (typeof window === "undefined") return
-  if (window.BrowserPrint || (window as any).Zebra?.BrowserPrint) return
+  if (typeof window === "undefined") return;
+  if (window.BrowserPrint || (window as any).Zebra?.BrowserPrint) return;
 
   const candidates = [
     "/browserprint/BrowserPrint-3.1.250.min.js",
     "/browserprint/BrowserPrint-Zebra-1.1.250.min.js",
-  ]
+  ];
 
   for (const src of candidates) {
-    if (window.BrowserPrint || (window as any).Zebra?.BrowserPrint) return
-    if (document.querySelector(`script[data-bp="${src}"]`)) continue
+    if (window.BrowserPrint || (window as any).Zebra?.BrowserPrint) return;
+    if (document.querySelector(`script[data-bp="${src}"]`)) continue;
 
     await new Promise<void>((resolve) => {
-      const s = document.createElement("script")
-      s.async = true
-      s.dataset.bp = src
-      s.src = src
-      s.onload = () => resolve()
-      s.onerror = () => resolve()
-      document.head.appendChild(s)
-    })
+      const s = document.createElement("script");
+      s.async = true;
+      s.dataset.bp = src;
+      s.src = src;
+      s.onload = () => resolve();
+      s.onerror = () => resolve();
+      document.head.appendChild(s);
+    });
   }
 
   if (!(window.BrowserPrint || (window as any).Zebra?.BrowserPrint)) {
-    throw new Error("No se pudo cargar BrowserPrint (Zebra/legacy).")
+    throw new Error("No se pudo cargar BrowserPrint (Zebra/legacy).");
   }
 }
 
 async function getBP(): Promise<any> {
-  await ensureBrowserPrintLoaded()
-  const BP = window.BrowserPrint || (window as any).Zebra?.BrowserPrint
-  if (!BP) throw new Error("BrowserPrint no disponible")
-  return BP
+  await ensureBrowserPrintLoaded();
+  const BP = window.BrowserPrint || (window as any).Zebra?.BrowserPrint;
+  if (!BP) throw new Error("BrowserPrint no disponible");
+  return BP;
 }
 
 async function bpIsAvailable(): Promise<boolean> {
   try {
-    const BP = await getBP()
+    const BP = await getBP();
     return await new Promise<boolean>((res) => {
       try {
-        BP.getDefaultDevice("printer", (_d: any) => res(true), () => res(false))
-      } catch { res(false) }
-    })
-  } catch { return false }
+        BP.getDefaultDevice(
+          "printer",
+          (_d: any) => res(true),
+          () => res(false)
+        );
+      } catch {
+        res(false);
+      }
+    });
+  } catch {
+    return false;
+  }
 }
 
 type ZebraDevice = {
-  name: string
-  deviceType: "printer"
-  uid?: string
-  connection?: string
-  write: (data: string, onOk?: () => void, onErr?: (e: any) => void) => void
-}
+  name: string;
+  deviceType: "printer";
+  uid?: string;
+  connection?: string;
+  write: (data: string, onOk?: () => void, onErr?: (e: any) => void) => void;
+};
 
 async function bpGetOrPickDevice(): Promise<ZebraDevice> {
   const BP = await getBP();
 
   const dflt: ZebraDevice | null = await new Promise((res) =>
-    BP.getDefaultDevice("printer", (d: ZebraDevice | null) => res(d), () => res(null))
+    BP.getDefaultDevice(
+      "printer",
+      (d: ZebraDevice | null) => res(d),
+      () => res(null)
+    )
   );
   if (dflt) return dflt;
 
   const devices: ZebraDevice[] = await new Promise((res, rej) =>
-    BP.getDevices((list: ZebraDevice[]) => res(list || []), (err: any) => rej(err), "printer")
+    BP.getDevices(
+      (list: ZebraDevice[]) => res(list || []),
+      (err: any) => rej(err),
+      "printer"
+    )
   );
 
   const savedUid = localStorage.getItem("zebra_bp_uid");
-  let dev = savedUid ? devices.find(d => d.uid && d.uid === savedUid) : undefined;
-  if (!dev) dev = devices.find(d => /zq5|zebra|zq511/i.test(d.name || "")) || devices[0];
+  let dev = savedUid
+    ? devices.find((d) => d.uid && d.uid === savedUid)
+    : undefined;
+  if (!dev)
+    dev =
+      devices.find((d) => /zq5|zebra|zq511/i.test(d.name || "")) || devices[0];
 
   if (!dev) throw new Error("No se encontró impresora en BrowserPrint");
 
-  if (dev.uid && dev.uid !== savedUid) localStorage.setItem("zebra_bp_uid", dev.uid);
+  if (dev.uid && dev.uid !== savedUid)
+    localStorage.setItem("zebra_bp_uid", dev.uid);
   return dev;
 }
 
@@ -108,40 +154,97 @@ async function bpPrintZPL(zpl: string): Promise<void> {
   const tryOnce = async (): Promise<void> => {
     const dev = await bpGetOrPickDevice();
 
-    const sendFn: (data: string, ok: () => void, err: (e: any) => void) => void =
+    const sendFn: (
+      data: string,
+      ok: () => void,
+      err: (e: any) => void
+    ) => void =
       typeof (dev as any).send === "function"
         ? (data, ok, err) => (dev as any).send(data, ok, err)
         : (data, ok, err) => dev.write(data, ok, err);
 
-    const payload = (zpl.endsWith("\r\n") ? zpl : zpl.replace(/\n/g, "\r\n") + "\r\n");
+    const payload = zpl.endsWith("\r\n")
+      ? zpl
+      : zpl.replace(/\n/g, "\r\n") + "\r\n";
     const CHUNK = 8 * 1024;
     const parts: string[] = [];
-    for (let i = 0; i < payload.length; i += CHUNK) parts.push(payload.slice(i, i + CHUNK));
+    for (let i = 0; i < payload.length; i += CHUNK)
+      parts.push(payload.slice(i, i + CHUNK));
 
     const maybeConnect = (cb: () => void, onErr: (e: any) => void) => {
       const fn = (dev as any).connect || (dev as any).open;
       if (typeof fn === "function") {
-        try { fn.call(dev, cb, onErr); } catch (e) { onErr(e); }
+        try {
+          fn.call(dev, cb, onErr);
+        } catch (e) {
+          onErr(e);
+        }
       } else cb();
     };
     const maybeClose = () => {
       const fn = (dev as any).disconnect || (dev as any).close;
-      try { if (typeof fn === "function") fn.call(dev, () => { }, () => { }); } catch { }
+      try {
+        if (typeof fn === "function")
+          fn.call(
+            dev,
+            () => {},
+            () => {}
+          );
+      } catch {}
     };
 
     await new Promise<void>((resolve, reject) => {
       let settled = false;
-      const done = (f: () => void) => { if (!settled) { settled = true; f(); } };
-
-      const sendNext = (i: number) => {
-        if (i >= parts.length) return done(() => { maybeClose(); resolve(); });
-        sendFn(parts[i], () => sendNext(i + 1), (e: any) => done(() => { maybeClose(); reject(e); }));
+      const done = (f: () => void) => {
+        if (!settled) {
+          settled = true;
+          f();
+        }
       };
 
-      try { sendFn("~HS\r\n", () => { }, () => { }); } catch { }
-      maybeConnect(() => { sendNext(0); }, (e: any) => done(() => { maybeClose(); reject(e); }));
+      const sendNext = (i: number) => {
+        if (i >= parts.length)
+          return done(() => {
+            maybeClose();
+            resolve();
+          });
+        sendFn(
+          parts[i],
+          () => sendNext(i + 1),
+          (e: any) =>
+            done(() => {
+              maybeClose();
+              reject(e);
+            })
+        );
+      };
 
-      setTimeout(() => done(() => { maybeClose(); reject(new Error("Timeout al enviar a BrowserPrint")); }), 15000);
+      try {
+        sendFn(
+          "~HS\r\n",
+          () => {},
+          () => {}
+        );
+      } catch {}
+      maybeConnect(
+        () => {
+          sendNext(0);
+        },
+        (e: any) =>
+          done(() => {
+            maybeClose();
+            reject(e);
+          })
+      );
+
+      setTimeout(
+        () =>
+          done(() => {
+            maybeClose();
+            reject(new Error("Timeout al enviar a BrowserPrint"));
+          }),
+        15000
+      );
     });
   };
 
@@ -158,83 +261,133 @@ async function bpPrintZPL(zpl: string): Promise<void> {
   }
 }
 
-
-
-
 interface ArticleItem {
-  id: string
-  text: string
-  quantity: number
-  barcode: string
-  desc?: string
+  id: string;
+  text: string;
+  quantity: number;
+  barcode: string;
+  desc?: string;
 }
 
 interface LabelTemplate {
-  id: string
-  name: string
+  id: string;
+  name: string;
   config: {
-    size: string
-    margin: string
-    width: string
-    height: string
-    fontSize: string
-    font: string
-  }
+    size: string;
+    margin: string;
+    width: string;
+    height: string;
+    fontSize: string;
+    font: string;
+  };
 }
 
 type SearchResult = {
-  claveArticulo: string
-  nombre: string
-}
+  claveArticulo: string;
+  nombre: string;
+};
 
 type TamanoEtiqueta = {
-  id: number
-  nombre: string
-  width: number
-  height: number
-  margen: number
-  altoBarra: number
-  fontSizeClaveArticulo: number
-}
+  id: number;
+  nombre: string;
+  width: number;
+  height: number;
+  margen: number;
+  altoBarra: number;
+  fontSizeClaveArticulo: number;
+};
 
 // ~96dpi aprox para preview
-const mmToPx = (mm: number) => Math.max(1, Math.round(mm * 3.78))
+const mmToPx = (mm: number) => Math.max(1, Math.round(mm * 3.78));
 
 // Límites físicos
-const MAX_W_MM = 135
-const MAX_H_MM = 300
+const MAX_W_MM = 135;
+const MAX_H_MM = 300;
 
 const clampMm = (mm: number, max: number) =>
-  Number.isFinite(mm) ? Math.max(1, Math.min(max, mm)) : 1
+  Number.isFinite(mm) ? Math.max(1, Math.min(max, mm)) : 1;
 
 // …clampBarHeight, clampQrSize…
 
 // mm — presets típicos
 const SIZE_PRESETS = [
-  { id: "25x25", name: "25 × 25 mm (1\"×1\")", w: 25, h: 25.4, m: 2, barH: 16, fontPx: 14 },
-  { id: "50x25", name: "50 × 25 mm (2\"×1\")", w: 50, h: 25.4, m: 2, barH: 16, fontPx: 12 },
-  { id: "70x25", name: "70 × 25 mm ", w: 70, h: 25.4, m: 2, barH: 16, fontPx: 12 },
+  {
+    id: "25x25",
+    name: '25 × 25 mm (1"×1")',
+    w: 25,
+    h: 25.4,
+    m: 2,
+    barH: 16,
+    fontPx: 14,
+  },
+  {
+    id: "50x25",
+    name: '50 × 25 mm (2"×1")',
+    w: 50,
+    h: 25.4,
+    m: 2,
+    barH: 16,
+    fontPx: 12,
+  },
+  {
+    id: "70x25",
+    name: "70 × 25 mm ",
+    w: 70,
+    h: 25.4,
+    m: 2,
+    barH: 16,
+    fontPx: 12,
+  },
   { id: "60x40", name: "60 × 40 mm", w: 60, h: 40, m: 2, barH: 20, fontPx: 14 },
   { id: "80x50", name: "80 × 50 mm", w: 80, h: 50, m: 3, barH: 22, fontPx: 16 },
-  { id: "100x50", name: "100 × 50 mm (4\"×2\")", w: 100, h: 50, m: 3, barH: 24, fontPx: 18 },
-  { id: "100x75", name: "100 × 75 mm (4\"×3\")", w: 100, h: 75, m: 3, barH: 28, fontPx: 20 },
-  { id: "100x150", name: "100 × 150 mm (4\"×6\")", w: 100, h: 150, m: 4, barH: 40, fontPx: 22 },
+  {
+    id: "100x50",
+    name: '100 × 50 mm (4"×2")',
+    w: 100,
+    h: 50,
+    m: 3,
+    barH: 24,
+    fontPx: 18,
+  },
+  {
+    id: "100x75",
+    name: '100 × 75 mm (4"×3")',
+    w: 100,
+    h: 75,
+    m: 3,
+    barH: 28,
+    fontPx: 20,
+  },
+  {
+    id: "100x150",
+    name: '100 × 150 mm (4"×6")',
+    w: 100,
+    h: 150,
+    m: 4,
+    barH: 40,
+    fontPx: 22,
+  },
 ];
 
 // Evita que el alto de barras exceda el área útil
 const clampBarHeight = (barMm: number, labelH: number, marginMm: number) => {
-  const maxBar = Math.max(4, labelH - marginMm * 2 - 4)
-  return clampMm(barMm, maxBar)
-}
+  const maxBar = Math.max(4, labelH - marginMm * 2 - 4);
+  return clampMm(barMm, maxBar);
+};
 // Debajo de clampBarHeight
-const clampQrSize = (qrMm: number, labelW: number, labelH: number, marginMm: number) => {
+const clampQrSize = (
+  qrMm: number,
+  labelW: number,
+  labelH: number,
+  marginMm: number
+) => {
   // área útil (restando márgenes)
-  const usableW = Math.max(4, labelW - marginMm * 2)
-  const usableH = Math.max(4, labelH - marginMm * 2)
+  const usableW = Math.max(4, labelW - marginMm * 2);
+  const usableH = Math.max(4, labelH - marginMm * 2);
   // que el QR quepa como cuadrado y deja un “colchón” pequeñito
-  const maxQr = Math.max(4, Math.min(usableW, usableH) - 4)
-  return clampMm(qrMm, maxQr)
-}
+  const maxQr = Math.max(4, Math.min(usableW, usableH) - 4);
+  return clampMm(qrMm, maxQr);
+};
 
 // === Componente de código de barras (preview) ===
 function BarcodeSVG({
@@ -244,70 +397,70 @@ function BarcodeSVG({
   fontFamily,
   fontSizePx,
 }: {
-  value: string
-  format: "CODE128" | "CODE128B"
-  heightPx: number
-  fontFamily: string
-  fontSizePx: number
+  value: string;
+  format: "CODE128" | "CODE128B";
+  heightPx: number;
+  fontFamily: string;
+  fontSizePx: number;
 }) {
-  const ref = useRef<SVGSVGElement | null>(null)
+  const ref = useRef<SVGSVGElement | null>(null);
 
   useEffect(() => {
-    let mounted = true
-      ; (async () => {
-        const mod: any = await import("jsbarcode")
-        if (!mounted || !ref.current) return
-        const JsBarcode = mod.default || mod
-        try {
-          JsBarcode(ref.current, value, {
-            format,
-            displayValue: false,
-            font: fontFamily,
-            fontSize: Math.max(8, Math.round(fontSizePx * 0.8)),
-            textMargin: 2,
-            margin: 0,
-            width: 1.2, // 👈 control del grosor (ajústalo desde estado/props)
-          })
+    let mounted = true;
+    (async () => {
+      const mod: any = await import("jsbarcode");
+      if (!mounted || !ref.current) return;
+      const JsBarcode = mod.default || mod;
+      try {
+        JsBarcode(ref.current, value, {
+          format,
+          displayValue: false,
+          font: fontFamily,
+          fontSize: Math.max(8, Math.round(fontSizePx * 0.8)),
+          textMargin: 2,
+          margin: 0,
+          width: 1.2, // 👈 control del grosor (ajústalo desde estado/props)
+        });
 
-          ref.current.setAttribute("preserveAspectRatio", "none")
-          ref.current.style.width = "100%"
-          ref.current.style.height = `${heightPx}px`
-        } catch { }
-      })()
+        ref.current.setAttribute("preserveAspectRatio", "none");
+        ref.current.style.width = "100%";
+        ref.current.style.height = `${heightPx}px`;
+      } catch {}
+    })();
     return () => {
-      mounted = false
-    }
-  }, [value, format, heightPx, fontFamily, fontSizePx])
+      mounted = false;
+    };
+  }, [value, format, heightPx, fontFamily, fontSizePx]);
 
-  return <svg ref={ref} className="barcode-svg" />
+  return <svg ref={ref} className="barcode-svg" />;
 }
 function QRCodeSVG({ value, sizePx }: { value: string; sizePx: number }) {
-  const ref = useRef<HTMLCanvasElement | null>(null)
+  const ref = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
-    let mounted = true
-      ; (async () => {
-        const QRCode = (await import("qrcode")).default
-        if (!mounted || !ref.current) return
-        try {
-          await QRCode.toCanvas(ref.current, value, {
-            errorCorrectionLevel: "M",
-            margin: 0,              // ← añade zona blanca de seguridad
-            color: {
-              dark: "#000000",
-              light: "#ffffff",     // ← fondo blanco
-            },
-            width: sizePx,
-          })
+    let mounted = true;
+    (async () => {
+      const QRCode = (await import("qrcode")).default;
+      if (!mounted || !ref.current) return;
+      try {
+        await QRCode.toCanvas(ref.current, value, {
+          errorCorrectionLevel: "M",
+          margin: 0, // ← añade zona blanca de seguridad
+          color: {
+            dark: "#000000",
+            light: "#ffffff", // ← fondo blanco
+          },
+          width: sizePx,
+        });
+      } catch {}
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [value, sizePx]);
 
-        } catch { }
-      })()
-    return () => { mounted = false }
-  }, [value, sizePx])
-
-  return <canvas ref={ref} width={sizePx} height={sizePx} />
+  return <canvas ref={ref} width={sizePx} height={sizePx} />;
 }
-
 
 // === NumberField con botones + y - (arreglo de doble click/hold) ===
 function NumberField({
@@ -321,71 +474,73 @@ function NumberField({
   inputClassName = "",
   ariaLabel,
 }: {
-  value: string | number
-  onChange: (val: string) => void
-  min?: number
-  max?: number
-  step?: number
-  id?: string
-  className?: string
-  inputClassName?: string
-  ariaLabel?: string
+  value: string | number;
+  onChange: (val: string) => void;
+  min?: number;
+  max?: number;
+  step?: number;
+  id?: string;
+  className?: string;
+  inputClassName?: string;
+  ariaLabel?: string;
 }) {
-  const holdIntervalRef = useRef<number | null>(null)
-  const holdTimeoutRef = useRef<number | null>(null)
+  const holdIntervalRef = useRef<number | null>(null);
+  const holdTimeoutRef = useRef<number | null>(null);
 
-  const clamp = (n: number) => Math.min(max, Math.max(min, n))
+  const clamp = (n: number) => Math.min(max, Math.max(min, n));
   const parseVal = (v: string | number) => {
-    const n = typeof v === 'number' ? v : parseFloat(v || '0')
-    return Number.isFinite(n) ? n : 0
-  }
+    const n = typeof v === "number" ? v : parseFloat(v || "0");
+    return Number.isFinite(n) ? n : 0;
+  };
   const roundToStep = (n: number) => {
-    const decimals = Math.max(0, (String(step).split('.')[1] || '').length)
-    const p = Math.pow(10, decimals)
-    return Math.round(n * p) / p
-  }
-  const commit = (n: number) => onChange(String(clamp(roundToStep(n))))
+    const decimals = Math.max(0, (String(step).split(".")[1] || "").length);
+    const p = Math.pow(10, decimals);
+    return Math.round(n * p) / p;
+  };
+  const commit = (n: number) => onChange(String(clamp(roundToStep(n))));
 
   const bump = (d: 1 | -1) => {
-    const n = parseVal(value)
-    commit(n + d * step)
-  }
+    const n = parseVal(value);
+    commit(n + d * step);
+  };
 
   const clearHolds = () => {
     if (holdIntervalRef.current != null) {
-      window.clearInterval(holdIntervalRef.current)
-      holdIntervalRef.current = null
+      window.clearInterval(holdIntervalRef.current);
+      holdIntervalRef.current = null;
     }
     if (holdTimeoutRef.current != null) {
-      window.clearTimeout(holdTimeoutRef.current)
-      holdTimeoutRef.current = null
+      window.clearTimeout(holdTimeoutRef.current);
+      holdTimeoutRef.current = null;
     }
-  }
+  };
 
   const handlePointerDown = (d: 1 | -1) => (e: React.PointerEvent) => {
-    e.preventDefault()
-      ; (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
-    bump(d) // primer incremento inmediato
+    e.preventDefault();
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+    bump(d); // primer incremento inmediato
     // si se mantiene presionado, comienza auto-repeat después de una pausa
     holdTimeoutRef.current = window.setTimeout(() => {
-      holdIntervalRef.current = window.setInterval(() => bump(d), 100)
-    }, 350)
-  }
+      holdIntervalRef.current = window.setInterval(() => bump(d), 100);
+    }, 350);
+  };
 
-  const handlePointerUp = () => clearHolds()
-  const handlePointerCancel = () => clearHolds()
-  const handlePointerLeave = () => clearHolds()
+  const handlePointerUp = () => clearHolds();
+  const handlePointerCancel = () => clearHolds();
+  const handlePointerLeave = () => clearHolds();
 
   useEffect(() => {
-    return () => clearHolds()
-  }, [])
+    return () => clearHolds();
+  }, []);
 
   return (
-    <div className={`flex items-stretch overflow-hidden rounded-md border border-gray-500 bg-gray-700 ${className}`}>
+    <div
+      className={`flex items-stretch overflow-hidden rounded-xl border border-white/10 bg-white/5 ${className}`}
+    >
       <Button
         type="button"
         variant="ghost"
-        className="px-3 border-r border-gray-600 rounded-none text-white hover:bg-gray-600"
+        className="px-3 border-r border-white/10 rounded-none text-white hover:bg-white/10 transition-colors"
         aria-label="disminuir"
         onPointerDown={handlePointerDown(-1)}
         onPointerUp={handlePointerUp}
@@ -401,7 +556,7 @@ function NumberField({
         inputMode="decimal"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={`no-spin bg-gray-700 border-0 text-white text-center focus-visible:ring-0 ${inputClassName}`}
+        className={`no-spin bg-transparent border-0 text-white text-center focus-visible:ring-0 ${inputClassName}`}
         min={min}
         max={max}
         step={step}
@@ -411,7 +566,7 @@ function NumberField({
       <Button
         type="button"
         variant="ghost"
-        className="px-3 border-l border-gray-600 rounded-none text-white hover:bg-gray-600"
+        className="px-3 border-l border-white/10 rounded-none text-white hover:bg-white/10 transition-colors"
         aria-label="aumentar"
         onPointerDown={handlePointerDown(1)}
         onPointerUp={handlePointerUp}
@@ -421,7 +576,7 @@ function NumberField({
         <Plus className="w-4 h-4" />
       </Button>
     </div>
-  )
+  );
 }
 
 // ==== ZPL builder (203 dpi) ====
@@ -431,15 +586,15 @@ function toDotsWithDpi(mm: number, dpi: number) {
 }
 
 type ZplCfg = {
-  width: string;        // mm
-  height: string;       // mm
-  margin: string;       // mm
-  fontSize: string;     // px
-  barHeightMm: string;  // mm (alto barras)
+  width: string; // mm
+  height: string; // mm
+  margin: string; // mm
+  fontSize: string; // px
+  barHeightMm: string; // mm (alto barras)
   font: string;
   showDesc?: boolean;
   descFontSize?: string; // px
-  topShiftMm?: string;   // mm
+  topShiftMm?: string; // mm
   /** NUEVO: alto reservado para el bloque del símbolo (QR o barras), mm */
   symbolBlockMm?: string;
   /** Opcional: sesgo vertical solo para debug fino, 0 = pegado arriba */
@@ -450,17 +605,51 @@ type ZplCfg = {
   debugGuides?: boolean;
 };
 
-
-
 // Estimación conservadora de versión QR (Byte, EC=M)
 // Función más precisa para estimar versión QR
 function estimateQrVersionByteM(len: number): number {
   // Tabla de capacidad para QR Code version 1-10, nivel de corrección M
   const capacities = [
-    14, 26, 42, 62, 84, 106, 122, 152, 180, 213, // Versiones 1-10
-    251, 287, 331, 362, 412, 450, 504, 560, 624, 666, // 11-20
-    711, 779, 857, 911, 997, 1059, 1125, 1190, 1264, 1370, // 21-30
-    1452, 1538, 1628, 1722, 1809, 1911, 1989, 2099, 2213, 2331 // 31-40
+    14,
+    26,
+    42,
+    62,
+    84,
+    106,
+    122,
+    152,
+    180,
+    213, // Versiones 1-10
+    251,
+    287,
+    331,
+    362,
+    412,
+    450,
+    504,
+    560,
+    624,
+    666, // 11-20
+    711,
+    779,
+    857,
+    911,
+    997,
+    1059,
+    1125,
+    1190,
+    1264,
+    1370, // 21-30
+    1452,
+    1538,
+    1628,
+    1722,
+    1809,
+    1911,
+    1989,
+    2099,
+    2213,
+    2331, // 31-40
   ];
 
   for (let v = 0; v < capacities.length; v++) {
@@ -472,7 +661,12 @@ function estimateQrVersionByteM(len: number): number {
 }
 
 function buildZplFromState(
-  articles: { barcode: string; text: string; quantity: number; desc?: string }[],
+  articles: {
+    barcode: string;
+    text: string;
+    quantity: number;
+    desc?: string;
+  }[],
   cfg: {
     width: string;
     height: string;
@@ -496,19 +690,25 @@ function buildZplFromState(
   const toDots = (mm: number) => Math.max(1, Math.round(mm * (dpi / 25.4)));
   const pxToDots = (px: number) => Math.max(1, Math.round(px * (dpi / 96)));
   const safeZ = (s: string) =>
-    String(s ?? "").replace(/\^/g, "\\^").replace(/~/g, "\\~").replace(/\\/g, "\\\\").replace(/[\r\n]+/g, " ");
+    String(s ?? "")
+      .replace(/\^/g, "\\^")
+      .replace(/~/g, "\\~")
+      .replace(/\\/g, "\\\\")
+      .replace(/[\r\n]+/g, " ");
 
   const estimateCode128Modules = (len: number) => 11 * len + 37;
-  const barcodeWidthDots = (modules: number, moduleW: number) => modules * moduleW;
+  const barcodeWidthDots = (modules: number, moduleW: number) =>
+    modules * moduleW;
 
   const QR_CAP = [
-    14,26,42,62,84,106,122,152,180,213, 251,287,331,362,412,450,504,560,624,666,
-    711,779,857,911,997,1059,1125,1190,1264,1370, 1452,1538,1628,1722,1809,1911,1989,2099,2213,2331
+    14, 26, 42, 62, 84, 106, 122, 152, 180, 213, 251, 287, 331, 362, 412, 450,
+    504, 560, 624, 666, 711, 779, 857, 911, 997, 1059, 1125, 1190, 1264, 1370,
+    1452, 1538, 1628, 1722, 1809, 1911, 1989, 2099, 2213, 2331,
   ];
 
   const wmm = parseFloat(cfg.width || "50");
   const hmm = parseFloat(cfg.height || "25.4");
-  const paddingMm = Math.max(0, parseFloat((cfg.padding ?? cfg.margin ?? "0")));
+  const paddingMm = Math.max(0, parseFloat(cfg.padding ?? cfg.margin ?? "0"));
   const padX = toDots(paddingMm);
   const padY = toDots(paddingMm);
   const labelW = toDots(wmm);
@@ -550,21 +750,30 @@ function buildZplFromState(
 
         const hasDesc = showDesc && !!a.desc;
         const gapDots = 6;
-        const textBlockH = hasDesc ? (textH + 4 + descH) : textH;
+        const textBlockH = hasDesc ? textH + 4 + descH : textH;
         const maxQrAreaH = Math.max(1, usableH - textBlockH - gapDots);
 
         // versión mínima necesaria
         const len = (a.barcode ?? "").length;
         let v = 40;
-        for (let i = 0; i < QR_CAP.length; i++) if (len <= QR_CAP[i]) { v = i + 1; break; }
+        for (let i = 0; i < QR_CAP.length; i++)
+          if (len <= QR_CAP[i]) {
+            v = i + 1;
+            break;
+          }
         const modules = 21 + 4 * (v - 1);
 
         const QUIET = 2; // quiet zone por lado
         const modulesWithQuiet = modules + QUIET * 2;
 
-        const preferDots = cfg.qrSizeMm ? toDots(parseFloat(cfg.qrSizeMm)) : Math.min(usableW, maxQrAreaH);
+        const preferDots = cfg.qrSizeMm
+          ? toDots(parseFloat(cfg.qrSizeMm))
+          : Math.min(usableW, maxQrAreaH);
         let moduleSize = Math.floor(preferDots / modulesWithQuiet);
-        moduleSize = dpi >= 300 ? Math.max(2, Math.min(10, moduleSize)) : Math.max(3, Math.min(10, moduleSize));
+        moduleSize =
+          dpi >= 300
+            ? Math.max(2, Math.min(10, moduleSize))
+            : Math.max(3, Math.min(10, moduleSize));
 
         const totalSize = modulesWithQuiet * moduleSize;
         const xTotal = padX + Math.floor((usableW - totalSize) / 2) + nudgeX;
@@ -576,14 +785,20 @@ function buildZplFromState(
         // TIP: usar ^FT en lugar de ^FO (más inmune al bug de ^BY)
         const ftX = xSym;
         const ftY = ySym + modules * moduleSize; // ^FT ancla en baseline (abajo-izq)
-        z += `^FT${ftX},${ftY}^BQN,2,${moduleSize}^FDQA,${safeZ(a.barcode)}^FS\r\n`;
+        z += `^FT${ftX},${ftY}^BQN,2,${moduleSize}^FDQA,${safeZ(
+          a.barcode
+        )}^FS\r\n`;
 
         // Texto / descripción centrados debajo del área del QR
         const textStartY = padY + maxQrAreaH + gapDots;
-        z += `^FO${padX},${textStartY}^FB${usableW},1,0,C,0^A0N,${textH},${textH}^FD${safeZ(a.text)}^FS\r\n`;
+        z += `^FO${padX},${textStartY}^FB${usableW},1,0,C,0^A0N,${textH},${textH}^FD${safeZ(
+          a.text
+        )}^FS\r\n`;
         if (hasDesc) {
           const yDesc = textStartY + textH + 4;
-          z += `^FO${padX},${yDesc}^FB${usableW},1,0,C,0^A0N,${descH},${descH}^FD${safeZ(a.desc!)}^FS\r\n`;
+          z += `^FO${padX},${yDesc}^FB${usableW},1,0,C,0^A0N,${descH},${descH}^FD${safeZ(
+            a.desc!
+          )}^FS\r\n`;
         }
 
         z += "^XZ\r\n";
@@ -598,10 +813,14 @@ function buildZplFromState(
         ? parseFloat(cfg.barHeightMmWithDesc ?? cfg.barHeightMm)
         : parseFloat(cfg.barHeightMmNoDesc ?? cfg.barHeightMm);
 
-      const requestedBarH = toDots(isFinite(barMmConfig) ? barMmConfig : parseFloat(cfg.barHeightMm || "20"));
+      const requestedBarH = toDots(
+        isFinite(barMmConfig)
+          ? barMmConfig
+          : parseFloat(cfg.barHeightMm || "20")
+      );
 
       const gapBelowBars = 6;
-      const textBlockH = hasDesc ? (textH + 4 + descH) : textH;
+      const textBlockH = hasDesc ? textH + 4 + descH : textH;
       const maxBarAreaH = Math.max(1, usableH - textBlockH - gapBelowBars);
 
       const minBarDots = toDots(6);
@@ -611,20 +830,29 @@ function buildZplFromState(
       const modules1D = estimateCode128Modules(dataLen);
       let moduleW = 4;
       for (let mw = 4; mw >= 2; mw--) {
-        if (barcodeWidthDots(modules1D, mw) <= usableW) { moduleW = mw; break; }
+        if (barcodeWidthDots(modules1D, mw) <= usableW) {
+          moduleW = mw;
+          break;
+        }
       }
       const widthDots = barcodeWidthDots(modules1D, moduleW);
       const xBar = padX + Math.max(0, Math.floor((usableW - widthDots) / 2));
       const yBar = padY;
 
       // OJO: ^BY solo aquí, dentro del bloque 1D (evita afectar al QR)
-      z += `^FO${xBar},${yBar}^BY${moduleW},2,${barH}^BCN,${barH},N,N,N^FD${safeZ(a.barcode)}^FS\r\n`;
+      z += `^FO${xBar},${yBar}^BY${moduleW},2,${barH}^BCN,${barH},N,N,N^FD${safeZ(
+        a.barcode
+      )}^FS\r\n`;
 
       const yText = yBar + barH + gapBelowBars;
-      z += `^FO${padX},${yText}^FB${usableW},1,0,C,0^A0N,${textH},${textH}^FD${safeZ(a.text)}^FS\r\n`;
+      z += `^FO${padX},${yText}^FB${usableW},1,0,C,0^A0N,${textH},${textH}^FD${safeZ(
+        a.text
+      )}^FS\r\n`;
       if (hasDesc) {
         const yDesc = yText + textH + 4;
-        z += `^FO${padX},${yDesc}^FB${usableW},1,0,C,0^A0N,${descH},${descH}^FD${safeZ(a.desc!)}^FS\r\n`;
+        z += `^FO${padX},${yDesc}^FB${usableW},1,0,C,0^A0N,${descH},${descH}^FD${safeZ(
+          a.desc!
+        )}^FS\r\n`;
       }
 
       z += "^XZ\r\n";
@@ -634,7 +862,6 @@ function buildZplFromState(
 
   return out.join("");
 }
-
 
 /*******************************************************/
 
@@ -656,8 +883,9 @@ export default function LabelGenerator() {
     topShiftMm: "0",
   });
 
-  const [barcodeFormat, setBarcodeFormat] =
-    useState<"CODE128" | "CODE128B" | "QR">("CODE128");
+  const [barcodeFormat, setBarcodeFormat] = useState<
+    "CODE128" | "CODE128B" | "QR"
+  >("CODE128");
 
   const [articles, setArticles] = useState<ArticleItem[]>([]);
   const [templates, setTemplates] = useState<LabelTemplate[]>([]);
@@ -685,9 +913,9 @@ export default function LabelGenerator() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   type ImportRow = { code: string; copies: number };
   function aplicarPreset(id: string) {
-    const p = SIZE_PRESETS.find(x => x.id === id);
+    const p = SIZE_PRESETS.find((x) => x.id === id);
     if (!p) return;
-    setLabelConfig(prev => ({
+    setLabelConfig((prev) => ({
       ...prev,
       width: String(p.w),
       height: String(p.h),
@@ -697,8 +925,21 @@ export default function LabelGenerator() {
     }));
   }
   function normalizeRow(obj: any): ImportRow | null {
-    const codeKeys = ["codigo", "código", "code", "clave", "clavearticulo", "clave_articulo"];
-    const copiesKeys = ["copias", "copies", "cantidad", "qty", "cantidadcopias"];
+    const codeKeys = [
+      "codigo",
+      "código",
+      "code",
+      "clave",
+      "clavearticulo",
+      "clave_articulo",
+    ];
+    const copiesKeys = [
+      "copias",
+      "copies",
+      "cantidad",
+      "qty",
+      "cantidadcopias",
+    ];
 
     let code = "";
     let copiesRaw: any = undefined;
@@ -728,7 +969,10 @@ export default function LabelGenerator() {
       const ws = wb.Sheets[wb.SheetNames[0]];
       if (!ws) throw new Error("La hoja 1 está vacía o no existe.");
 
-      const rowsRaw: any[] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+      const rowsRaw: any[] = XLSX.utils.sheet_to_json(ws, {
+        header: 1,
+        defval: "",
+      });
       if (rowsRaw.length === 0) throw new Error("No hay datos en el archivo.");
 
       const asObjects = XLSX.utils.sheet_to_json(ws, { defval: "" }) as any[];
@@ -789,7 +1033,9 @@ export default function LabelGenerator() {
       return [
         ...prev,
         {
-          id: `${Date.now()}_${clean}_${Math.random().toString(36).slice(2, 7)}`,
+          id: `${Date.now()}_${clean}_${Math.random()
+            .toString(36)
+            .slice(2, 7)}`,
           text: clean,
           barcode: clean,
           quantity: safeQty,
@@ -847,7 +1093,8 @@ export default function LabelGenerator() {
           headers: { Accept: "application/json" },
         });
         const json = await r.json();
-        if (!r.ok || !json?.ok) throw new Error(json?.error || "No se pudieron cargar los tamaños");
+        if (!r.ok || !json?.ok)
+          throw new Error(json?.error || "No se pudieron cargar los tamaños");
         setTamanos(Array.isArray(json.data) ? json.data : []);
       } catch (e: any) {
         setTamanosError(e?.message || "Error de red");
@@ -880,17 +1127,36 @@ export default function LabelGenerator() {
   }, []);
   async function bpDetectPrinterDpi(): Promise<203 | 300 | 600> {
     const dev = await bpGetOrPickDevice();
-    const sendThenRead = (cmd: string) => new Promise<string>(res => {
-      try {
-        if (typeof dev.sendThenRead === "function")
-          dev.sendThenRead(cmd, (d: string) => res(String(d || "")), () => res(""));
-        else if (typeof dev.send === "function")
-          dev.send(cmd, () => { if (typeof dev.read === "function") dev.read((d: string) => res(String(d || "")), () => res("")); else res(""); }, () => res(""));
-        else res("");
-      } catch { res(""); }
-    });
+    const sendThenRead = (cmd: string) =>
+      new Promise<string>((res) => {
+        try {
+          if (typeof dev.sendThenRead === "function")
+            dev.sendThenRead(
+              cmd,
+              (d: string) => res(String(d || "")),
+              () => res("")
+            );
+          else if (typeof dev.send === "function")
+            dev.send(
+              cmd,
+              () => {
+                if (typeof dev.read === "function")
+                  dev.read(
+                    (d: string) => res(String(d || "")),
+                    () => res("")
+                  );
+                else res("");
+              },
+              () => res("")
+            );
+          else res("");
+        } catch {
+          res("");
+        }
+      });
 
-    const resp = (await sendThenRead("~HQES")) + "\n" + (await sendThenRead("^XA^HH^XZ"));
+    const resp =
+      (await sendThenRead("~HQES")) + "\n" + (await sendThenRead("^XA^HH^XZ"));
     const t = resp.toUpperCase();
 
     if (/203\s*DPI|DPI[:=]\s*203|RESOLUTION.*203/.test(t)) return 203 as const;
@@ -900,7 +1166,6 @@ export default function LabelGenerator() {
     // Heurística por modelo como ya tienes…
     return 203 as const;
   }
-
 
   // Config con límites
   const handleConfigChange = (key: string, value: string | boolean) => {
@@ -933,7 +1198,12 @@ export default function LabelGenerator() {
             h,
             parseFloat(prev.margin || "0")
           );
-          return { ...prev, height: String(h), barHeightMm: String(bar), qrSizeMm: String(qr) };
+          return {
+            ...prev,
+            height: String(h),
+            barHeightMm: String(bar),
+            qrSizeMm: String(qr),
+          };
         }
         return { ...prev, height: String(h), barHeightMm: String(bar) };
       }
@@ -952,7 +1222,12 @@ export default function LabelGenerator() {
             parseFloat(prev.height || "25.4"),
             margin
           );
-          return { ...prev, margin: String(margin), barHeightMm: String(bar), qrSizeMm: String(qr) };
+          return {
+            ...prev,
+            margin: String(margin),
+            barHeightMm: String(bar),
+            qrSizeMm: String(qr),
+          };
         }
         return { ...prev, margin: String(margin), barHeightMm: String(bar) };
       }
@@ -1053,7 +1328,8 @@ export default function LabelGenerator() {
     }).show();
   };
 
-  const isMobile = () => /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isMobile = () =>
+    /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   // === Impresión nativa del navegador (fallback) ===
   const handlePrint = () => {
@@ -1062,30 +1338,49 @@ export default function LabelGenerator() {
     const labelW = clampMm(parseFloat(labelConfig.width), MAX_W_MM);
     const labelH = clampMm(parseFloat(labelConfig.height), MAX_H_MM);
     const padding = Math.max(0, parseFloat(labelConfig.margin));
-    const barH = clampBarHeight(parseFloat(labelConfig.barHeightMm || "20"), labelH, padding);
+    const barH = clampBarHeight(
+      parseFloat(labelConfig.barHeightMm || "20"),
+      labelH,
+      padding
+    );
     const fontPx = parseFloat(labelConfig.fontSize);
     const fontFamily = labelConfig.font;
     const fmt = barcodeFormat;
     const showDesc = !!labelConfig.showDesc;
-    const descFontPx = Math.max(6, parseFloat(labelConfig.descFontSize || "12"));
+    const descFontPx = Math.max(
+      6,
+      parseFloat(labelConfig.descFontSize || "12")
+    );
 
     const esc = (s: string) =>
-      String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
 
     const bodyHtml = articles
       .map((a) =>
-        Array.from({ length: a.quantity }, () => `
+        Array.from(
+          { length: a.quantity },
+          () => `
       <div class="page">
         <div class="label ${fmt === "QR" ? "row" : "column"}">
-          ${fmt === "QR"
-            ? `<canvas class="qr-canvas" data-value="${a.barcode}"></canvas>`
-            : `<svg class="barcode-svg" data-value="${a.barcode}" data-format="${fmt}"></svg>`
+          ${
+            fmt === "QR"
+              ? `<canvas class="qr-canvas" data-value="${a.barcode}"></canvas>`
+              : `<svg class="barcode-svg" data-value="${a.barcode}" data-format="${fmt}"></svg>`
           }
           <div class="label-text">${esc(a.text)}</div>
-          ${showDesc && a.desc ? `<div class="desc-text">${esc(a.desc)}</div>` : ""}
+          ${
+            showDesc && a.desc
+              ? `<div class="desc-text">${esc(a.desc)}</div>`
+              : ""
+          }
         </div>
-      </div>`).join("")
-      ).join("");
+      </div>`
+        ).join("")
+      )
+      .join("");
 
     const printHtml = `
 <!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -1134,15 +1429,29 @@ ${bodyHtml}
 
     if (isMobile()) {
       const w = window.open("", "_blank", "noopener,noreferrer");
-      if (!w) { alert("Activa las ventanas emergentes para imprimir las etiquetas."); return; }
-      w.document.open(); w.document.write(printHtml); w.document.close();
+      if (!w) {
+        alert("Activa las ventanas emergentes para imprimir las etiquetas.");
+        return;
+      }
+      w.document.open();
+      w.document.write(printHtml);
+      w.document.close();
     } else {
       const iframe = document.createElement("iframe");
-      iframe.style.position = "fixed"; iframe.style.width = "0"; iframe.style.height = "0"; iframe.style.border = "0";
+      iframe.style.position = "fixed";
+      iframe.style.width = "0";
+      iframe.style.height = "0";
+      iframe.style.border = "0";
       document.body.appendChild(iframe);
       const doc = iframe.contentDocument!;
-      doc.open(); doc.write(printHtml); doc.close();
-      const cleanup = () => { try { document.body.removeChild(iframe); } catch { } };
+      doc.open();
+      doc.write(printHtml);
+      doc.close();
+      const cleanup = () => {
+        try {
+          document.body.removeChild(iframe);
+        } catch {}
+      };
       setTimeout(cleanup, 10000);
     }
   };
@@ -1151,15 +1460,26 @@ ${bodyHtml}
   const handleSmartPrint = async () => {
     if (articles.length === 0) return;
 
-    try { await ensureBrowserPrintLoaded(); } catch { }
+    try {
+      await ensureBrowserPrintLoaded();
+    } catch {}
 
     let okBP = false;
-    try { okBP = await bpIsAvailable(); } catch { okBP = false; }
+    try {
+      okBP = await bpIsAvailable();
+    } catch {
+      okBP = false;
+    }
 
     if (okBP) {
       try {
         const zpl = buildZplFromState(
-          articles.map(a => ({ barcode: a.barcode, text: a.text, quantity: a.quantity, desc: a.desc })),
+          articles.map((a) => ({
+            barcode: a.barcode,
+            text: a.text,
+            quantity: a.quantity,
+            desc: a.desc,
+          })),
           {
             width: labelConfig.width,
             height: labelConfig.height,
@@ -1170,22 +1490,33 @@ ${bodyHtml}
             showDesc: labelConfig.showDesc,
             descFontSize: labelConfig.descFontSize,
             topShiftMm: labelConfig.topShiftMm,
-            qrSizeMm: labelConfig.qrSizeMm,   // ⬅️ ya lo tienes
-            borders: true,                    // ⬅️ DIBUJA BORDES
-            borderThickness: 4,               // ⬅️ contorno y áreas (203 dpi: 4 luce bien)
-            gridThickness: 2,                   // opcional
+            qrSizeMm: labelConfig.qrSizeMm, // ⬅️ ya lo tienes
+            borders: true, // ⬅️ DIBUJA BORDES
+            borderThickness: 4, // ⬅️ contorno y áreas (203 dpi: 4 luce bien)
+            gridThickness: 2, // opcional
           },
           barcodeFormat,
           printerDpi
         );
 
-
         await bpPrintZPL(zpl);
-        new Noty({ type: "success", layout: "topRight", theme: "mint", text: `Enviado a Zebra (${printerDpi} DPI).`, timeout: 2000 }).show();
+        new Noty({
+          type: "success",
+          layout: "topRight",
+          theme: "mint",
+          text: `Enviado a Zebra (${printerDpi} DPI).`,
+          timeout: 2000,
+        }).show();
         return;
       } catch (e: any) {
         console.warn("BrowserPrint falló:", e);
-        new Noty({ type: "warning", layout: "topRight", theme: "mint", text: "No se pudo usar BrowserPrint; abriendo impresión del navegador…", timeout: 2200 }).show();
+        new Noty({
+          type: "warning",
+          layout: "topRight",
+          theme: "mint",
+          text: "No se pudo usar BrowserPrint; abriendo impresión del navegador…",
+          timeout: 2200,
+        }).show();
       }
     }
 
@@ -1226,7 +1557,8 @@ ${bodyHtml}
         });
 
         const json = await r.json();
-        if (!r.ok || !json?.ok) throw new Error(json?.error || "Error buscando artículos");
+        if (!r.ok || !json?.ok)
+          throw new Error(json?.error || "Error buscando artículos");
 
         const results = Array.isArray(json.data) ? json.data : [];
         setSearchResults(results);
@@ -1242,7 +1574,6 @@ ${bodyHtml}
             console.log("Agregar manualmente:", q);
           }
         }
-
       } catch (err: any) {
         if (err?.name !== "AbortError") {
           setSearchError(err?.message || "Error de red");
@@ -1259,8 +1590,9 @@ ${bodyHtml}
     };
   }, [labelConfig.text]);
 
-
-  const onArticleKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
+  const onArticleKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (
+    e
+  ) => {
     if (e.key === "Enter") {
       e.preventDefault();
       if (searchResults.length > 0) {
@@ -1276,19 +1608,31 @@ ${bodyHtml}
   const naturalW = mmToPx(parseFloat(labelConfig.width));
   const naturalH = mmToPx(parseFloat(labelConfig.height));
   const previewPad = Math.max(0, parseInt(labelConfig.margin));
-  const previewBarHeightPx = mmToPx(parseFloat(labelConfig.barHeightMm || "20"));
+  const previewBarHeightPx = mmToPx(
+    parseFloat(labelConfig.barHeightMm || "20")
+  );
   const previewScale = 1;
   const cellW = naturalW;
   const cellH = naturalH;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-purple-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900">
       <style jsx global>{`
         input.no-spin::-webkit-outer-spin-button,
-        input.no-spin::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-        input.no-spin { -moz-appearance: textfield; }
+        input.no-spin::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        input.no-spin {
+          -moz-appearance: textfield;
+        }
         @supports (-webkit-touch-callout: none) {
-          input, select, textarea, button { font-size: 16px; }
+          input,
+          select,
+          textarea,
+          button {
+            font-size: 16px;
+          }
         }
       `}</style>
 
@@ -1296,8 +1640,9 @@ ${bodyHtml}
         <div className="max-w-[1200px] mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-stretch min-h-0">
             {/* Izquierda */}
-            <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm h-full flex flex-col w-full">
-              <CardHeader className="border-b border-gray-600 w-full">
+            <Card className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 shadow-2xl h-full flex flex-col w-full">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
+              <CardHeader className="relative border-b border-white/5 w-full">
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <CardTitle className="flex items-center gap-2 text-white text-lg sm:text-xl">
                     <Settings className="w-5 h-5 text-purple-300" />
@@ -1306,7 +1651,11 @@ ${bodyHtml}
                   <div className="flex items-center gap-3 text-white font-light text-xs sm:text-sm">
                     <span className="shrink-0">v1.4.3</span>
                     <span className="text-purple-300">{dpiMsg}</span>
-                    <Link href="/actualizaciones" className="text-purple-300 hover:text-purple-200" title="Ver historial de actualizaciones">
+                    <Link
+                      href="/actualizaciones"
+                      className="text-purple-300 hover:text-purple-200"
+                      title="Ver historial de actualizaciones"
+                    >
                       <Info className="w-4 h-4" />
                     </Link>
                   </div>
@@ -1316,22 +1665,27 @@ ${bodyHtml}
               <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-6">
                 {/* Búsqueda / artículo */}
                 <div className="space-y-2 relative">
-                  <Label className="text-gray-100 font-medium text-sm sm:text-base">Artículo (clave)</Label>
+                  <Label className="text-gray-100 font-medium text-sm sm:text-base">
+                    Artículo (clave)
+                  </Label>
                   <div className="flex gap-2 flex-col sm:flex-row">
                     <Input
                       type="text"
                       placeholder="Busca por clave o nombre…"
                       value={labelConfig.text}
-                      onChange={(e) => handleConfigChange("text", e.target.value)}
+                      onChange={(e) =>
+                        handleConfigChange("text", e.target.value)
+                      }
                       onKeyDown={onArticleKeyDown}
-                      className="bg-gray-700 border-gray-500 text-white placeholder-gray-300 flex-1 w-full"
+                      className="bg-white/5 border-white/10 text-white placeholder-gray-400 focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 rounded-xl flex-1 w-full"
                     />
                     <Button
                       onClick={() => {
-                        if (searchResults.length > 0) addArticle(searchResults[0].claveArticulo);
+                        if (searchResults.length > 0)
+                          addArticle(searchResults[0].claveArticulo);
                         else if (labelConfig.text.trim()) addArticle();
                       }}
-                      className="bg-purple-600 hover:bg-purple-700 text-white border-0 w-full sm:w-auto"
+                      className="bg-gradient-to-br from-purple-500/30 to-blue-500/30 hover:from-purple-500/40 hover:to-blue-500/40 text-white border-0 shadow-lg shadow-purple-500/20 rounded-xl transition-all duration-200 w-full sm:w-auto"
                       disabled={!labelConfig.text.trim()}
                       title="Agregar artículo"
                     >
@@ -1341,7 +1695,7 @@ ${bodyHtml}
                   </div>
 
                   {(isSearching || searchError || searchResults.length > 0) && (
-                    <div className="absolute z-20 mt-1 w-full rounded-md border border-gray-600 bg-gray-800 shadow-lg max-h-60 overflow-y-auto">
+                    <div className="absolute z-20 mt-1 w-full rounded-xl border border-white/10 bg-black/80 backdrop-blur-xl shadow-2xl max-h-60 overflow-y-auto">
                       {isSearching && (
                         <div className="px-3 py-2 text-sm text-gray-300 flex items-center gap-2">
                           <Loader2 className="w-4 h-4 animate-spin" /> Buscando…
@@ -1352,26 +1706,40 @@ ${bodyHtml}
                           <AlertCircle className="w-4 h-4" /> {searchError}
                         </div>
                       )}
-                      {!isSearching && !searchError && searchResults.length === 0 && labelConfig.text.trim().length >= 2 && (
-                        <div className="px-3 py-2 text-sm text-gray-400">Sin resultados</div>
-                      )}
-                      {!isSearching && !searchError && searchResults.length > 0 && (
-                        <ul className="divide-y divide-gray-700">
-                          {searchResults.map((item, idx) => (
-                            <li
-                              key={`${item.claveArticulo}-${idx}`}
-                              className="px-3 py-2 text-sm text-gray-100 hover:bg-gray-700 cursor-pointer flex items-center justify-between gap-2"
-                              onClick={() => {
-                                setLabelConfig(prev => ({ ...prev, text: item.claveArticulo }));
-                                addArticle(item.claveArticulo, item.nombre);
-                              }}
-                            >
-                              <span className="truncate max-w-[60%] sm:max-w-none">{item.nombre}</span>
-                              <span className="text-purple-300 ml-2 shrink-0">{item.claveArticulo}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
+                      {!isSearching &&
+                        !searchError &&
+                        searchResults.length === 0 &&
+                        labelConfig.text.trim().length >= 2 && (
+                          <div className="px-3 py-2 text-sm text-gray-400">
+                            Sin resultados
+                          </div>
+                        )}
+                      {!isSearching &&
+                        !searchError &&
+                        searchResults.length > 0 && (
+                          <ul className="divide-y divide-gray-700">
+                            {searchResults.map((item, idx) => (
+                              <li
+                                key={`${item.claveArticulo}-${idx}`}
+                                className="px-3 py-2 text-sm text-gray-100 hover:bg-gray-700 cursor-pointer flex items-center justify-between gap-2"
+                                onClick={() => {
+                                  setLabelConfig((prev) => ({
+                                    ...prev,
+                                    text: item.claveArticulo,
+                                  }));
+                                  addArticle(item.claveArticulo, item.nombre);
+                                }}
+                              >
+                                <span className="truncate max-w-[60%] sm:max-w-none">
+                                  {item.nombre}
+                                </span>
+                                <span className="text-purple-300 ml-2 shrink-0">
+                                  {item.claveArticulo}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                     </div>
                   )}
                 </div>
@@ -1390,12 +1758,16 @@ ${bodyHtml}
                       setSelectedTamanoId("");
                     }}
                   >
-                    <SelectTrigger className="bg-gray-700 border-gray-500 text-white w-full">
+                    <SelectTrigger className="bg-white/5 border-white/10 text-white w-full rounded-xl hover:bg-white/10 transition-colors">
                       <SelectValue placeholder="Selecciona un tamaño típico" />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-700 border-gray-500 max-h-64 overflow-y-auto">
-                      {SIZE_PRESETS.map(p => (
-                        <SelectItem key={p.id} value={p.id} className="text-white">
+                    <SelectContent className="bg-gray-900 border-white/10 max-h-64 overflow-y-auto">
+                      {SIZE_PRESETS.map((p) => (
+                        <SelectItem
+                          key={p.id}
+                          value={p.id}
+                          className="text-white"
+                        >
                           {p.name}
                         </SelectItem>
                       ))}
@@ -1405,13 +1777,15 @@ ${bodyHtml}
 
                 {/* Formato */}
                 <div className="space-y-2">
-                  <Label className="text-gray-100 font-medium text-sm sm:text-base">Formato de código de barras</Label>
+                  <Label className="text-gray-100 font-medium text-sm sm:text-base">
+                    Formato de código de barras
+                  </Label>
                   <Select
                     value={barcodeFormat}
                     onValueChange={(v: "CODE128" | "CODE128B" | "QR") => {
                       setBarcodeFormat(v);
                       if (v === "QR") {
-                        setLabelConfig(prev => {
+                        setLabelConfig((prev) => {
                           const qr = clampQrSize(
                             parseFloat(prev.barHeightMm || "20"),
                             parseFloat(prev.width || "50"),
@@ -1423,52 +1797,90 @@ ${bodyHtml}
                       }
                     }}
                   >
-                    <SelectTrigger className="bg-gray-700 border-gray-500 text-white w-full">
+                    <SelectTrigger className="bg-white/5 border-white/10 text-white w-full rounded-xl hover:bg-white/10 transition-colors">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-700 border-gray-500">
-                      <SelectItem value="CODE128" className="text-white">CODE128</SelectItem>
-                      <SelectItem value="CODE128B" className="text-white">CODE128B</SelectItem>
-                      <SelectItem value="QR" className="text-white">Código QR</SelectItem>
+                    <SelectContent className="bg-gray-900 border-white/10">
+                      <SelectItem
+                        value="CODE128"
+                        className="text-white hover:bg-white/10"
+                      >
+                        CODE128
+                      </SelectItem>
+                      <SelectItem value="CODE128B" className="text-white">
+                        CODE128B
+                      </SelectItem>
+                      <SelectItem value="QR" className="text-white">
+                        Código QR
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 {/* Manual / Plantillas */}
                 <div className="flex justify-between items-center gap-3 flex-wrap">
-                  <Label className="text-gray-100 font-medium text-base">Configurar etiqueta manual</Label>
-                  <Dialog open={isTemplateModalOpen} onOpenChange={setIsTemplateModalOpen}>
+                  <Label className="text-gray-100 font-medium text-base">
+                    Configurar etiqueta manual
+                  </Label>
+                  <Dialog
+                    open={isTemplateModalOpen}
+                    onOpenChange={setIsTemplateModalOpen}
+                  >
                     <DialogTrigger asChild>
-                      <Button className="bg-purple-600 hover:bg-purple-700 text-white border-0 w-full sm:w-auto">
+                      <Button className="bg-gradient-to-br from-purple-500/30 to-blue-500/30 hover:from-purple-500/40 hover:to-blue-500/40 text-white border-0 shadow-lg shadow-purple-500/20 rounded-xl transition-all duration-200 w-full sm:w-auto">
                         <BookOpen className="w-4 h-4 mr-2" />
                         Guardar Plantilla
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="bg-gray-800 border-gray-600 text-white w-full max-w-[95vw] sm:max-w-lg">
-                      <DialogHeader><DialogTitle className="text-white">Crear Nueva Plantilla</DialogTitle></DialogHeader>
+                      <DialogHeader>
+                        <DialogTitle className="text-white">
+                          Crear Nueva Plantilla
+                        </DialogTitle>
+                      </DialogHeader>
                       <div className="space-y-4">
                         <div className="space-y-2">
-                          <Label className="text-gray-200">Nombre de la plantilla</Label>
+                          <Label className="text-gray-200">
+                            Nombre de la plantilla
+                          </Label>
                           <Input
                             type="text"
                             placeholder="Ej: Etiquetas pequeñas, Productos grandes..."
                             value={templateName}
                             onChange={(e) => setTemplateName(e.target.value)}
-                            className="bg-gray-700 border-gray-500 text-white placeholder-gray-300"
+                            className="bg-white/5 border-white/10 text-white placeholder-gray-400 focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 rounded-xl"
                           />
                         </div>
                         <div className="bg-gray-700/50 p-4 rounded-lg text-sm">
-                          <Label className="text-gray-200 text-sm">Configuración actual:</Label>
+                          <Label className="text-gray-200 text-sm">
+                            Configuración actual:
+                          </Label>
                           <div className="mt-2 space-y-1 text-gray-300">
-                            <p>Tamaño: {labelConfig.width}mm × {labelConfig.height}mm</p>
+                            <p>
+                              Tamaño: {labelConfig.width}mm ×{" "}
+                              {labelConfig.height}mm
+                            </p>
                             <p>Margen: {labelConfig.margin}mm</p>
-                            <p>Fuente: {labelConfig.font}, {labelConfig.fontSize}px</p>
+                            <p>
+                              Fuente: {labelConfig.font}, {labelConfig.fontSize}
+                              px
+                            </p>
                             <p>Alto barras: {labelConfig.barHeightMm}mm</p>
                           </div>
                         </div>
                         <div className="flex gap-2 flex-col sm:flex-row justify-end">
-                          <Button variant="ghost" onClick={() => setIsTemplateModalOpen(false)} className="text-gray-300 hover:text-white w-full sm:w-auto">Cancelar</Button>
-                          <Button onClick={saveTemplate} disabled={!templateName.trim()} className="bg-purple-600 hover:bg-purple-700 text-white w-full sm:w-auto">
+                          <Button
+                            variant="ghost"
+                            onClick={() => setIsTemplateModalOpen(false)}
+                            className="text-gray-300 hover:text-white w-full sm:w-auto"
+                          >
+                            Cancelar
+                          </Button>
+                          <Button
+                            onClick={saveTemplate}
+                            disabled={!templateName.trim()}
+                            className="bg-gradient-to-br from-purple-500/30 to-blue-500/30 hover:from-purple-500/40 hover:to-blue-500/40 text-white shadow-lg shadow-purple-500/20 rounded-xl transition-all duration-200 w-full sm:w-auto"
+                          >
                             <Save className="w-4 h-4 mr-2" /> Guardar
                           </Button>
                         </div>
@@ -1479,44 +1891,110 @@ ${bodyHtml}
 
                 {/* Medidas */}
                 <div className="space-y-2">
-                  <Label className="text-gray-100 font-medium">Margen interno (mm)</Label>
-                  <NumberField value={labelConfig.margin} onChange={(v) => handleConfigChange("margin", v)} min={1} step={0.5} ariaLabel="Margen interno en milímetros" />
+                  <Label className="text-gray-100 font-medium">
+                    Margen interno (mm)
+                  </Label>
+                  <NumberField
+                    value={labelConfig.margin}
+                    onChange={(v) => handleConfigChange("margin", v)}
+                    min={1}
+                    step={0.5}
+                    ariaLabel="Margen interno en milímetros"
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-gray-100 font-medium">Ancho (mm)</Label>
-                    <NumberField value={labelConfig.width} onChange={(v) => handleConfigChange("width", v)} min={1} max={135} step={1} ariaLabel="Ancho en milímetros" />
+                    <Label className="text-gray-100 font-medium">
+                      Ancho (mm)
+                    </Label>
+                    <NumberField
+                      value={labelConfig.width}
+                      onChange={(v) => handleConfigChange("width", v)}
+                      min={1}
+                      max={135}
+                      step={1}
+                      ariaLabel="Ancho en milímetros"
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-gray-100 font-medium">Alto (mm)</Label>
-                    <NumberField value={labelConfig.height} onChange={(v) => handleConfigChange("height", v)} min={1} max={300} step={1} ariaLabel="Alto en milímetros" />
+                    <Label className="text-gray-100 font-medium">
+                      Alto (mm)
+                    </Label>
+                    <NumberField
+                      value={labelConfig.height}
+                      onChange={(v) => handleConfigChange("height", v)}
+                      min={1}
+                      max={300}
+                      step={1}
+                      ariaLabel="Alto en milímetros"
+                    />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-gray-100 font-medium">Alto barras (mm)</Label>
-                  <NumberField value={labelConfig.barHeightMm} onChange={(v) => handleConfigChange("barHeightMm", v)} min={4} step={1} ariaLabel="Alto de las barras en milímetros" />
+                  <Label className="text-gray-100 font-medium">
+                    Alto barras (mm)
+                  </Label>
+                  <NumberField
+                    value={labelConfig.barHeightMm}
+                    onChange={(v) => handleConfigChange("barHeightMm", v)}
+                    min={4}
+                    step={1}
+                    ariaLabel="Alto de las barras en milímetros"
+                  />
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-gray-100 font-medium">Número de impresiones</Label>
-                  <NumberField value={labelConfig.quantity} onChange={(v) => handleConfigChange("quantity", v)} min={1} step={1} ariaLabel="Número de impresiones" />
+                  <Label className="text-gray-100 font-medium">
+                    Número de impresiones
+                  </Label>
+                  <NumberField
+                    value={labelConfig.quantity}
+                    onChange={(v) => handleConfigChange("quantity", v)}
+                    min={1}
+                    step={1}
+                    ariaLabel="Número de impresiones"
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-gray-100 font-medium">Tamaño del código (px)</Label>
-                    <NumberField value={labelConfig.fontSize} onChange={(v) => handleConfigChange("fontSize", v)} min={6} step={1} ariaLabel="Tamaño de fuente en píxeles" />
+                    <Label className="text-gray-100 font-medium">
+                      Tamaño del código (px)
+                    </Label>
+                    <NumberField
+                      value={labelConfig.fontSize}
+                      onChange={(v) => handleConfigChange("fontSize", v)}
+                      min={6}
+                      step={1}
+                      ariaLabel="Tamaño de fuente en píxeles"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-gray-100 font-medium">Fuente</Label>
-                    <Select value={labelConfig.font} onValueChange={(value) => handleConfigChange("font", value)}>
-                      <SelectTrigger className="bg-gray-700 border-gray-500 text-white w-full"><SelectValue /></SelectTrigger>
-                      <SelectContent className="bg-gray-700 border-gray-500">
-                        <SelectItem value="Arial" className="text-white">Arial</SelectItem>
-                        <SelectItem value="Helvetica" className="text-white">Helvetica</SelectItem>
-                        <SelectItem value="Times" className="text-white">Times</SelectItem>
+                    <Select
+                      value={labelConfig.font}
+                      onValueChange={(value) =>
+                        handleConfigChange("font", value)
+                      }
+                    >
+                      <SelectTrigger className="bg-white/5 border-white/10 text-white w-full rounded-xl hover:bg-white/10 transition-colors">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-900 border-white/10">
+                        <SelectItem
+                          value="Arial"
+                          className="text-white hover:bg-white/10"
+                        >
+                          Arial
+                        </SelectItem>
+                        <SelectItem value="Helvetica" className="text-white">
+                          Helvetica
+                        </SelectItem>
+                        <SelectItem value="Times" className="text-white">
+                          Times
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1525,34 +2003,73 @@ ${bodyHtml}
                 {/* Descripción */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="showDesc" className="text-gray-100 font-medium">Mostrar descripción</Label>
+                    <Label
+                      htmlFor="showDesc"
+                      className="text-gray-100 font-medium"
+                    >
+                      Mostrar descripción
+                    </Label>
                     <div className="flex items-center gap-2 bg-gray-700 border border-gray-500 rounded-md px-3 py-2">
-                      <input id="showDesc" type="checkbox" checked={!!labelConfig.showDesc} onChange={(e) => handleConfigChange("showDesc", e.target.checked)} className="h-4 w-4 accent-purple-600" />
-                      <span className="text-gray-200 text-sm">Imprimir texto debajo del código</span>
+                      <input
+                        id="showDesc"
+                        type="checkbox"
+                        checked={!!labelConfig.showDesc}
+                        onChange={(e) =>
+                          handleConfigChange("showDesc", e.target.checked)
+                        }
+                        className="h-4 w-4 accent-purple-600"
+                      />
+                      <span className="text-gray-200 text-sm">
+                        Imprimir texto debajo del código
+                      </span>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-gray-100 font-medium">Tamaño descripción (px)</Label>
+                    <Label className="text-gray-100 font-medium">
+                      Tamaño descripción (px)
+                    </Label>
                     <NumberField
                       value={labelConfig.descFontSize}
                       onChange={(v) => handleConfigChange("descFontSize", v)}
-                      min={6} step={1} ariaLabel="Tamaño de la descripción en píxeles"
-                      className={labelConfig.showDesc ? "" : "opacity-50 pointer-events-none"}
+                      min={6}
+                      step={1}
+                      ariaLabel="Tamaño de la descripción en píxeles"
+                      className={
+                        labelConfig.showDesc
+                          ? ""
+                          : "opacity-50 pointer-events-none"
+                      }
                     />
                   </div>
                 </div>
 
                 <div className="flex gap-3 pt-2 sm:pt-4 flex-col sm:flex-row">
-                  <Button onClick={handleSmartPrint} className="bg-gray-600 hover:bg-gray-700 text-white border-0 w-full sm:flex-1" disabled={articles.length === 0}>
-                    <Printer className="w-4 h-4 mr-2" /> Imprimir (Browser/Print)
+                  <Button
+                    onClick={handleSmartPrint}
+                    className="bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl transition-all duration-200 w-full sm:flex-1"
+                    disabled={articles.length === 0}
+                  >
+                    <Printer className="w-4 h-4 mr-2" /> Imprimir
+                    (Browser/Print)
                   </Button>
                 </div>
 
                 <div className="flex gap-3 pt-2 sm:pt-4 flex-col sm:flex-row">
-                  <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white border-0 w-full sm:w-auto" onClick={onPickExcelClick} title="Importar desde Excel/CSV">
+                  <Button
+                    size="sm"
+                    className="bg-gradient-to-br from-purple-500/30 to-blue-500/30 hover:from-purple-500/40 hover:to-blue-500/40 text-white border-0 shadow-lg shadow-purple-500/20 rounded-xl transition-all duration-200 w-full sm:w-auto"
+                    onClick={onPickExcelClick}
+                    title="Importar desde Excel/CSV"
+                  >
                     <Plus className="w-4 h-4 mr-2" /> Importar Excel
                   </Button>
-                  <Button size="sm" variant="ghost" className="text-gray-300 hover:text-white w-full sm:w-auto" onClick={downloadTemplate} title="Descargar plantilla CSV">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-gray-300 hover:text-white w-full sm:w-auto"
+                    onClick={downloadTemplate}
+                    title="Descargar plantilla CSV"
+                  >
                     Descargar plantilla
                   </Button>
                 </div>
@@ -1561,19 +2078,35 @@ ${bodyHtml}
 
             {/* Derecha: Tabla + Preview */}
             <div className="flex flex-col gap-4 sm:gap-6 h-full min-h-0">
-              <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm flex-1 flex min-h-0">
-                <CardHeader className="border-b border-gray-600 shrink-0">
+              <Card className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 shadow-2xl flex-1 flex min-h-0">
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-blue-500/5 pointer-events-none" />
+                <CardHeader className="relative border-b border-white/5 shrink-0">
                   <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <CardTitle className="text-white text-lg sm:text-xl">Artículos ({articles.length})</CardTitle>
+                    <CardTitle className="text-white text-lg sm:text-xl">
+                      Artículos ({articles.length})
+                    </CardTitle>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={onExcelInputChange} className="hidden" />
-                      <Button size="sm" variant="ghost" onClick={resetArticles} disabled={articles.length === 0}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".xlsx,.xls,.csv"
+                        onChange={onExcelInputChange}
+                        className="hidden"
+                      />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={resetArticles}
+                        disabled={articles.length === 0}
                         title="Eliminar todos los artículos"
                         className="text-red-400 hover:text-red-300 hover:bg-red-900/20 disabled:opacity-40 disabled:cursor-not-allowed"
-                        aria-label="Eliminar todos los artículos">
+                        aria-label="Eliminar todos los artículos"
+                      >
                         <RotateCcw className="w-4 h-4" />
                       </Button>
-                      <span className="text-sm text-purple-300">Total: {totalLabels} etiquetas</span>
+                      <span className="text-sm text-purple-300">
+                        Total: {totalLabels} etiquetas
+                      </span>
                     </div>
                   </div>
                 </CardHeader>
@@ -1581,20 +2114,43 @@ ${bodyHtml}
                   {articles.length === 0 ? (
                     <div className="text-center py-8 text-gray-400">
                       <p>No hay artículos agregados</p>
-                      <p className="text-sm">Busca, importa o agrega un artículo para comenzar</p>
+                      <p className="text-sm">
+                        Busca, importa o agrega un artículo para comenzar
+                      </p>
                     </div>
                   ) : (
                     <div className="space-y-2 flex-1 overflow-y-auto min-h-0">
                       {articles.map((a) => (
-                        <div key={a.id} className="flex items-center justify-between gap-3 bg-gray-700/50 p-3 rounded-lg">
+                        <div
+                          key={a.id}
+                          className="flex items-center justify-between gap-3 bg-gray-700/50 p-3 rounded-lg"
+                        >
                           <div className="flex-1 min-w-0">
-                            <p className="text-white font-medium truncate">{a.text}</p>
-                            <p className="text-gray-300 text-sm truncate">Código: {a.barcode}</p>
-                            {a.desc && <p className="text-gray-300 text-xs truncate" title={a.desc}>{a.desc}</p>}
+                            <p className="text-white font-medium truncate">
+                              {a.text}
+                            </p>
+                            <p className="text-gray-300 text-sm truncate">
+                              Código: {a.barcode}
+                            </p>
+                            {a.desc && (
+                              <p
+                                className="text-gray-300 text-xs truncate"
+                                title={a.desc}
+                              >
+                                {a.desc}
+                              </p>
+                            )}
                           </div>
                           <div className="flex items-center gap-3 shrink-0">
-                            <span className="text-purple-300 font-medium">{a.quantity}x</span>
-                            <Button size="sm" variant="ghost" onClick={() => removeArticle(a.id)} className="text-red-400 hover:text-red-300 hover:bg-red-900/20">
+                            <span className="text-purple-300 font-medium">
+                              {a.quantity}x
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => removeArticle(a.id)}
+                              className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                            >
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
@@ -1605,51 +2161,109 @@ ${bodyHtml}
                 </CardContent>
               </Card>
 
-              <Card className="bg-gray-800/80 border-gray-600 backdrop-blur-sm flex-1 flex min-h-0">
-                <CardHeader className="border-b border-gray-600 shrink-0">
+              <Card className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 shadow-2xl flex-1 flex min-h-0">
+                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-blue-500/5 pointer-events-none" />
+                <CardHeader className="relative border-b border-white/5 shrink-0">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-2">
                       <Eye className="w-5 h-5 text-purple-300" />
-                      <CardTitle className="text-white text-lg sm:text-xl">Vista Previa</CardTitle>
+                      <CardTitle className="text-white text-lg sm:text-xl">
+                        Vista Previa
+                      </CardTitle>
                     </div>
                     <p className="text-gray-300 text-xs sm:text-sm">
-                      Dimensiones: {labelConfig.width}mm × {labelConfig.height}mm — Alto barras: {labelConfig.barHeightMm}mm — Formato: {barcodeFormat}
+                      Dimensiones: {labelConfig.width}mm × {labelConfig.height}
+                      mm — Alto barras: {labelConfig.barHeightMm}mm — Formato:{" "}
+                      {barcodeFormat}
                     </p>
                   </div>
                 </CardHeader>
                 <CardContent className="p-4 sm:p-6 flex-1 flex flex-col min-h-0">
                   <div className="bg-gray-900/60 rounded-lg p-4 sm:p-8 min-h-[220px] sm:min-h-[300px] flex-1 flex items-center justify-center relative overflow-auto min-h-0">
                     {articles.length === 0 ? (
-                      <div className="text-center text-gray-400"><p>Agrega artículos para ver la vista previa</p></div>
+                      <div className="text-center text-gray-400">
+                        <p>Agrega artículos para ver la vista previa</p>
+                      </div>
                     ) : (
-                      <div className="grid gap-3 sm:gap-4 justify-center w-full"
-                        style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${cellW}px, 1fr))` }}>
+                      <div
+                        className="grid gap-3 sm:gap-4 justify-center w-full"
+                        style={{
+                          gridTemplateColumns: `repeat(auto-fit, minmax(${cellW}px, 1fr))`,
+                        }}
+                      >
                         {articles.slice(0, 1).map((a) => (
-                          <div key={a.id} className="flex items-center justify-center"
-                            style={{ width: `${cellW}px`, height: `${cellH}px`, overflow: "hidden" }}>
-                            <div className="bg-white rounded-md shadow-lg border-2 border-gray-300 flex flex-col items-center justify-center relative"
-                              style={{ width: `${naturalW}px`, height: `${naturalH}px`, transform: `scale(${previewScale})`, transformOrigin: "top left", padding: `${previewPad}px` }}>
+                          <div
+                            key={a.id}
+                            className="flex items-center justify-center"
+                            style={{
+                              width: `${cellW}px`,
+                              height: `${cellH}px`,
+                              overflow: "hidden",
+                            }}
+                          >
+                            <div
+                              className="bg-white rounded-md shadow-lg border-2 border-gray-300 flex flex-col items-center justify-center relative"
+                              style={{
+                                width: `${naturalW}px`,
+                                height: `${naturalH}px`,
+                                transform: `scale(${previewScale})`,
+                                transformOrigin: "top left",
+                                padding: `${previewPad}px`,
+                              }}
+                            >
                               {barcodeFormat === "QR" ? (
-                                <QRCodeSVG value={a.barcode} sizePx={mmToPx(parseFloat(labelConfig.qrSizeMm))} />
+                                <QRCodeSVG
+                                  value={a.barcode}
+                                  sizePx={mmToPx(
+                                    parseFloat(labelConfig.qrSizeMm)
+                                  )}
+                                />
                               ) : (
                                 <BarcodeSVG
                                   value={a.barcode}
-                                  format={barcodeFormat as "CODE128" | "CODE128B"}
+                                  format={
+                                    barcodeFormat as "CODE128" | "CODE128B"
+                                  }
                                   heightPx={previewBarHeightPx}
                                   fontFamily={labelConfig.font}
                                   fontSizePx={parseFloat(labelConfig.fontSize)}
                                 />
                               )}
 
-                              <div className="text-black text-center font-medium"
-                                style={{ fontSize: `${Math.max(10, Number.parseInt(labelConfig.fontSize) * 0.8)}px`, marginTop: "6px", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                                title={a.text}>
+                              <div
+                                className="text-black text-center font-medium"
+                                style={{
+                                  fontSize: `${Math.max(
+                                    10,
+                                    Number.parseInt(labelConfig.fontSize) * 0.8
+                                  )}px`,
+                                  marginTop: "6px",
+                                  maxWidth: "100%",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                                title={a.text}
+                              >
                                 {a.text}
                               </div>
                               {labelConfig.showDesc && a.desc && (
-                                <div className="text-black text-center"
-                                  style={{ fontSize: `${Math.max(6, parseFloat(labelConfig.descFontSize || "12"))}px`, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                                  title={a.desc}>
+                                <div
+                                  className="text-black text-center"
+                                  style={{
+                                    fontSize: `${Math.max(
+                                      6,
+                                      parseFloat(
+                                        labelConfig.descFontSize || "12"
+                                      )
+                                    )}px`,
+                                    maxWidth: "100%",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                  title={a.desc}
+                                >
                                   {a.desc}
                                 </div>
                               )}
