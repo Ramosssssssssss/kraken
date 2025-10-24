@@ -110,7 +110,7 @@ export default function InventarioFisicoPage() {
   const fechaActual = new Date().toLocaleDateString("es-MX", {
     timeZone: "America/Mexico_City",
   });
-  const descripcion = `CICLÍCO\nEnviado por: ${usuario}\nFecha: ${fechaActual}`;
+  const descripcion = `CICLICO\nEnviado por: ${usuario}\nFecha: ${fechaActual}`;
 
   const baseURL = useMemo(
     () => (apiUrl || "").trim().replace(/\/+$/, ""),
@@ -366,6 +366,14 @@ export default function InventarioFisicoPage() {
     return `${minutes}:${secs.toString().padStart(2, "0")}`;
   };
 
+  // Helper: normaliza códigos para comparación (sin caracteres especiales)
+  const normalizeClave = (clave: string): string => {
+    return String(clave || "")
+      .trim()
+      .replace(/[^a-zA-Z0-9]/g, "") // Elimina guiones, apóstrofes, espacios, etc.
+      .toUpperCase();
+  };
+
   const searchAndAddArticle = async (clave: string) => {
     setSearchingArticle(true);
     try {
@@ -389,8 +397,10 @@ export default function InventarioFisicoPage() {
         };
 
         setDetalles((prev) => {
+          // Comparar usando normalización SIN caracteres especiales
+          const normalizedSearchClave = normalizeClave(normalizedClave);
           const idx = prev.findIndex(
-            (d) => String(d.CLAVE).toUpperCase() === normalizedClave
+            (d) => normalizeClave(d.CLAVE) === normalizedSearchClave
           );
           if (idx !== -1) {
             const updated = [...prev];
@@ -449,8 +459,9 @@ export default function InventarioFisicoPage() {
       return;
     }
 
+    // Verificar si ya existe usando normalización
     const existingIndex = detalles.findIndex(
-      (d) => d.CLAVE.toUpperCase() === newClave.toUpperCase()
+      (d) => normalizeClave(d.CLAVE) === normalizeClave(newClave)
     );
     if (existingIndex >= 0) {
       showToast("Ya existe un artículo con esa clave");
@@ -581,11 +592,11 @@ export default function InventarioFisicoPage() {
       return;
     }
 
-    // Replace apostrophes with dashes (scanner issue) and any other special characters
+    // Eliminar TODOS los caracteres especiales (guiones, apóstrofes, etc.)
+    // Solo mantener números y letras
     const sanitized = (raw || "")
       .trim()
-      .replace(/'/g, "-")
-      .replace(/`/g, "-")
+      .replace(/[^a-zA-Z0-9]/g, "") // ELIMINA todos los caracteres que NO sean letras o números
       .toUpperCase();
     const code = sanitized;
 
@@ -593,7 +604,8 @@ export default function InventarioFisicoPage() {
 
     console.log(`[v0] Scanned code: "${raw}" -> Sanitized: "${code}"`);
 
-    const idx = detalles.findIndex((d) => d.CLAVE.toUpperCase() === code);
+    // Buscar usando normalización (sin caracteres especiales)
+    const idx = detalles.findIndex((d) => normalizeClave(d.CLAVE) === code);
 
     if (idx >= 0) {
       setDetalles((prev) => {

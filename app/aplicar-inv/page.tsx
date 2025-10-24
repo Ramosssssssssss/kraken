@@ -189,6 +189,31 @@ export default function AplicarInvPage() {
     const usuario = m[1].split("\n")[0].trim();
     return usuario || "—";
   }
+
+  function deconstructFolio(folio: string): string {
+    if (!folio || folio.length !== 9) return folio;
+    
+    // Encuentra la última letra
+    let lastLetterIndex = -1;
+    for (let i = 0; i < folio.length; i++) {
+      if (/[a-zA-Z]/.test(folio[i])) {
+        lastLetterIndex = i;
+      }
+    }
+    
+    if (lastLetterIndex === -1) return folio; 
+    
+    
+    const letterPart = folio.substring(0, lastLetterIndex + 1);
+    
+    
+    const numberPart = folio.substring(lastLetterIndex + 1);
+    
+    // Eliminar ceros iniciales de la parte numérica
+    const numberWithoutZeros = numberPart.replace(/^0+/, '') || '0';
+    
+    return letterPart + numberWithoutZeros;
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0a0a0f] via-[#0a0a0f] to-[#151021]">
       {/* Header */}
@@ -552,7 +577,7 @@ export default function AplicarInvPage() {
 
                             <td className="px-6 py-4">
                               <span className="inline-flex items-center gap-2 rounded-lg border border-purple-500/20 bg-purple-500/10 px-3 py-1.5 font-mono text-sm text-purple-400">
-                                {docto.FOLIO}
+                                {deconstructFolio(docto.FOLIO)}
                               </span>
                             </td>
 
@@ -683,6 +708,20 @@ function SuccessModalInline(props: {
   const { open, folio, doctoId, inserted = 0, onClose, onCopy } = props;
   if (!open) return null;
 
+  // Función para deconstruir el folio en el modal también
+  function deconstructFolio(f: string): string {
+    if (!f || f.length !== 9) return f;
+    let lastLetterIndex = -1;
+    for (let i = 0; i < f.length; i++) {
+      if (/[a-zA-Z]/.test(f[i])) lastLetterIndex = i;
+    }
+    if (lastLetterIndex === -1) return f;
+    const letterPart = f.substring(0, lastLetterIndex + 1);
+    const numberPart = f.substring(lastLetterIndex + 1);
+    const numberWithoutZeros = numberPart.replace(/^0+/, '') || '0';
+    return letterPart + numberWithoutZeros;
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div
@@ -716,7 +755,7 @@ function SuccessModalInline(props: {
               <div className="flex items-center justify-between rounded-md bg-white/6 px-3 py-2">
                 <div className="text-xs text-white/80">Folio</div>
                 <div className="font-mono text-sm text-white/95">
-                  {folio ?? "—"}
+                  {folio ? deconstructFolio(folio) : "—"}
                 </div>
               </div>
             </div>
@@ -724,7 +763,7 @@ function SuccessModalInline(props: {
             <div className="mt-5 flex gap-3">
               <button
                 onClick={() => {
-                  if (folio && onCopy) onCopy(folio);
+                  if (folio && onCopy) onCopy(folio ? deconstructFolio(folio) : folio);
                 }}
                 className="rounded-md bg-white/8 px-4 py-2 text-sm text-white/90 hover:bg-white/12"
               >
